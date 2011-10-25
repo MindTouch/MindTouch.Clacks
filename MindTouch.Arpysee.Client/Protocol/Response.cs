@@ -19,9 +19,7 @@
  */
 
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace MindTouch.Arpysee.Client.Protocol {
     public class Response {

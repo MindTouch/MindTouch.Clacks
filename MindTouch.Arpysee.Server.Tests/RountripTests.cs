@@ -78,7 +78,7 @@ namespace MindTouch.Arpysee.Server.Tests {
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12345), registry)) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", 12345)) {
-                    var n = 30000;
+                    var n = 10000;
                     var t = Stopwatch.StartNew();
                     for(var i = 0; i < n; i++) {
                         payloadstring = "payload:" + i + ":" + basepayload;
@@ -91,6 +91,31 @@ namespace MindTouch.Arpysee.Server.Tests {
                     var rate = n / t.Elapsed.TotalSeconds;
                     Console.WriteLine("Executed {0} commands at {1:0}commands/second", n, rate);
                 }
+            }
+        }
+
+        [Test]
+        public void Can_receive_many_binary_payload_with_sockets_from_pool_per_request() {
+            var basepayload = "231-]-023dm0-340-n--023fnu]23]-rumr0-]um]3-92    rujm[cwefcwjopwerunwer90nrwuiowrauioaweuneraucnunciuoaweciouwercairewcaonrwecauncu9032qu9032u90u9023u9023c9un3cun903rcun90;3rvyn90v54y9nv35q9n0;34un3qu0n'3ru0n'4vwau0pn'4wvaunw4ar9un23r]39un2r]-m3ur]nu3v=n0udrx2    m";
+            string payloadstring = "";
+            var registry = new CommandRepository();
+            registry.RegisterDefault(request => ServerResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring)));
+            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12345), registry)) {
+                Console.WriteLine("created server");
+                var n = 10000;
+                var t = Stopwatch.StartNew();
+                for(var i = 0; i < n; i++) {
+                    using(var client = new ArpyseeClient("127.0.0.1", 12345)) {
+                        payloadstring = "payload:" + i + ":" + basepayload;
+                        var response = client.Exec(new Request("foo").ExpectData());
+                        Assert.AreEqual("OK", response.Status);
+                        Assert.AreEqual(0, response.Arguments.Length);
+                        Assert.AreEqual(payloadstring, response.Data.AsText());
+                    }
+                }
+                t.Stop();
+                var rate = n / t.Elapsed.TotalSeconds;
+                Console.WriteLine("Executed {0} commands at {1:0}commands/second", n, rate);
             }
         }
 

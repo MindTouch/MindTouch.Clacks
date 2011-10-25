@@ -37,25 +37,6 @@ namespace MindTouch.Arpysee.Server {
             _socket = socket;
             _dispatcher = dispatcher;
             GetCommandData();
-            try {
-                var message = Encoding.ASCII.GetBytes("WELCOME\r\n");
-                _socket.BeginSend(message, 0, message.Length, SocketFlags.None, OnWelcomeSent, null);
-            } catch(SocketException) {
-                Dispose();
-            } catch(ObjectDisposedException) {
-                return;
-            }
-        }
-
-        private void OnWelcomeSent(IAsyncResult result) {
-            try {
-                _socket.EndSend(result);
-            } catch(SocketException) {
-                Dispose();
-            } catch(ObjectDisposedException) {
-                return;
-            }
-            ReceiveCommandData();
         }
 
         /* WorkFlow

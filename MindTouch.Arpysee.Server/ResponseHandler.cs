@@ -28,7 +28,7 @@ namespace MindTouch.Arpysee.Server {
 
         public static void SendResponse(Socket socket, IResponse response, Action<Exception> callback) {
             var handler = new ResponseHandler(socket, response);
-            handler.Exec(callback);
+            handler.Exec2(callback);
         }
 
         private readonly Socket _socket;
@@ -37,6 +37,34 @@ namespace MindTouch.Arpysee.Server {
         private ResponseHandler(Socket socket, IResponse response) {
             _socket = socket;
             _response = response;
+        }
+
+        private void Exec2(Action<Exception> callback) {
+            var sb = new StringBuilder();
+            sb.Append(_response.Status);
+            sb.Append(" ");
+            if(_response.Arguments != null) {
+                sb.Append(string.Join(" ", _response.Arguments));
+            }
+            if(_response.Payload != null) {
+                sb.Append(" ");
+                sb.Append(_response.Payload.Length);
+            }
+            sb.Append(TERMINATOR);
+            var data = Encoding.ASCII.GetBytes(sb.ToString());
+            if(_response.Payload != null) {
+                var d2 = new byte[data.Length + _response.Payload.Length + 2];
+                data.CopyTo(d2, 0);
+                Array.Copy(_response.Payload, 0, d2, data.Length, _response.Payload.Length);
+                d2[d2.Length - 2] = (byte)'\r';
+                d2[d2.Length - 1] = (byte)'\n';
+                data = d2;
+            }
+            try {
+                _socket.BeginSend(data, 0, data.Length, SocketFlags.None, r => callback(null), null);
+            } catch(Exception e) {
+                callback(e);
+            }
         }
 
         private void Exec(Action<Exception> callback) {

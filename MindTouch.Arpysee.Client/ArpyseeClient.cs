@@ -53,15 +53,7 @@ namespace MindTouch.Arpysee.Client {
             InitSocket();
         }
 
-        protected virtual void InitSocket() {
-            ValidateConnectResponse(_socket.ReceiveResponse(_buffer, false));
-        }
-
-        protected virtual void ValidateConnectResponse(Response connectResponse) {
-            if(connectResponse.Status != "WELCOME") {
-                throw new InitException();
-            }
-        }
+        protected virtual void InitSocket() {}
 
         public bool Disposed {
             get {

@@ -28,10 +28,10 @@ namespace MindTouch.Arpysee.Client.Net.Helper {
         public static ISocket Open(string host, int port, TimeSpan connectTimeout) {
             var timeout = new ManualResetEvent(false);
             Exception connectFailure = null;
-            var tcpClient = new TcpClient();
-            var ar = tcpClient.BeginConnect(host, port, r => {
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var ar = socket.BeginConnect(host, port, r => {
                 try {
-                    tcpClient.EndConnect(r);
+                    socket.EndConnect(r);
                 } catch(Exception e) {
                     connectFailure = e;
                 } finally {
@@ -40,22 +40,22 @@ namespace MindTouch.Arpysee.Client.Net.Helper {
             }, null);
 
             if(!timeout.WaitOne(connectTimeout)) {
-                tcpClient.EndConnect(ar);
+                socket.EndConnect(ar);
                 throw new TimeoutException();
             }
             if(connectFailure != null) {
                 throw new ConnectException(connectFailure);
             }
-            return new SocketAdapter(tcpClient);
+            return new SocketAdapter(socket);
         }
 
         public static ISocket Open(IPAddress address, int port, TimeSpan connectTimeout) {
             var timeout = new ManualResetEvent(false);
             Exception connectFailure = null;
-            var tcpClient = new TcpClient();
-            var ar = tcpClient.BeginConnect(address, port, r => {
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var ar = socket.BeginConnect(address, port, r => {
                 try {
-                    tcpClient.EndConnect(r);
+                    socket.EndConnect(r);
                 } catch(Exception e) {
                     connectFailure = e;
                 } finally {
@@ -64,35 +64,35 @@ namespace MindTouch.Arpysee.Client.Net.Helper {
             }, null);
 
             if(!timeout.WaitOne(connectTimeout)) {
-                tcpClient.EndConnect(ar);
+                socket.EndConnect(ar);
                 throw new TimeoutException();
             }
             if(connectFailure != null) {
                 throw new ConnectException(connectFailure);
             }
-            return new SocketAdapter(tcpClient);
+            return new SocketAdapter(socket);
         }
 
-        private readonly TcpClient _tcpClient;
+        private readonly Socket _socket;
 
-        public SocketAdapter(TcpClient tcpClient) {
-            _tcpClient = tcpClient;
+        public SocketAdapter(Socket socket) {
+            _socket = socket;
         }
 
         public void Dispose() {
-            _tcpClient.Close();
+            _socket.Close();
         }
 
         public bool Connected {
-            get { return _tcpClient.Connected; }
+            get { return _socket.Connected; }
         }
 
         public int Send(byte[] buffer, int offset, int size) {
-            return _tcpClient.Client.Send(buffer, offset, size, SocketFlags.None);
+            return _socket.Send(buffer, offset, size, SocketFlags.None);
         }
 
         public int Receive(byte[] buffer, int offset, int size) {
-            return _tcpClient.Client.Receive(buffer, offset, size, SocketFlags.None);
+            return _socket.Receive(buffer, offset, size, SocketFlags.None);
         }
     }
 }
