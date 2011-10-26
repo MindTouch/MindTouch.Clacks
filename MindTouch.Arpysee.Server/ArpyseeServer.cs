@@ -56,6 +56,7 @@ namespace MindTouch.Arpysee.Server {
         }
 
         private void OnAcceptSync(IAsyncResult result) {
+            BeginWaitForConnection();
             ArpyseeSyncClientHandler asyncClientHandler = null;
             try {
                 asyncClientHandler = new ArpyseeSyncClientHandler(_listenSocket.EndAccept(result), _dispatcher);
@@ -66,7 +67,6 @@ namespace MindTouch.Arpysee.Server {
             } catch(ObjectDisposedException) {
                 return;
             }
-            BeginWaitForConnection();
         }
 
         public void Dispose() {
