@@ -23,6 +23,6 @@ namespace MindTouch.Arpysee.Server {
     public interface IResponse {
         string Status { get;}
         string[] Arguments { get; }
-        byte[] Payload { get; }
+        byte[] Data { get; }
     }
 }

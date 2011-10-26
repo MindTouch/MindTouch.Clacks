@@ -20,15 +20,17 @@
 using System;
 
 namespace MindTouch.Arpysee.Server {
-    public class SimpleCommandHandlerFactory : ICommandHandlerFactory {
-        private readonly Func<string[], ServerResponse> _handler;
+    public class CommandHandlerFactory : ICommandHandlerFactory {
+        private readonly bool _expectData;
+        private readonly Func<IRequest, IResponse> _handler;
 
-        public SimpleCommandHandlerFactory(Func<string[], ServerResponse> handler) {
+        public CommandHandlerFactory(bool expectData, Func<IRequest, IResponse> handler) {
+            _expectData = expectData;
             _handler = handler;
         }
 
         public ICommandHandler Handle(string[] command) {
-            return new SimpleCommandHandler(command, _handler);
+            return new CommandHandler(command, _expectData, _handler);
         }
     }
 }

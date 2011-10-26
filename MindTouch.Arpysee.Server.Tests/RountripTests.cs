@@ -36,12 +36,12 @@ namespace MindTouch.Arpysee.Server.Tests {
         [Test]
         public void Can_echo_data() {
             var registry = new CommandRepository();
-            registry.RegisterDefault((request) => ServerResponse.WithStatus("ECHO").WithArguments(request));
+            registry.RegisterDefault((request) => ArpyseeResponse.WithStatus("ECHO").WithArguments(request.Arguments));
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12345), registry)) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", 12345)) {
                     Console.WriteLine("created client");
-                    var response = client.Exec(new Request("foo").AppendArgument("bar"));
+                    var response = client.Exec(new Request("ECHO").AppendArgument("foo").AppendArgument("bar"));
                     Console.WriteLine("got response");
                     Assert.AreEqual("ECHO", response.Status);
                     Assert.AreEqual(new[] { "foo", "bar" }, response.Arguments);
@@ -54,7 +54,9 @@ namespace MindTouch.Arpysee.Server.Tests {
             var payloadstring = "blahblahblah";
             var payload = Encoding.ASCII.GetBytes(payloadstring);
             var registry = new CommandRepository();
-            registry.RegisterDefault(request => ServerResponse.WithStatus("OK").WithPayload(payload));
+            registry.RegisterDefault(request => {
+                return ArpyseeResponse.WithStatus("OK").WithPayload(payload);
+            });
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12345), registry)) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", 12345)) {
@@ -79,7 +81,7 @@ namespace MindTouch.Arpysee.Server.Tests {
                     payload.Append(Guid.NewGuid().ToString());
                 }
                 payloadstring = payload.ToString();
-                return ServerResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring));
+                return ArpyseeResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring));
             });
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12345), registry)) {
                 Console.WriteLine("created server");
@@ -98,7 +100,7 @@ namespace MindTouch.Arpysee.Server.Tests {
                 }
             }
         }
-        [Test]
+        [Test, Ignore]
         public void Can_receive_many_binary_payload_from_remote() {
             using(var client = new ArpyseeClient("192.168.168.190", 12345)) {
                 var n = 10000;
@@ -120,7 +122,7 @@ namespace MindTouch.Arpysee.Server.Tests {
             var basepayload = "231-]-023dm0-340-n--023fnu]23]-rumr0-]um]3-92    rujm[cwefcwjopwerunwer90nrwuiowrauioaweuneraucnunciuoaweciouwercairewcaonrwecauncu9032qu9032u90u9023u9023c9un3cun903rcun90;3rvyn90v54y9nv35q9n0;34un3qu0n'3ru0n'4vwau0pn'4wvaunw4ar9un23r]39un2r]-m3ur]nu3v=n0udrx2    m";
             string payloadstring = "";
             var registry = new CommandRepository();
-            registry.RegisterDefault(request => ServerResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring)));
+            registry.RegisterDefault(request => ArpyseeResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring)));
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12345), registry)) {
                 Console.WriteLine("created server");
                 var n = 10000;
@@ -145,7 +147,7 @@ namespace MindTouch.Arpysee.Server.Tests {
             var basepayload = "231-]-023dm0-340-n--023fnu]23]-rumr0-]um]3-92    rujm[cwefcwjopwerunwer90nrwuiowrauioaweuneraucnunciuoaweciouwercairewcaonrwecauncu9032qu9032u90u9023u9023c9un3cun903rcun90;3rvyn90v54y9nv35q9n0;34un3qu0n'3ru0n'4vwau0pn'4wvaunw4ar9un23r]39un2r]-m3ur]nu3v=n0udrx2    m";
             string payloadstring = "";
             var registry = new CommandRepository();
-            registry.RegisterDefault(request => ServerResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring)));
+            registry.RegisterDefault(request => ArpyseeResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring)));
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12345), registry)) {
                 Console.WriteLine("created server");
                 var n = 10000;

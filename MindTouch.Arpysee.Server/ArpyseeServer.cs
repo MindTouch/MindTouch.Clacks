@@ -42,12 +42,26 @@ namespace MindTouch.Arpysee.Server {
         }
 
         private void OnAccept(IAsyncResult result) {
-            ArpyseeClientHandler clientHandler = null;
+            ArpyseeAsyncClientHandler asyncClientHandler = null;
             try {
-                clientHandler = new ArpyseeClientHandler(_listenSocket.EndAccept(result), _dispatcher);
+                asyncClientHandler = new ArpyseeAsyncClientHandler(_listenSocket.EndAccept(result), _dispatcher);
             } catch(SocketException) {
-                if(clientHandler != null) {
-                    clientHandler.Dispose();
+                if(asyncClientHandler != null) {
+                    asyncClientHandler.Dispose();
+                }
+            } catch(ObjectDisposedException) {
+                return;
+            }
+            BeginWaitForConnection();
+        }
+
+        private void OnAcceptSync(IAsyncResult result) {
+            ArpyseeSyncClientHandler asyncClientHandler = null;
+            try {
+                asyncClientHandler = new ArpyseeSyncClientHandler(_listenSocket.EndAccept(result), _dispatcher);
+            } catch(SocketException) {
+                if(asyncClientHandler != null) {
+                    asyncClientHandler.Dispose();
                 }
             } catch(ObjectDisposedException) {
                 return;

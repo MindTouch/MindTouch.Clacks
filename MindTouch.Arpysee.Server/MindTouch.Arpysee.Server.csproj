@@ -41,18 +41,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArpyseeServer.cs" />
-    <Compile Include="ArpyseeClientHandler.cs" />
+    <Compile Include="ArpyseeAsyncClientHandler.cs" />
     <Compile Include="CommandRepository.cs" />
+    <Compile Include="ArpyseeSyncClientHandler.cs" />
     <Compile Include="ICommandDispatcher.cs" />
     <Compile Include="ICommandHandler.cs" />
     <Compile Include="ICommandHandlerFactory.cs" />
     <Compile Include="ICommandRegistry.cs" />
     <Compile Include="IResponse.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ResponseHandler.cs" />
-    <Compile Include="ServerResponse.cs" />
-    <Compile Include="SimpleCommandHandler.cs" />
-    <Compile Include="SimpleCommandHandlerFactory.cs" />
+    <Compile Include="AsyncResponseHandler.cs" />
+    <Compile Include="ArpyseeResponse.cs" />
+    <Compile Include="CommandHandler.cs" />
+    <Compile Include="CommandHandlerFactory.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

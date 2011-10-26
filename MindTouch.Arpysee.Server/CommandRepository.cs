@@ -26,23 +26,20 @@ namespace MindTouch.Arpysee.Server {
         private readonly Dictionary<string, ICommandHandlerFactory> _commands = new Dictionary<string, ICommandHandlerFactory>();
         private ICommandHandlerFactory _defaultCommandHandlerFactory;
 
-        public void RegisterDefault(Func<string[], ServerResponse> handler) {
-            _defaultCommandHandlerFactory = new SimpleCommandHandlerFactory(handler);
-        }
-
-        public void Register(string command, Func<string[], ServerResponse> handler) {
-            _commands[command] = new SimpleCommandHandlerFactory(handler);
-        }
-
-        public void Register(string command, Func<string[], Action<byte[]>, ServerResponse> handler) {
-        }
-
         public ICommandHandler GetHandler(string[] command) {
             ICommandHandlerFactory commandHandlerFactory;
             if(!_commands.TryGetValue(command[0], out commandHandlerFactory)) {
                 commandHandlerFactory = _defaultCommandHandlerFactory;
             }
             return commandHandlerFactory.Handle(command);
+        }
+
+        public void RegisterDefault(Func<IRequest, IResponse> handler) {
+            _defaultCommandHandlerFactory = new CommandHandlerFactory(false, handler);
+        }
+
+        public void RegisterHandler(string command, bool expectData, Func<IRequest, IResponse> handler) {
+            _commands[command] = new CommandHandlerFactory(expectData, handler);
         }
     }
 }

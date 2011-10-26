@@ -22,8 +22,8 @@ using System.Collections.Generic;
 
 namespace MindTouch.Arpysee.Server {
     public interface ICommandHandler : IDisposable {
-        bool ExpectsPayload { get; }
-        bool ProvidePayload(byte[] chunk);
-        ServerResponse GetResponse();
+        bool ExpectsData { get; }
+        bool AddData(byte[] chunk);
+        IResponse GetResponse();
     }
 }

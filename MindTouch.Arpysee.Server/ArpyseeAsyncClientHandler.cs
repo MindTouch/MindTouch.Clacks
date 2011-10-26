@@ -22,7 +22,7 @@ using System.Net.Sockets;
 using System.Text;
 
 namespace MindTouch.Arpysee.Server {
-    public class ArpyseeClientHandler : IDisposable {
+    public class ArpyseeAsyncClientHandler : IDisposable {
 
         private readonly Socket _socket;
         private readonly ICommandDispatcher _dispatcher;
@@ -33,7 +33,7 @@ namespace MindTouch.Arpysee.Server {
         private bool _carriageReturn;
         private ICommandHandler _handler;
 
-        public ArpyseeClientHandler(Socket socket, ICommandDispatcher dispatcher) {
+        public ArpyseeAsyncClientHandler(Socket socket, ICommandDispatcher dispatcher) {
             _socket = socket;
             _dispatcher = dispatcher;
             GetCommandData();
@@ -112,7 +112,7 @@ namespace MindTouch.Arpysee.Server {
                     var command = _commandBuffer.ToString().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
                     _commandBuffer.Length = 0;
                     _handler = _dispatcher.GetHandler(command);
-                    if(_handler.ExpectsPayload) {
+                    if(_handler.ExpectsData) {
                         GetPayloadData();
                     } else {
 
@@ -166,7 +166,7 @@ namespace MindTouch.Arpysee.Server {
         private void ProcessPayloadData(int position, int length) {
             var payload = new byte[length];
             Array.Copy(_buffer, position, payload, 0, length);
-            if(_handler.ProvidePayload(payload)) {
+            if(_handler.AddData(payload)) {
                 ReceivePayloadData();
             } else {
                 ProcessResponse();
@@ -176,7 +176,7 @@ namespace MindTouch.Arpysee.Server {
         // 13/14.
         private void ProcessResponse() {
             var response = _handler.GetResponse();
-            ResponseHandler.SendResponse(_socket, response, e => {
+            AsyncResponseHandler.SendResponse(_socket, response, e => {
                 if(e != null) {
                     Dispose();
                     return;

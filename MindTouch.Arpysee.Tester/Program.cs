@@ -39,14 +39,14 @@ namespace MindTouch.Arpysee.Tester {
 
         private static void Server(IPAddress ip) {
             var registry = new CommandRepository();
-            registry.RegisterDefault(request => ServerResponse.WithStatus("UNKNOWNCOMMAND"));
-            registry.Register("ECHO", request => ServerResponse.WithStatus("ECHO").WithArguments(request));
-            registry.Register("BIN", request => {
+            registry.RegisterDefault(request => ArpyseeResponse.WithStatus("UNKNOWNCOMMAND"));
+            registry.RegisterHandler("ECHO", false, request => ArpyseeResponse.WithStatus("ECHO").WithArguments(request.Arguments));
+            registry.RegisterHandler("BIN", false, request => {
                 var payload = new StringBuilder();
                 for(var i = 0; i < 20; i++) {
                     payload.Append(Guid.NewGuid().ToString());
                 }
-                return ServerResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payload.ToString()));
+                return ArpyseeResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payload.ToString()));
             });
             Console.WriteLine("starting server to listen on {0}", ip);
             var server = new ArpyseeServer(new IPEndPoint(ip, 12345), registry);

@@ -21,8 +21,7 @@ using System;
 
 namespace MindTouch.Arpysee.Server {
     public interface ICommandRegistry {
-        void RegisterDefault(Func<string[], ServerResponse> handler);
-        void Register(string command, Func<string[], ServerResponse> handler);
-        void Register(string command, Func<string[], Action<byte[]>, ServerResponse> handler);
+        void RegisterDefault(Func<IRequest, IResponse> handler);
+        void RegisterHandler(string command, bool expectData, Func<IRequest, IResponse> handler);
     }
 }
