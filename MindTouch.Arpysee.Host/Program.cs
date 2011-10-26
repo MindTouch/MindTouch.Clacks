@@ -8,10 +8,34 @@ using MindTouch.Arpysee.Server;
 namespace MindTouch.Arpysee.Host {
     class Program {
         static void Main(string[] args) {
+            IPAddress ip = null;
+            var port = 12345;
+            if(args != null && args.Length > 0) {
+                ip = IPAddress.Parse(args[0]);
+            }
+            if(args != null && args.Length > 1) {
+                port = int.Parse(args[1]);
+            }
+            if(ip == null) {
+                var hostEntry = Dns.GetHostEntry(Dns.GetHostName());
+                ip = (
+                             from addr in hostEntry.AddressList
+                             where addr.AddressFamily.ToString() == "InterNetwork"
+                             select addr
+                         ).FirstOrDefault();
+            }
             var registry = new CommandRepository();
             registry.RegisterDefault(request => ServerResponse.WithStatus("UNKNOWNCOMMAND"));
             registry.Register("ECHO", request => ServerResponse.WithStatus("ECHO").WithArguments(request));
-            var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("192.168.0.99"), 12345), registry);
+            registry.Register("BIN", request => {
+                var payload = new StringBuilder();
+                for(var i = 0; i < 20; i++) {
+                    payload.Append(Guid.NewGuid().ToString());
+                }
+                return ServerResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payload.ToString()));
+            });
+            Console.WriteLine("starting server to listen on {0}", ip);
+            var server = new ArpyseeServer(new IPEndPoint(ip, port), registry);
             Console.ReadLine();
             server.Dispose();
         }
