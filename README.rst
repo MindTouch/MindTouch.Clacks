@@ -56,28 +56,28 @@ protocol rather than raw usage, although there is nothing about the code that en
 
 Creating a server that can echo arguments
 ::
-    // register commands
-    var registry = new CommandRepository();
-
-    // create a default handler to deal with unknown commands
-    registry.Default(
-        (request, response) =>
+    // build server
+    var server = ServerBuilder
+      .Configure(new IPEndPoint("127.0.0.1", 12345))
+      .ASyncIO()
+      .WithCommands(r => {
+        // create a default handler to deal with unknown commands
+        r.Default(
+          (request, response) =>
             response(Response.WithStatus("UNKNOWNCOMMAND"))
-    );
+        );
 
-    // create the ECHO commands
-    registry.Command(
-        "ECHO",
-        (request, response) =>
+        // create the ECHO commands
+        r.Command(
+          "ECHO",
+          (request, response) =>
             response(Response.WithStatus("ECHO").WithArguments(request.Arguments))
-    );
+        );
+      })
+      .Build();
 
     // Run the server until you press enter
-    using(var server = new ArpyseeServer(
-      new IPEndPoint("127.0.0.1", 12345),
-      registry,
-      new AsyncClientRequestHandler
-    ) {
+    using(server) {
       Console.ReadLine();
     }
 

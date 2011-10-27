@@ -47,7 +47,9 @@
     <Compile Include="AsyncClientRequestHandler.cs" />
     <Compile Include="CommandRepository.cs" />
     <Compile Include="IRequest.cs" />
+    <Compile Include="IServerBuilder.cs" />
     <Compile Include="Request.cs" />
+    <Compile Include="ServerBuilder.cs" />
     <Compile Include="SyncClientHandler.cs" />
     <Compile Include="SyncClientRequestHandler.cs" />
     <Compile Include="DataExpectation.cs" />
