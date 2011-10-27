@@ -62,7 +62,7 @@ namespace MindTouch.Arpysee.Server {
         }
 
         public void Dispose() {
-            _listenSocket.Dispose();
+            _listenSocket.Close();
         }
     }
 }

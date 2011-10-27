@@ -156,7 +156,7 @@ public void ProcessRequests() {
         protected abstract void ProcessResponse();
 
         public void Dispose() {
-            _socket.Dispose();
+            _socket.Close();
         }
     }
 }
