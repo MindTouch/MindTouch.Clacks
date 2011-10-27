@@ -31,13 +31,13 @@ commands.
 The protocol contains two kinds of data: Text lines and byte blobs. Text lines are white-space
 separated ASCII encoded commands of the format:
 
-  CMD [ARG1 ARG2 .. ARGN] [BYTECOUNT]\r\n
+  CMD [ARG1 ARG2 .. ARGn] [BYTECOUNT]\\r\\n
 
 Where CMD is the command name, followed by 0 or more ARGs and optinionally followed by the
 number of bytes to expect in a following byte blob. If the command specifies a trailing BYTECOUNT
 argument, the server expects the following line to be of the format:
 
-  BYTES\r\n
+  BYTES\\r\\n
 
 Where BYTES is BYTECOUNT bytes followed by a line terminator.
 
