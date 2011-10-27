@@ -41,7 +41,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AsyncClientHandler.cs" />
-    <Compile Include="HybridClientRequestHandler.cs" />
+    <Compile Include="AClientRequestHandler.cs" />
+    <Compile Include="DataTerminatorMissingException.cs" />
     <Compile Include="ArpyseeServer.cs" />
     <Compile Include="AsyncClientRequestHandler.cs" />
     <Compile Include="CommandRepository.cs" />
@@ -50,7 +51,6 @@
     <Compile Include="SyncClientHandler.cs" />
     <Compile Include="SyncClientRequestHandler.cs" />
     <Compile Include="DataExpectation.cs" />
-    <Compile Include="HybridClientHandler.cs" />
     <Compile Include="IClientHandler.cs" />
     <Compile Include="ICommandDispatcher.cs" />
     <Compile Include="ICommandHandler.cs" />

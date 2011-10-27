@@ -22,21 +22,9 @@ using System.Net.Sockets;
 using System.Text;
 
 namespace MindTouch.Arpysee.Server {
-    public class AsyncClientRequestHandler : IDisposable {
+    public class AsyncClientRequestHandler : AClientRequestHandler {
 
-        private readonly Socket _socket;
-        private readonly ICommandDispatcher _dispatcher;
-        private readonly StringBuilder _commandBuffer = new StringBuilder();
-        private readonly byte[] _buffer = new byte[16 * 1024];
-        private int _bufferPosition;
-        private int _bufferDataLength;
-        private bool _carriageReturn;
-        private ICommandHandler _handler;
-
-        public AsyncClientRequestHandler(Socket socket, ICommandDispatcher dispatcher) {
-            _socket = socket;
-            _dispatcher = dispatcher;
-        }
+        public AsyncClientRequestHandler(Socket socket, ICommandDispatcher dispatcher) : base(socket, dispatcher) {}
 
         /* WorkFlow
          * 1. If data in buffer go to 4.
@@ -59,17 +47,10 @@ namespace MindTouch.Arpysee.Server {
          * 18. go to 14.
          */
 
-        // 1.
-        private void GetCommandData() {
-            if(_bufferPosition != 0) {
-                ProcessCommandData(_bufferPosition, _bufferDataLength);
-            }
-            ReceiveCommandData();
-        }
-
         // 2.
-        private void ReceiveCommandData() {
+        protected override void Receive(Action<int,int> continuation) {
             try {
+                _bufferPosition = 0;
                 _socket.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, r => {
 
                     // 3.
@@ -79,7 +60,7 @@ namespace MindTouch.Arpysee.Server {
                             Dispose();
                             return;
                         }
-                        ProcessCommandData(0, received);
+                        continuation(0, received);
                     } catch(SocketException) {
                         Dispose();
                     } catch(ObjectDisposedException) {
@@ -91,89 +72,10 @@ namespace MindTouch.Arpysee.Server {
             } catch(ObjectDisposedException) {
                 return;
             }
-        }
-
-        // 4.
-        private void ProcessCommandData(int position, int length) {
-
-            // look for \r\n
-            for(var i = 0; i < length; i++) {
-                var idx = position + i;
-                if(_buffer[idx] == '\r') {
-                    _carriageReturn = true;
-                } else if(_carriageReturn && _buffer[idx] == '\n') {
-                    _carriageReturn = false;
-                    _bufferPosition = idx + 1;
-                    _bufferDataLength = length - i - 1;
-                    _commandBuffer.Append(Encoding.ASCII.GetString(_buffer, position, idx - 1));
-
-                    // 6.
-                    var command = _commandBuffer.ToString().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
-                    _commandBuffer.Length = 0;
-                    _handler = _dispatcher.GetHandler(command);
-                    if(_handler.ExpectsData) {
-                        GetPayloadData();
-                    } else {
-
-                        // 7.
-                        ProcessResponse();
-                    }
-                    return;
-                }
-            }
-            _commandBuffer.Append(Encoding.ASCII.GetString(_buffer, position, length));
-
-            // 5.
-            ReceiveCommandData();
-        }
-
-        // 8.
-        private void GetPayloadData() {
-            if(_bufferPosition != 0) {
-                ProcessPayloadData(_bufferPosition, _bufferDataLength);
-            }
-            ReceivePayloadData();
-        }
-
-        // 9.
-        private void ReceivePayloadData() {
-            try {
-                _socket.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, r => {
-
-                    // 10.
-                    try {
-                        var received = _socket.EndReceive(r);
-                        if(received == 0) {
-                            Dispose();
-                            return;
-                        }
-                        ProcessPayloadData(0, received);
-                    } catch(SocketException) {
-                        Dispose();
-                    } catch(ObjectDisposedException) {
-                        return;
-                    }
-                }, null);
-            } catch(SocketException) {
-                Dispose();
-            } catch(ObjectDisposedException) {
-                return;
-            }
-        }
-
-        // 11.
-        private void ProcessPayloadData(int position, int length) {
-            var payload = new byte[length];
-            Array.Copy(_buffer, position, payload, 0, length);
-            //if(_handler.AddData(payload)) {
-            //    ReceivePayloadData();
-            //} else {
-            //    ProcessResponse();
-            //}
         }
 
         // 13/14.
-        private void ProcessResponse() {
+        protected override void ProcessResponse() {
             _handler.GetResponse(response => AsyncResponseHandler.SendResponse(_socket, response, e => {
                 if (e != null) {
                     Dispose();
@@ -181,14 +83,6 @@ namespace MindTouch.Arpysee.Server {
                 }
                 GetCommandData();
             }));
-        }
-
-        public void Dispose() {
-            _socket.Dispose();
-        }
-
-        public void ProcessRequests() {
-            GetCommandData();
         }
     }
 }

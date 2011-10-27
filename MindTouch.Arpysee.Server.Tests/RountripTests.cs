@@ -18,15 +18,11 @@
  * limitations under the License.
  */
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
 using System.Net;
 using System.Text;
 using MindTouch.Arpysee.Client;
 using MindTouch.Arpysee.Client.Net.Helper;
-using MindTouch.Arpysee.Client.Protocol;
 using NUnit.Framework;
 
 namespace MindTouch.Arpysee.Server.Tests {
@@ -130,11 +126,6 @@ namespace MindTouch.Arpysee.Server.Tests {
         [Test]
         public void Sync_Can_receive_many_binary_payload() {
             Receive_many_binary_payloads(new SyncClientHandler());
-        }
-
-        [Test]
-        public void Hybrid_Can_receive_many_binary_payload() {
-            Receive_many_binary_payloads(new HybridClientHandler());
         }
 
         private static void Receive_many_binary_payloads(IClientHandler clientHandler) {

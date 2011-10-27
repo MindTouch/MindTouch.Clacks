@@ -21,7 +21,7 @@ namespace MindTouch.Arpysee.Tester {
             if(args.Length > 2) {
                 useAsync = args[2] == "sync";
             }
-            if( type == "server") {
+            if(type == "server") {
                 Server(ip, useAsync);
             } else {
                 Client(ip);
@@ -45,9 +45,16 @@ namespace MindTouch.Arpysee.Tester {
 
         private static void Server(IPAddress ip, bool useAsync) {
             var registry = new CommandRepository();
-            registry.Default((request,response) => response(Response.WithStatus("UNKNOWNCOMMAND")));
-            registry.Command("ECHO", (request,response) => response(Response.WithStatus("ECHO").WithArguments(request.Arguments)));
-            registry.Command("BIN", (request,response) => {
+            registry.Default(
+                (request, response) =>
+                    response(Response.WithStatus("UNKNOWNCOMMAND"))
+            );
+            registry.Command(
+                "ECHO",
+                (request, response) =>
+                    response(Response.WithStatus("ECHO").WithArguments(request.Arguments))
+            );
+            registry.Command("BIN", (request, response) => {
                 var payload = new StringBuilder();
                 for(var i = 0; i < 20; i++) {
                     payload.Append(Guid.NewGuid().ToString());
