@@ -22,9 +22,7 @@ using System.Net.Sockets;
 using System.Text;
 
 namespace MindTouch.Arpysee.Server {
-    public class ArpyseeSyncClientHandler : IDisposable {
-
-        private const string TERMINATOR = "\r\n";
+    public class AsyncClientRequestHandler : IDisposable {
 
         private readonly Socket _socket;
         private readonly ICommandDispatcher _dispatcher;
@@ -35,10 +33,9 @@ namespace MindTouch.Arpysee.Server {
         private bool _carriageReturn;
         private ICommandHandler _handler;
 
-        public ArpyseeSyncClientHandler(Socket socket, ICommandDispatcher dispatcher) {
+        public AsyncClientRequestHandler(Socket socket, ICommandDispatcher dispatcher) {
             _socket = socket;
             _dispatcher = dispatcher;
-            GetCommandData();
         }
 
         /* WorkFlow
@@ -72,20 +69,28 @@ namespace MindTouch.Arpysee.Server {
 
         // 2.
         private void ReceiveCommandData() {
-            int received;
             try {
-                received = _socket.Receive(_buffer, 0, _buffer.Length, SocketFlags.None);
-                if(received == 0) {
-                    Dispose();
-                    return;
-                }
+                _socket.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, r => {
+
+                    // 3.
+                    try {
+                        var received = _socket.EndReceive(r);
+                        if(received == 0) {
+                            Dispose();
+                            return;
+                        }
+                        ProcessCommandData(0, received);
+                    } catch(SocketException) {
+                        Dispose();
+                    } catch(ObjectDisposedException) {
+                        return;
+                    }
+                }, null);
             } catch(SocketException) {
                 Dispose();
-                return;
             } catch(ObjectDisposedException) {
                 return;
             }
-            ProcessCommandData(0, received);
         }
 
         // 4.
@@ -132,65 +137,58 @@ namespace MindTouch.Arpysee.Server {
 
         // 9.
         private void ReceivePayloadData() {
-            int received;
             try {
-                received = _socket.Receive(_buffer, 0, _buffer.Length, SocketFlags.None);
+                _socket.BeginReceive(_buffer, 0, _buffer.Length, SocketFlags.None, r => {
+
+                    // 10.
+                    try {
+                        var received = _socket.EndReceive(r);
+                        if(received == 0) {
+                            Dispose();
+                            return;
+                        }
+                        ProcessPayloadData(0, received);
+                    } catch(SocketException) {
+                        Dispose();
+                    } catch(ObjectDisposedException) {
+                        return;
+                    }
+                }, null);
             } catch(SocketException) {
                 Dispose();
-                return;
             } catch(ObjectDisposedException) {
                 return;
             }
-            ProcessPayloadData(0, received);
         }
 
         // 11.
         private void ProcessPayloadData(int position, int length) {
             var payload = new byte[length];
             Array.Copy(_buffer, position, payload, 0, length);
-            if(_handler.AddData(payload)) {
-                ReceivePayloadData();
-            } else {
-                ProcessResponse();
-            }
+            //if(_handler.AddData(payload)) {
+            //    ReceivePayloadData();
+            //} else {
+            //    ProcessResponse();
+            //}
         }
 
         // 13/14.
         private void ProcessResponse() {
-            var response = _handler.GetResponse();
-            var sb = new StringBuilder();
-            sb.Append(response.Status);
-            sb.Append(" ");
-            if(response.Arguments != null) {
-                sb.Append(string.Join(" ", response.Arguments));
-            }
-            if(response.Data != null) {
-                sb.Append(" ");
-                sb.Append(response.Data.Length);
-            }
-            sb.Append(TERMINATOR);
-            var data = Encoding.ASCII.GetBytes(sb.ToString());
-            if(response.Data != null) {
-                var d2 = new byte[data.Length + response.Data.Length + 2];
-                data.CopyTo(d2, 0);
-                Array.Copy(response.Data, 0, d2, data.Length, response.Data.Length);
-                d2[d2.Length - 2] = (byte)'\r';
-                d2[d2.Length - 1] = (byte)'\n';
-                data = d2;
-            }
-            try {
-                _socket.Send(data);
-            } catch(SocketException) {
-                Dispose();
-                return;
-            } catch(ObjectDisposedException) {
-                return;
-            }
-            GetCommandData();
+            _handler.GetResponse(response => AsyncResponseHandler.SendResponse(_socket, response, e => {
+                if (e != null) {
+                    Dispose();
+                    return;
+                }
+                GetCommandData();
+            }));
         }
 
         public void Dispose() {
             _socket.Dispose();
+        }
+
+        public void ProcessRequests() {
+            GetCommandData();
         }
     }
 }

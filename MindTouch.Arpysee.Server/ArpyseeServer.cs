@@ -25,48 +25,40 @@ namespace MindTouch.Arpysee.Server {
     public class ArpyseeServer : IDisposable {
         private readonly IPEndPoint _listenEndpoint;
         private readonly ICommandDispatcher _dispatcher;
+        private readonly IClientHandler _clientHandler;
         private readonly Socket _listenSocket;
 
-        public ArpyseeServer(IPEndPoint listenEndpoint, ICommandDispatcher dispatcher) {
+        public ArpyseeServer(IPEndPoint listenEndpoint, ICommandDispatcher dispatcher, bool asyncClientHandler)
+            : this(listenEndpoint, dispatcher, asyncClientHandler ? (IClientHandler)new AsyncClientHandler() : new SyncClientHandler()) {
+        }
+
+        public ArpyseeServer(IPEndPoint listenEndpoint, ICommandDispatcher dispatcher, IClientHandler clientHandler) {
             _listenEndpoint = listenEndpoint;
             _dispatcher = dispatcher;
+            _clientHandler = clientHandler;
             _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             _listenSocket.Bind(_listenEndpoint);
             _listenSocket.Listen(10);
-            Console.WriteLine("listening on {0}", _listenEndpoint);
             BeginWaitForConnection();
         }
 
         private void BeginWaitForConnection() {
-            _listenSocket.BeginAccept(OnAccept, _listenSocket);
+            try {
+                _listenSocket.BeginAccept(OnAccept, _listenSocket);
+            } catch(SocketException) {
+                return;
+            } catch(ObjectDisposedException) {
+                return;
+            }
         }
 
         private void OnAccept(IAsyncResult result) {
-            ArpyseeAsyncClientHandler asyncClientHandler = null;
-            try {
-                asyncClientHandler = new ArpyseeAsyncClientHandler(_listenSocket.EndAccept(result), _dispatcher);
-            } catch(SocketException) {
-                if(asyncClientHandler != null) {
-                    asyncClientHandler.Dispose();
-                }
-            } catch(ObjectDisposedException) {
-                return;
-            }
             BeginWaitForConnection();
-        }
-
-        private void OnAcceptSync(IAsyncResult result) {
-            BeginWaitForConnection();
-            ArpyseeSyncClientHandler asyncClientHandler = null;
+            AsyncClientRequestHandler asyncClientHandler = null;
             try {
-                asyncClientHandler = new ArpyseeSyncClientHandler(_listenSocket.EndAccept(result), _dispatcher);
+                _clientHandler.Handle(_listenSocket.EndAccept(result), _dispatcher);
             } catch(SocketException) {
-                if(asyncClientHandler != null) {
-                    asyncClientHandler.Dispose();
-                }
-            } catch(ObjectDisposedException) {
-                return;
-            }
+            } catch(ObjectDisposedException) { }
         }
 
         public void Dispose() {

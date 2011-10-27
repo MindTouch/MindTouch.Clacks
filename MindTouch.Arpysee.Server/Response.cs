@@ -17,11 +17,34 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System;
 
 namespace MindTouch.Arpysee.Server {
-    public interface ICommandRegistry {
-        void Default(Action<IRequest, Action<IResponse>> handler);
-        ICommandRegistration Command(string command, Action<IRequest, Action<IResponse>> handler);
+    public class Response : IResponse {
+
+        public static Response WithStatus(string status) {
+            return new Response(status);
+        }
+
+        private readonly string _status;
+        private string[] _args;
+        private byte[] _data;
+
+        private Response(string status) {
+            _status = status;
+        }
+
+        public Response WithArguments(string[] args) {
+            _args = args;
+            return this;
+        }
+
+        public Response WithPayload(byte[] payload) {
+            _data = payload;
+            return this;
+        }
+
+        string IResponse.Status { get { return _status; } }
+        string[] IResponse.Arguments { get { return _args; } }
+        byte[] IResponse.Data { get { return _data; } }
     }
 }

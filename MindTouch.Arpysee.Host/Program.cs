@@ -25,17 +25,17 @@ namespace MindTouch.Arpysee.Host {
                          ).FirstOrDefault();
             }
             var registry = new CommandRepository();
-            registry.RegisterDefault(request => ArpyseeResponse.WithStatus("UNKNOWNCOMMAND"));
-            registry.RegisterHandler("ECHO", false, request => ArpyseeResponse.WithStatus("ECHO").WithArguments(request.Arguments));
-            registry.RegisterHandler("BIN", false, request => {
+            registry.Default((request,response) => response(ArpyseeResponse.WithStatus("UNKNOWNCOMMAND")));
+            registry.Command("ECHO", (request,response) => response(ArpyseeResponse.WithStatus("ECHO").WithArguments(request.Arguments)));
+            registry.Command("BIN", (request,response) => {
                 var payload = new StringBuilder();
                 for(var i = 0; i < 20; i++) {
                     payload.Append(Guid.NewGuid().ToString());
                 }
-                return ArpyseeResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payload.ToString()));
+                response(ArpyseeResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payload.ToString())));
             });
             Console.WriteLine("starting server to listen on {0}", ip);
-            var server = new ArpyseeServer(new IPEndPoint(ip, port), registry);
+            var server = new ArpyseeServer(new IPEndPoint(ip, port), registry, true);
             Console.ReadLine();
             server.Dispose();
         }

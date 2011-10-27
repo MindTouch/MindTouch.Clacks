@@ -8,6 +8,8 @@ using System.Text;
 using MindTouch.Arpysee.Client;
 using MindTouch.Arpysee.Client.Protocol;
 using MindTouch.Arpysee.Server;
+using Request = MindTouch.Arpysee.Client.Protocol.Request;
+using Response = MindTouch.Arpysee.Server.Response;
 
 namespace MindTouch.Arpysee.Tester {
     class Program {
@@ -15,8 +17,12 @@ namespace MindTouch.Arpysee.Tester {
             var port = 12345;
             var ip = IPAddress.Parse(args[0]);
             var type = args[1];
+            var useAsync = true;
+            if(args.Length > 2) {
+                useAsync = args[2] == "sync";
+            }
             if( type == "server") {
-                Server(ip);
+                Server(ip, useAsync);
             } else {
                 Client(ip);
             }
@@ -37,19 +43,19 @@ namespace MindTouch.Arpysee.Tester {
             }
         }
 
-        private static void Server(IPAddress ip) {
+        private static void Server(IPAddress ip, bool useAsync) {
             var registry = new CommandRepository();
-            registry.RegisterDefault(request => ArpyseeResponse.WithStatus("UNKNOWNCOMMAND"));
-            registry.RegisterHandler("ECHO", false, request => ArpyseeResponse.WithStatus("ECHO").WithArguments(request.Arguments));
-            registry.RegisterHandler("BIN", false, request => {
+            registry.Default((request,response) => response(Response.WithStatus("UNKNOWNCOMMAND")));
+            registry.Command("ECHO", (request,response) => response(Response.WithStatus("ECHO").WithArguments(request.Arguments)));
+            registry.Command("BIN", (request,response) => {
                 var payload = new StringBuilder();
                 for(var i = 0; i < 20; i++) {
                     payload.Append(Guid.NewGuid().ToString());
                 }
-                return ArpyseeResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payload.ToString()));
+                response(Response.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payload.ToString())));
             });
             Console.WriteLine("starting server to listen on {0}", ip);
-            var server = new ArpyseeServer(new IPEndPoint(ip, 12345), registry);
+            var server = new ArpyseeServer(new IPEndPoint(ip, 12345), registry, useAsync);
             Console.ReadLine();
             server.Dispose();
         }

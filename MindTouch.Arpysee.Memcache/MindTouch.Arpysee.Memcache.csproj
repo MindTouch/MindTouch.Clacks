@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{07E3829C-6A07-462C-8A1C-9FC5F227AAA5}</ProjectGuid>
+    <ProjectGuid>{07100C4F-00EE-4FFB-B2EE-72767E56605C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MindTouch.Arpysee.Server</RootNamespace>
-    <AssemblyName>MindTouch.Arpysee.Server</AssemblyName>
+    <RootNamespace>MindTouch.Arpysee.Memcache</RootNamespace>
+    <AssemblyName>MindTouch.Arpysee.Memcache</AssemblyName>
     <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -40,29 +40,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AsyncClientHandler.cs" />
-    <Compile Include="HybridClientRequestHandler.cs" />
-    <Compile Include="ArpyseeServer.cs" />
-    <Compile Include="AsyncClientRequestHandler.cs" />
-    <Compile Include="CommandRepository.cs" />
-    <Compile Include="IRequest.cs" />
-    <Compile Include="Request.cs" />
-    <Compile Include="SyncClientHandler.cs" />
-    <Compile Include="SyncClientRequestHandler.cs" />
-    <Compile Include="DataExpectation.cs" />
-    <Compile Include="HybridClientHandler.cs" />
-    <Compile Include="IClientHandler.cs" />
-    <Compile Include="ICommandDispatcher.cs" />
-    <Compile Include="ICommandHandler.cs" />
-    <Compile Include="ICommandHandlerFactory.cs" />
-    <Compile Include="ICommandRegistration.cs" />
-    <Compile Include="ICommandRegistry.cs" />
-    <Compile Include="IResponse.cs" />
+    <Compile Include="MemcacheClient.cs" />
+    <Compile Include="Memcached.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="AsyncResponseHandler.cs" />
-    <Compile Include="Response.cs" />
-    <Compile Include="CommandHandler.cs" />
-    <Compile Include="CommandHandlerFactory.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

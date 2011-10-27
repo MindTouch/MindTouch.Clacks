@@ -18,19 +18,56 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 
 namespace MindTouch.Arpysee.Server {
-    public class CommandHandlerFactory : ICommandHandlerFactory {
-        private readonly bool _expectData;
-        private readonly Func<IRequest, IResponse> _handler;
+    public class CommandHandlerFactory : ICommandHandlerFactory, ICommandRegistration {
+        private DataExpectation _dataExpectation = DataExpectation.Auto;
+        private readonly Action<IRequest, Action<IResponse>> _handler;
 
-        public CommandHandlerFactory(bool expectData, Func<IRequest, IResponse> handler) {
-            _expectData = expectData;
+        public CommandHandlerFactory(Action<IRequest, Action<IResponse>> handler) {
             _handler = handler;
         }
 
-        public ICommandHandler Handle(string[] command) {
-            return new CommandHandler(command, _expectData, _handler);
+        public ICommandHandler Handle(string[] commandArgs) {
+            var command = commandArgs[0];
+            int dataLength = 0;
+            string[] arguments;
+            if(_dataExpectation == DataExpectation.Auto) {
+                if(commandArgs.Length > 1) {
+                    int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength);
+                }
+            } else if(_dataExpectation == DataExpectation.Always) {
+                if(commandArgs.Length == 1 || !int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength)) {
+                    throw new InvalidCommandException();
+                }
+            }
+            if(dataLength == 0) {
+                arguments = new string[commandArgs.Length - 1];
+                if(arguments.Length > 0) {
+                    Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
+                }
+            } else {
+                arguments = new string[commandArgs.Length - 2];
+                if(arguments.Length > 0) {
+                    Array.Copy(commandArgs, 1, arguments, 0, arguments.Length - 1);
+                }
+            }
+            return new CommandHandler(command, arguments, dataLength, _handler);
         }
+
+
+        ICommandRegistration ICommandRegistration.ExpectData() {
+            _dataExpectation = DataExpectation.Always;
+            return this;
+        }
+
+        ICommandRegistration ICommandRegistration.ExpectNoData() {
+            _dataExpectation = DataExpectation.Never;
+            return this;
+        }
+
     }
+
+    public class InvalidCommandException : Exception { }
 }

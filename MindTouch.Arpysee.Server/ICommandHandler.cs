@@ -23,7 +23,8 @@ using System.Collections.Generic;
 namespace MindTouch.Arpysee.Server {
     public interface ICommandHandler : IDisposable {
         bool ExpectsData { get; }
-        bool AddData(byte[] chunk);
-        IResponse GetResponse();
+        int OutstandingBytes { get; }
+        void AcceptData(byte[] chunk);
+        void GetResponse(Action<IResponse> callback);
     }
 }

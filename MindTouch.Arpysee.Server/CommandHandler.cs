@@ -23,38 +23,52 @@ using System.Collections.Generic;
 namespace MindTouch.Arpysee.Server {
     public class CommandHandler : ICommandHandler {
 
-        private readonly string[] _command;
-        private readonly bool _expectData;
-        private readonly Func<IRequest, IResponse> _handler;
+        private readonly string _command;
+        private readonly string[] _arguments;
+        private readonly Action<IRequest, Action<IResponse>> _handler;
         private readonly int _dataLength;
         private int _received;
-        private readonly List<byte[]> _dataChunks;
+        private List<byte[]> _dataChunks;
 
-        public CommandHandler(string[] command, bool expectData, Func<IRequest, IResponse> handler) {
+        public CommandHandler(string command, string[] arguments, int dataLength, Action<IRequest, Action<IResponse>> handler) {
             _command = command;
-            _expectData = expectData;
+            _arguments = arguments;
+            _dataLength = dataLength;
             _handler = handler;
-            if(_expectData) {
-                _dataLength = int.Parse(_command[_command.Length - 1]);
-                _dataChunks = new List<byte[]>();
-            }
         }
 
         public void Dispose() { }
 
-        public bool ExpectsData { get { return _expectData; } }
+        public bool ExpectsData { get { return _dataLength > 0; } }
 
-        public bool AddData(byte[] chunk) {
+        public int OutstandingBytes {
+            get { return _dataLength - _received; }
+        }
+
+        public void AcceptData(byte[] chunk) {
+            if(_dataChunks == null) {
+                _dataChunks = new List<byte[]>();
+            }
             _dataChunks.Add(chunk);
             _received += chunk.Length;
             if(_received > _dataLength) {
-                throw new InvalidOperationException("too much data");
+                throw new DataExpectationException(true);
             }
-            return _received == _dataLength;
         }
 
-        public IResponse GetResponse() {
-            return _handler(new ArpyseeRequest(_command, _dataLength, _dataChunks));
+        public void GetResponse(Action<IResponse> callback) {
+            if(_received < _dataLength) {
+                throw new DataExpectationException(false);
+            }
+            _handler(new Request(_command, _arguments, _dataLength, _dataChunks), callback);
+        }
+    }
+
+    public class DataExpectationException : Exception {
+        private readonly bool _tooMuchData;
+
+        public DataExpectationException(bool tooMuchData) {
+            _tooMuchData = tooMuchData;
         }
     }
 }

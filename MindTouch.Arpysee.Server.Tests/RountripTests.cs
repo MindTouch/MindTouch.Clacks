@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -34,14 +35,24 @@ namespace MindTouch.Arpysee.Server.Tests {
     public class RountripTests {
 
         [Test]
-        public void Can_echo_data() {
+        public void Async_Can_echo_data() {
+            EchoData(true);
+        }
+
+        [Test]
+        public void Sync_Can_echo_data() {
+            EchoData(false);
+        }
+
+        private static void EchoData(bool useAsync) {
+            var port = RandomPort;
             var registry = new CommandRepository();
-            registry.RegisterDefault((request) => ArpyseeResponse.WithStatus("ECHO").WithArguments(request.Arguments));
-            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12345), registry)) {
+            registry.Default((request, response) => response(Response.WithStatus("ECHO").WithArguments(request.Arguments)));
+            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, useAsync)) {
                 Console.WriteLine("created server");
-                using(var client = new ArpyseeClient("127.0.0.1", 12345)) {
+                using(var client = new ArpyseeClient("127.0.0.1", port)) {
                     Console.WriteLine("created client");
-                    var response = client.Exec(new Request("ECHO").AppendArgument("foo").AppendArgument("bar"));
+                    var response = client.Exec(new Client.Protocol.Request("ECHO").AppendArgument("foo").AppendArgument("bar"));
                     Console.WriteLine("got response");
                     Assert.AreEqual("ECHO", response.Status);
                     Assert.AreEqual(new[] { "foo", "bar" }, response.Arguments);
@@ -50,18 +61,58 @@ namespace MindTouch.Arpysee.Server.Tests {
         }
 
         [Test]
-        public void Can_receive_binary_payload() {
+        public void Async_Can_send_binary_payload_with_auto_data_detection() {
+            Can_send_binary_payload_with_auto_data_detection(new AsyncClientHandler());
+        }
+
+        [Test]
+        public void Sync_Can_send_binary_payload_with_auto_data_detection() {
+            Can_send_binary_payload_with_auto_data_detection(new SyncClientHandler());
+        }
+
+
+        private static void Can_send_binary_payload_with_auto_data_detection(IClientHandler clientHandler) {
+            var port = RandomPort;
             var payloadstring = "blahblahblah";
             var payload = Encoding.ASCII.GetBytes(payloadstring);
             var registry = new CommandRepository();
-            registry.RegisterDefault(request => {
-                return ArpyseeResponse.WithStatus("OK").WithPayload(payload);
-            });
-            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12345), registry)) {
+            registry.Default((request, response) => response(Response.WithStatus("OK").WithArguments(new[] { request.Data.Length.ToString(), Encoding.ASCII.GetString(request.Data) })));
+            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, clientHandler)) {
                 Console.WriteLine("created server");
-                using(var client = new ArpyseeClient("127.0.0.1", 12345)) {
+                using(var client = new ArpyseeClient("127.0.0.1", port)) {
                     Console.WriteLine("created client");
-                    var response = client.Exec(new Request("foo").ExpectData());
+                    var data = payloadstring.AsStream();
+                    var response = client.Exec(new Client.Protocol.Request("foo").WithData(data, data.Length));
+                    Console.WriteLine("got response");
+                    Assert.AreEqual("OK", response.Status);
+                    Assert.AreEqual(2, response.Arguments.Length);
+                    Assert.AreEqual(payload.Length.ToString(), response.Arguments[0]);
+                    Assert.AreEqual(payloadstring, response.Arguments[1]);
+                }
+            }
+        }
+
+        [Test]
+        public void Async_Can_receive_binary_payload() {
+            Receive_binary_payload(true);
+        }
+
+        [Test]
+        public void Sync_Can_receive_binary_payload() {
+            Receive_binary_payload(false);
+        }
+
+        private static void Receive_binary_payload(bool useAsync) {
+            var port = RandomPort;
+            var payloadstring = "blahblahblah";
+            var payload = Encoding.ASCII.GetBytes(payloadstring);
+            var registry = new CommandRepository();
+            registry.Default((request, response) => response(Response.WithStatus("OK").WithPayload(payload)));
+            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, useAsync)) {
+                Console.WriteLine("created server");
+                using(var client = new ArpyseeClient("127.0.0.1", port)) {
+                    Console.WriteLine("created client");
+                    var response = client.Exec(new Client.Protocol.Request("foo").ExpectData());
                     Console.WriteLine("got response");
                     Assert.AreEqual("OK", response.Status);
                     Assert.AreEqual(0, response.Arguments.Length);
@@ -72,24 +123,39 @@ namespace MindTouch.Arpysee.Server.Tests {
         }
 
         [Test]
-        public void Can_receive_many_binary_payload() {
+        public void Async_Can_receive_many_binary_payload() {
+            Receive_many_binary_payloads(new AsyncClientHandler());
+        }
+
+        [Test]
+        public void Sync_Can_receive_many_binary_payload() {
+            Receive_many_binary_payloads(new SyncClientHandler());
+        }
+
+        [Test]
+        public void Hybrid_Can_receive_many_binary_payload() {
+            Receive_many_binary_payloads(new HybridClientHandler());
+        }
+
+        private static void Receive_many_binary_payloads(IClientHandler clientHandler) {
+            var port = RandomPort;
             string payloadstring = "";
             var registry = new CommandRepository();
-            registry.RegisterDefault(request => {
+            registry.Default((request, response) => {
                 var payload = new StringBuilder();
-                for(var i = 0; i < 20; i++) {
+                for(var i = 0; i < 10; i++) {
                     payload.Append(Guid.NewGuid().ToString());
                 }
                 payloadstring = payload.ToString();
-                return ArpyseeResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring));
+                response(Response.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring)));
             });
-            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12345), registry)) {
+            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, clientHandler)) {
                 Console.WriteLine("created server");
-                using(var client = new ArpyseeClient("127.0.0.1", 12345)) {
-                    var n = 10000;
+                using(var client = new ArpyseeClient("127.0.0.1", port)) {
+                    var n = 20000;
                     var t = Stopwatch.StartNew();
                     for(var i = 0; i < n; i++) {
-                        var response = client.Exec(new Request("foo").ExpectData());
+                        var response = client.Exec(new Client.Protocol.Request("foo").ExpectData());
                         Assert.AreEqual("OK", response.Status);
                         Assert.AreEqual(0, response.Arguments.Length);
                         Assert.AreEqual(payloadstring, response.Data.AsText());
@@ -100,13 +166,14 @@ namespace MindTouch.Arpysee.Server.Tests {
                 }
             }
         }
+
         [Test, Ignore]
         public void Can_receive_many_binary_payload_from_remote() {
             using(var client = new ArpyseeClient("192.168.168.190", 12345)) {
                 var n = 10000;
                 var t = Stopwatch.StartNew();
                 for(var i = 0; i < n; i++) {
-                    var response = client.Exec(new Request("BIN").ExpectData());
+                    var response = client.Exec(new Client.Protocol.Request("BIN").ExpectData());
                     var text = response.Data.AsText();
                     //Console.WriteLine(text);
                     //return;
@@ -118,19 +185,29 @@ namespace MindTouch.Arpysee.Server.Tests {
         }
 
         [Test]
-        public void Can_receive_many_binary_payload_with_sockets_from_pool_per_request() {
+        public void Async_Can_receive_many_binary_payload_with_sockets_from_pool_per_request() {
+            Receive_many_binary_payload_with_sockets_from_pool_per_request(true);
+        }
+
+        [Test]
+        public void Sync_Can_receive_many_binary_payload_with_sockets_from_pool_per_request() {
+            Receive_many_binary_payload_with_sockets_from_pool_per_request(false);
+        }
+
+        private static void Receive_many_binary_payload_with_sockets_from_pool_per_request(bool useAsync) {
+            var port = RandomPort;
             var basepayload = "231-]-023dm0-340-n--023fnu]23]-rumr0-]um]3-92    rujm[cwefcwjopwerunwer90nrwuiowrauioaweuneraucnunciuoaweciouwercairewcaonrwecauncu9032qu9032u90u9023u9023c9un3cun903rcun90;3rvyn90v54y9nv35q9n0;34un3qu0n'3ru0n'4vwau0pn'4wvaunw4ar9un23r]39un2r]-m3ur]nu3v=n0udrx2    m";
             string payloadstring = "";
             var registry = new CommandRepository();
-            registry.RegisterDefault(request => ArpyseeResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring)));
-            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12345), registry)) {
+            registry.Default((request, response) => response(Response.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring))));
+            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, useAsync)) {
                 Console.WriteLine("created server");
                 var n = 10000;
                 var t = Stopwatch.StartNew();
                 for(var i = 0; i < n; i++) {
-                    using(var client = new ArpyseeClient("127.0.0.1", 12345)) {
+                    using(var client = new ArpyseeClient("127.0.0.1", port)) {
                         payloadstring = "payload:" + i + ":" + basepayload;
-                        var response = client.Exec(new Request("foo").ExpectData());
+                        var response = client.Exec(new Client.Protocol.Request("foo").ExpectData());
                         Assert.AreEqual("OK", response.Status);
                         Assert.AreEqual(0, response.Arguments.Length);
                         Assert.AreEqual(payloadstring, response.Data.AsText());
@@ -143,20 +220,30 @@ namespace MindTouch.Arpysee.Server.Tests {
         }
 
         [Test]
-        public void Can_receive_many_binary_payload_with_a_socket_per_request() {
+        public void Async_Can_receive_many_binary_payload_with_a_socket_per_request() {
+            Receive_many_binary_payload_with_a_socket_per_request(true);
+        }
+
+        [Test]
+        public void Sync_Can_receive_many_binary_payload_with_a_socket_per_request() {
+            Receive_many_binary_payload_with_a_socket_per_request(true);
+        }
+
+        private static void Receive_many_binary_payload_with_a_socket_per_request(bool useAsync) {
+            var port = RandomPort;
             var basepayload = "231-]-023dm0-340-n--023fnu]23]-rumr0-]um]3-92    rujm[cwefcwjopwerunwer90nrwuiowrauioaweuneraucnunciuoaweciouwercairewcaonrwecauncu9032qu9032u90u9023u9023c9un3cun903rcun90;3rvyn90v54y9nv35q9n0;34un3qu0n'3ru0n'4vwau0pn'4wvaunw4ar9un23r]39un2r]-m3ur]nu3v=n0udrx2    m";
             string payloadstring = "";
             var registry = new CommandRepository();
-            registry.RegisterDefault(request => ArpyseeResponse.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring)));
-            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12345), registry)) {
+            registry.Default((request, response) => response(Response.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payloadstring))));
+            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, useAsync)) {
                 Console.WriteLine("created server");
                 var n = 10000;
                 var t = Stopwatch.StartNew();
                 for(var i = 0; i < n; i++) {
-                    var socket = SocketAdapter.Open("127.0.0.1", 12345, TimeSpan.FromSeconds(30));
+                    var socket = SocketAdapter.Open("127.0.0.1", port, TimeSpan.FromSeconds(30));
                     using(var client = new ArpyseeClient(socket)) {
                         payloadstring = "payload:" + i + ":" + basepayload;
-                        var response = client.Exec(new Request("foo").ExpectData());
+                        var response = client.Exec(new Client.Protocol.Request("foo").ExpectData());
                         Assert.AreEqual("OK", response.Status);
                         Assert.AreEqual(0, response.Arguments.Length);
                         Assert.AreEqual(payloadstring, response.Data.AsText());
@@ -166,6 +253,10 @@ namespace MindTouch.Arpysee.Server.Tests {
                 var rate = n / t.Elapsed.TotalSeconds;
                 Console.WriteLine("Executed {0} commands at {1:0}commands/second", n, rate);
             }
+        }
+
+        private static int RandomPort {
+            get { return new Random().Next(1000, 30000); }
         }
     }
 }

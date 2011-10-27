@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MindTouch.Arpysee
  * 
  * Copyright (C) 2011 Arne F. Claassen
@@ -17,11 +17,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System;
+
+using System.Net.Sockets;
 
 namespace MindTouch.Arpysee.Server {
-    public interface ICommandRegistry {
-        void Default(Action<IRequest, Action<IResponse>> handler);
-        ICommandRegistration Command(string command, Action<IRequest, Action<IResponse>> handler);
+
+    public interface IClientHandler {
+        void Handle(Socket socket, ICommandDispatcher dispatcher);
     }
 }

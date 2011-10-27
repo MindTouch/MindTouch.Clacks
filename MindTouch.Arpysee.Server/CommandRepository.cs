@@ -34,12 +34,14 @@ namespace MindTouch.Arpysee.Server {
             return commandHandlerFactory.Handle(command);
         }
 
-        public void RegisterDefault(Func<IRequest, IResponse> handler) {
-            _defaultCommandHandlerFactory = new CommandHandlerFactory(false, handler);
+        public void Default(Action<IRequest, Action<IResponse>> handler) {
+            _defaultCommandHandlerFactory = new CommandHandlerFactory(handler);
         }
 
-        public void RegisterHandler(string command, bool expectData, Func<IRequest, IResponse> handler) {
-            _commands[command] = new CommandHandlerFactory(expectData, handler);
+        public ICommandRegistration Command(string command, Action<IRequest, Action<IResponse>> handler) {
+            var registration = new CommandHandlerFactory( handler);
+            _commands[command] = registration;
+            return registration;
         }
     }
 }
