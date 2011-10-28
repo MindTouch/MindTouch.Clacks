@@ -53,8 +53,8 @@ namespace MindTouch.Arpysee.Server {
             _handler.GetResponse(response => {
                 var sb = new StringBuilder();
                 sb.Append(response.Status);
-                sb.Append(" ");
                 if(response.Arguments != null) {
+                    sb.Append(" ");
                     sb.Append(string.Join(" ", response.Arguments));
                 }
                 if(response.Data != null) {

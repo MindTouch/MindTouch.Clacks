@@ -6,7 +6,6 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using MindTouch.Arpysee.Client;
-using MindTouch.Arpysee.Client.Protocol;
 using MindTouch.Arpysee.Server;
 using Request = MindTouch.Arpysee.Client.Request;
 using Response = MindTouch.Arpysee.Server.Response;
@@ -34,7 +33,7 @@ namespace MindTouch.Arpysee.Tester {
                 var n = 10000;
                 var t = Stopwatch.StartNew();
                 for(var i = 0; i < n; i++) {
-                    var response = client.Exec(new Request("BIN").ExpectData());
+                    var response = client.Exec(new Request("BIN").ExpectData("OK"));
                     var text = response.Data.AsText();
                 }
                 t.Stop();
@@ -47,19 +46,19 @@ namespace MindTouch.Arpysee.Tester {
             var registry = new CommandRepository();
             registry.Default(
                 (request, response) =>
-                    response(Response.WithStatus("UNKNOWNCOMMAND"))
+                    response(Response.Create("UNKNOWNCOMMAND"))
             );
             registry.Command(
                 "ECHO",
                 (request, response) =>
-                    response(Response.WithStatus("ECHO").With(request.Arguments))
+                    response(Response.Create("ECHO").WithArguments(request.Arguments))
             );
             registry.Command("BIN", (request, response) => {
                 var payload = new StringBuilder();
                 for(var i = 0; i < 20; i++) {
                     payload.Append(Guid.NewGuid().ToString());
                 }
-                response(Response.WithStatus("OK").WithData(Encoding.ASCII.GetBytes(payload.ToString())));
+                response(Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payload.ToString())));
             });
             Console.WriteLine("starting server to listen on {0}", ip);
             var server = new ArpyseeServer(new IPEndPoint(ip, 12345), registry, useAsync);

@@ -41,8 +41,8 @@ namespace MindTouch.Arpysee.Server {
         private void Exec(Action<Exception> callback) {
             var sb = new StringBuilder();
             sb.Append(_response.Status);
-            sb.Append(" ");
             if(_response.Arguments != null) {
+                sb.Append(" ");
                 sb.Append(string.Join(" ", _response.Arguments));
             }
             if(_response.Data != null) {

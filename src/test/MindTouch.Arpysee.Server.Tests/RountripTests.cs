@@ -43,12 +43,13 @@ namespace MindTouch.Arpysee.Server.Tests {
         private static void EchoData(bool useAsync) {
             var port = RandomPort;
             var registry = new CommandRepository();
-            registry.Default((request, response) => response(Response.WithStatus("ECHO").With(request.Arguments)));
+            registry.Default((request, response) => 
+                response(Response.Create("ECHO").WithArguments(request.Arguments)));
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, useAsync)) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", port)) {
                     Console.WriteLine("created client");
-                    var response = client.Exec(new Client.Request("ECHO").With("foo").With("bar"));
+                    var response = client.Exec(new Client.Request("ECHO").WithArgument("foo").WithArgument("bar"));
                     Console.WriteLine("got response");
                     Assert.AreEqual("ECHO", response.Status);
                     Assert.AreEqual(new[] { "foo", "bar" }, response.Arguments);
@@ -72,13 +73,12 @@ namespace MindTouch.Arpysee.Server.Tests {
             var payloadstring = "blahblahblah";
             var payload = Encoding.ASCII.GetBytes(payloadstring);
             var registry = new CommandRepository();
-            registry.Default((request, response) => response(Response.WithStatus("OK").With(new[] { request.Data.Length.ToString(), Encoding.ASCII.GetString(request.Data) })));
+            registry.Default((request, response) => response(Response.Create("OK").WithArguments(new[] { request.Data.Length.ToString(), Encoding.ASCII.GetString(request.Data) })));
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, clientHandler)) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", port)) {
                     Console.WriteLine("created client");
-                    var data = payloadstring.AsStream();
-                    var response = client.Exec(new Client.Request("foo").WithData(data, data.Length));
+                    var response = client.Exec(new Client.Request("foo").WithData(payload));
                     Console.WriteLine("got response");
                     Assert.AreEqual("OK", response.Status);
                     Assert.AreEqual(2, response.Arguments.Length);
@@ -103,12 +103,12 @@ namespace MindTouch.Arpysee.Server.Tests {
             var payloadstring = "blahblahblah";
             var payload = Encoding.ASCII.GetBytes(payloadstring);
             var registry = new CommandRepository();
-            registry.Default((request, response) => response(Response.WithStatus("OK").WithData(payload)));
+            registry.Default((request, response) => response(Response.Create("OK").WithData(payload)));
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, useAsync)) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", port)) {
                     Console.WriteLine("created client");
-                    var response = client.Exec(new Client.Request("foo").ExpectData());
+                    var response = client.Exec(new Client.Request("foo").ExpectData("OK"));
                     Console.WriteLine("got response");
                     Assert.AreEqual("OK", response.Status);
                     Assert.AreEqual(0, response.Arguments.Length);
@@ -138,7 +138,7 @@ namespace MindTouch.Arpysee.Server.Tests {
                     payload.Append(Guid.NewGuid().ToString());
                 }
                 payloadstring = payload.ToString();
-                response(Response.WithStatus("OK").WithData(Encoding.ASCII.GetBytes(payloadstring)));
+                response(Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring)));
             });
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, clientHandler)) {
                 Console.WriteLine("created server");
@@ -146,7 +146,7 @@ namespace MindTouch.Arpysee.Server.Tests {
                     var n = 20000;
                     var t = Stopwatch.StartNew();
                     for(var i = 0; i < n; i++) {
-                        var response = client.Exec(new Client.Request("foo").ExpectData());
+                        var response = client.Exec(new Client.Request("foo").ExpectData("OK"));
                         Assert.AreEqual("OK", response.Status);
                         Assert.AreEqual(0, response.Arguments.Length);
                         Assert.AreEqual(payloadstring, response.Data.AsText());
@@ -164,7 +164,7 @@ namespace MindTouch.Arpysee.Server.Tests {
                 var n = 10000;
                 var t = Stopwatch.StartNew();
                 for(var i = 0; i < n; i++) {
-                    var response = client.Exec(new Client.Request("BIN").ExpectData());
+                    var response = client.Exec(new Client.Request("BIN").ExpectData("OK"));
                     var text = response.Data.AsText();
                     //Console.WriteLine(text);
                     //return;
@@ -190,7 +190,7 @@ namespace MindTouch.Arpysee.Server.Tests {
             var basepayload = "231-]-023dm0-340-n--023fnu]23]-rumr0-]um]3-92    rujm[cwefcwjopwerunwer90nrwuiowrauioaweuneraucnunciuoaweciouwercairewcaonrwecauncu9032qu9032u90u9023u9023c9un3cun903rcun90;3rvyn90v54y9nv35q9n0;34un3qu0n'3ru0n'4vwau0pn'4wvaunw4ar9un23r]39un2r]-m3ur]nu3v=n0udrx2    m";
             string payloadstring = "";
             var registry = new CommandRepository();
-            registry.Default((request, response) => response(Response.WithStatus("OK").WithData(Encoding.ASCII.GetBytes(payloadstring))));
+            registry.Default((request, response) => response(Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring))));
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, useAsync)) {
                 Console.WriteLine("created server");
                 var n = 10000;
@@ -198,7 +198,7 @@ namespace MindTouch.Arpysee.Server.Tests {
                 for(var i = 0; i < n; i++) {
                     using(var client = new ArpyseeClient("127.0.0.1", port)) {
                         payloadstring = "payload:" + i + ":" + basepayload;
-                        var response = client.Exec(new Client.Request("foo").ExpectData());
+                        var response = client.Exec(new Client.Request("foo").ExpectData("OK"));
                         Assert.AreEqual("OK", response.Status);
                         Assert.AreEqual(0, response.Arguments.Length);
                         Assert.AreEqual(payloadstring, response.Data.AsText());
@@ -225,7 +225,7 @@ namespace MindTouch.Arpysee.Server.Tests {
             var basepayload = "231-]-023dm0-340-n--023fnu]23]-rumr0-]um]3-92    rujm[cwefcwjopwerunwer90nrwuiowrauioaweuneraucnunciuoaweciouwercairewcaonrwecauncu9032qu9032u90u9023u9023c9un3cun903rcun90;3rvyn90v54y9nv35q9n0;34un3qu0n'3ru0n'4vwau0pn'4wvaunw4ar9un23r]39un2r]-m3ur]nu3v=n0udrx2    m";
             string payloadstring = "";
             var registry = new CommandRepository();
-            registry.Default((request, response) => response(Response.WithStatus("OK").WithData(Encoding.ASCII.GetBytes(payloadstring))));
+            registry.Default((request, response) => response(Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring))));
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, useAsync)) {
                 Console.WriteLine("created server");
                 var n = 10000;
@@ -234,7 +234,7 @@ namespace MindTouch.Arpysee.Server.Tests {
                     var socket = SocketAdapter.Open("127.0.0.1", port, TimeSpan.FromSeconds(30));
                     using(var client = new ArpyseeClient(socket)) {
                         payloadstring = "payload:" + i + ":" + basepayload;
-                        var response = client.Exec(new Client.Request("foo").ExpectData());
+                        var response = client.Exec(new Client.Request("foo").ExpectData("OK"));
                         Assert.AreEqual("OK", response.Status);
                         Assert.AreEqual(0, response.Arguments.Length);
                         Assert.AreEqual(payloadstring, response.Data.AsText());

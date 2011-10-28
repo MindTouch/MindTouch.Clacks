@@ -19,85 +19,72 @@
  */
 
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
-using MindTouch.Arpysee.Client.Protocol;
 
 namespace MindTouch.Arpysee.Client {
-    public class Request {
+    public class Request : IRequestInfo {
 
-        private static readonly byte[] _linefeed = new[] { (byte)'\r', (byte)'\n' };
+        private const string TERMINATOR = "\r\n";
 
         public static Request Create(string command) {
             return new Request(command);
         }
 
         private readonly string _command;
-        private readonly MemoryStream _request = new MemoryStream();
-        private Stream _data;
-        private long _dataLength;
-        private bool _done;
-        private bool _expectData;
+        private readonly List<string> _arguments = new List<string>();
+        private readonly HashSet<string> _expectsData = new HashSet<string>();
+        private byte[] _data;
 
         public Request(string command) {
             _command = command;
-            _request.Write(Encoding.ASCII.GetBytes(command));
         }
 
         public string Command { get { return _command; } }
-        public bool ExpectsData { get { return _expectData; } }
-        public Request With(string arg) {
-            ThrowIfDone();
-            _request.WriteByte((byte)' ');
-            _request.Write(Encoding.ASCII.GetBytes(arg));
+
+        public Request WithArgument<T>(T arg) {
+            _arguments.Add(arg.ToString());
             return this;
         }
 
-        public Request With(uint arg) {
-            ThrowIfDone();
-            _request.WriteByte((byte)' ');
-            _request.Write(Encoding.ASCII.GetBytes(arg.ToString()));
-            return this;
-        }
-
-        public Request With(TimeSpan arg) {
-            ThrowIfDone();
-            _request.WriteByte((byte)' ');
-            _request.Write(Encoding.ASCII.GetBytes(((uint)arg.TotalSeconds).ToString()));
-            return this;
-        }
-
-        public Request WithData(Stream data, long dataLength) {
-            ThrowIfDone();
+        public Request WithData(byte[] data) {
             _data = data;
-            _dataLength = dataLength;
-            return With((uint)_dataLength);
-        }
-
-        public Request ExpectData() {
-            ThrowIfDone();
-            _expectData = true;
             return this;
         }
 
-        public RequestData[] GetData() {
-            ThrowIfDone();
-            _done = true;
-            _request.Write(_linefeed);
-            _request.Seek(0, SeekOrigin.Begin);
-            if(_data == null) {
-                return new[] { new RequestData(_request, _request.Length) };
-            }
-            if(_data.CanSeek) {
-                _data.Seek(0, SeekOrigin.Begin);
-            }
-            return new[] { new RequestData(_request, _request.Length), new RequestData(_data, _dataLength), new RequestData(_linefeed) };
+        public Request ExpectData(string status) {
+            _expectsData.Add(status);
+            return this;
         }
 
-        private void ThrowIfDone() {
-            if(_done) {
-                throw new InvalidOperationException("cannot append request after it has been converted to streams");
+        bool IRequestInfo.ExpectsData(string status) {
+            return _expectsData.Contains(status);
+        }
+
+        public byte[] AsBytes() {
+            var sb = new StringBuilder();
+            sb.Append(_command);
+            if(_arguments.Any()) {
+                sb.Append(" ");
+                sb.Append(string.Join(" ", _arguments.ToArray()));
             }
+            if(_data != null) {
+                sb.Append(" ");
+                sb.Append(_data.Length);
+            }
+            sb.Append(TERMINATOR);
+            var data = Encoding.ASCII.GetBytes(sb.ToString());
+            if(_data != null) {
+                var d2 = new byte[data.Length + _data.Length + 2];
+                data.CopyTo(d2, 0);
+                Array.Copy(_data, 0, d2, data.Length, _data.Length);
+                d2[d2.Length - 2] = (byte)'\r';
+                d2[d2.Length - 1] = (byte)'\n';
+                data = d2;
+            }
+            return data;
         }
     }
 }

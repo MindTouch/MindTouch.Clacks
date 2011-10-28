@@ -18,15 +18,12 @@
  * limitations under the License.
  */
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Net;
-using System.Text;
 using MindTouch.Arpysee.Client.Net;
-using MindTouch.Arpysee.Client.Protocol;
 
 namespace MindTouch.Arpysee.Client {
+
+    // TODO: need way to control Receive and Send timeouts
     public class ArpyseeClient : IDisposable {
         public const string DEFAULT_TUBE = "default";
         private readonly ISocket _socket;
@@ -64,8 +61,8 @@ namespace MindTouch.Arpysee.Client {
 
         public Response Exec(Request request) {
             VerifyConnection();
-            _socket.SendRequest(request, _buffer);
-            var response = _socket.ReceiveResponse(_buffer, request.ExpectsData);
+            _socket.SendRequest(request);
+            var response = _socket.ReceiveResponse(_buffer, request);
             return response;
         }
 

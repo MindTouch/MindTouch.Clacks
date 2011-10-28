@@ -64,14 +64,14 @@ Creating a server that can echo arguments
         // create a default handler to deal with unknown commands
         r.Default(
           (request, response) =>
-            response(Response.WithStatus("UNKNOWNCOMMAND"))
+            response(Response.Create("UNKNOWNCOMMAND"))
         );
 
         // create the ECHO commands
         r.Command(
           "ECHO",
           (request, response) =>
-            response(Response.WithStatus("ECHO").WithArguments(request.Arguments))
+            response(Response.Create("ECHO").WithArguments(request.Arguments))
         );
       })
       .Build();
@@ -86,7 +86,7 @@ Calling the server to echo some arguments
     // create a client (uses default connection pool
     using(var client = new ArpyseeClient("127.0.0.1, 12345)) {
       var response = client.Exec(
-        new Request("ECHO")
+        Request.Create("ECHO")
           .WithArgument("hi")
           .WithArgument("there")
       );

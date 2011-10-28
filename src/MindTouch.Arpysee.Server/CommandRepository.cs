@@ -27,7 +27,7 @@ namespace MindTouch.Arpysee.Server {
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
         private readonly Dictionary<string, ICommandHandlerFactory> _commands = new Dictionary<string, ICommandHandlerFactory>();
-        private ICommandHandlerFactory _defaultCommandHandlerFactory;
+        private ICommandHandlerFactory _defaultCommandHandlerFactory = new CommandHandlerFactory((r, c) => c(Response.Create("UNKNOWN")));
         private Action<IRequest, Exception, Action<IResponse>> _errorHandler;
 
         public ICommandHandler GetHandler(string[] command) {
@@ -47,7 +47,7 @@ namespace MindTouch.Arpysee.Server {
             } catch(Exception e) {
                 _log.Warn(string.Format("The error handler failed on exception of type {0}", ex.GetType()), e);
             }
-            response(Response.WithStatus("ERROR").With(ex.Message).WithData(Encoding.ASCII.GetBytes(ex.StackTrace)));
+            response(Response.Create("ERROR").WithArgument(ex.Message).WithData(Encoding.ASCII.GetBytes(ex.StackTrace)));
         }
 
         public void Default(Action<IRequest, Action<IResponse>> handler) {

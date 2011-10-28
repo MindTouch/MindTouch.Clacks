@@ -23,7 +23,7 @@ using System.Collections.Generic;
 namespace MindTouch.Arpysee.Server {
     public class Response : IResponse {
 
-        public static Response WithStatus(string status) {
+        public static Response Create(string status) {
             return new Response(status);
         }
 
@@ -35,12 +35,12 @@ namespace MindTouch.Arpysee.Server {
             _status = status;
         }
 
-        public Response With(string[] args) {
+        public Response WithArguments(string[] args) {
             _args.AddRange(args);
             return this;
         }
 
-        public Response With<T>(T arg) {
+        public Response WithArgument<T>(T arg) {
             _args.Add(arg.ToString());
             return this;
         }

@@ -28,24 +28,23 @@ namespace MindTouch.Arpysee.Client {
         private readonly long _dataLength;
         private readonly MemoryStream _data;
 
-        public Response(string response, bool expectData) {
-            var tokens = response.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            if(tokens.Length == 0) {
+        public Response(string[] response, bool expectData) {
+            if(response.Length == 0) {
                 throw new EmptyResponseException();
             }
-            Status = tokens[0];
+            Status = response[0];
             if(!expectData) {
-                Arguments = new string[tokens.Length - 1];
+                Arguments = new string[response.Length - 1];
                 if(Arguments.Length > 0) {
-                    Array.Copy(tokens, 1, Arguments, 0, Arguments.Length);
+                    Array.Copy(response, 1, Arguments, 0, Arguments.Length);
                 }
                 return;
             }
-            Arguments = new string[tokens.Length - 2];
+            Arguments = new string[response.Length - 2];
             if(Arguments.Length > 1) {
-                Array.Copy(tokens, 1, Arguments, 0, Arguments.Length - 1);
+                Array.Copy(response, 1, Arguments, 0, Arguments.Length - 1);
             }
-            _dataLength = long.Parse(tokens[tokens.Length - 1]);
+            _dataLength = long.Parse(response[response.Length - 1]);
             _data = new MemoryStream((int)_dataLength);
         }
 

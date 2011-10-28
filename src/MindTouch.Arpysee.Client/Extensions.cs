@@ -22,29 +22,16 @@ using System.IO;
 using System.Text;
 using MindTouch.Arpysee.Client.Net;
 
-namespace MindTouch.Arpysee.Client.Protocol {
+namespace MindTouch.Arpysee.Client {
     public static class Extensions {
 
         public static void Write(this Stream stream, byte[] buffer) {
             stream.Write(buffer, 0, buffer.Length);
         }
 
-        public static void SendRequest(this ISocket socket, Request request, byte[] buffer) {
-            var offset = 0;
-            foreach(var info in request.GetData()) {
-                while(info.HasData) {
-                    offset = info.FillBuffer(buffer, offset);
-                    if(offset < buffer.Length) {
-                        continue;
-                    }
-                    socket.SendBuffer(buffer, offset);
-                    offset = 0;
-                }
-            }
-            if(offset == 0) {
-                return;
-            }
-            socket.SendBuffer(buffer, offset);
+        public static void SendRequest(this ISocket socket, Request request) {
+            var bytes = request.AsBytes();
+            socket.SendBuffer(bytes,bytes.Length);
         }
 
         private static void SendBuffer(this ISocket socket, byte[] buffer, int count) {
@@ -56,7 +43,7 @@ namespace MindTouch.Arpysee.Client.Protocol {
             }
         }
 
-        public static Response ReceiveResponse(this ISocket socket, byte[] buffer, bool expectData) {
+        public static Response ReceiveResponse(this ISocket socket, byte[] buffer, IRequestInfo request) {
 
             // read status line
             var totalRead = 0;
@@ -80,7 +67,8 @@ namespace MindTouch.Arpysee.Client.Protocol {
                 }
                 totalRead += read;
             }
-            var response = new Response(Encoding.ASCII.GetString(buffer, 0, lineEndIndex - 1), expectData);
+            var responseLine = Encoding.ASCII.GetString(buffer, 0, lineEndIndex - 1).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            var response = new Response(responseLine, request.ExpectsData(responseLine[0]));
             var expectedDataBytes = response.DataLength;
             if(expectedDataBytes == 0) {
                 return response;
