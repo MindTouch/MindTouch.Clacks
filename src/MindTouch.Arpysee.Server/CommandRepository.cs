@@ -19,12 +19,16 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace MindTouch.Arpysee.Server {
     public class CommandRepository : ICommandRegistry, ICommandDispatcher {
 
+        private static readonly Logger.ILog _log = Logger.CreateLog();
+
         private readonly Dictionary<string, ICommandHandlerFactory> _commands = new Dictionary<string, ICommandHandlerFactory>();
         private ICommandHandlerFactory _defaultCommandHandlerFactory;
+        private Action<IRequest, Exception, Action<IResponse>> _errorHandler;
 
         public ICommandHandler GetHandler(string[] command) {
             ICommandHandlerFactory commandHandlerFactory;
@@ -34,12 +38,28 @@ namespace MindTouch.Arpysee.Server {
             return commandHandlerFactory.Handle(command);
         }
 
+        public void HandleError(IRequest request, Exception ex, Action<IResponse> response) {
+            try {
+                if(_errorHandler != null) {
+                    _errorHandler(request, ex, response);
+                    return;
+                }
+            } catch(Exception e) {
+                _log.Warn(string.Format("The error handler failed on exception of type {0}", ex.GetType()), e);
+            }
+            response(Response.WithStatus("ERROR").With(ex.Message).WithData(Encoding.ASCII.GetBytes(ex.StackTrace)));
+        }
+
         public void Default(Action<IRequest, Action<IResponse>> handler) {
             _defaultCommandHandlerFactory = new CommandHandlerFactory(handler);
         }
 
+        public void Error(Action<IRequest, Exception, Action<IResponse>> handler) {
+            _errorHandler = handler;
+        }
+
         public ICommandRegistration Command(string command, Action<IRequest, Action<IResponse>> handler) {
-            var registration = new CommandHandlerFactory( handler);
+            var registration = new CommandHandlerFactory(handler);
             _commands[command] = registration;
             return registration;
         }

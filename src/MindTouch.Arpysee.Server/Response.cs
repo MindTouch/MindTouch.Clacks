@@ -18,6 +18,8 @@
  * limitations under the License.
  */
 
+using System.Collections.Generic;
+
 namespace MindTouch.Arpysee.Server {
     public class Response : IResponse {
 
@@ -26,25 +28,30 @@ namespace MindTouch.Arpysee.Server {
         }
 
         private readonly string _status;
-        private string[] _args;
+        private readonly List<string> _args = new List<string>();
         private byte[] _data;
 
         private Response(string status) {
             _status = status;
         }
 
-        public Response WithArguments(string[] args) {
-            _args = args;
+        public Response With(string[] args) {
+            _args.AddRange(args);
             return this;
         }
 
-        public Response WithPayload(byte[] payload) {
+        public Response With<T>(T arg) {
+            _args.Add(arg.ToString());
+            return this;
+        }
+
+        public Response WithData(byte[] payload) {
             _data = payload;
             return this;
         }
 
         string IResponse.Status { get { return _status; } }
-        string[] IResponse.Arguments { get { return _args; } }
+        string[] IResponse.Arguments { get { return _args.ToArray(); } }
         byte[] IResponse.Data { get { return _data; } }
     }
 }

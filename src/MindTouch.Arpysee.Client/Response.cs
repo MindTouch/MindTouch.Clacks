@@ -21,7 +21,7 @@
 using System;
 using System.IO;
 
-namespace MindTouch.Arpysee.Client.Protocol {
+namespace MindTouch.Arpysee.Client {
     public class Response {
         public readonly string Status;
         public readonly string[] Arguments;

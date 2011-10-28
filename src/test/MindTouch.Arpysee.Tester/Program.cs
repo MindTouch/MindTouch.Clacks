@@ -8,7 +8,7 @@ using System.Text;
 using MindTouch.Arpysee.Client;
 using MindTouch.Arpysee.Client.Protocol;
 using MindTouch.Arpysee.Server;
-using Request = MindTouch.Arpysee.Client.Protocol.Request;
+using Request = MindTouch.Arpysee.Client.Request;
 using Response = MindTouch.Arpysee.Server.Response;
 
 namespace MindTouch.Arpysee.Tester {
@@ -52,14 +52,14 @@ namespace MindTouch.Arpysee.Tester {
             registry.Command(
                 "ECHO",
                 (request, response) =>
-                    response(Response.WithStatus("ECHO").WithArguments(request.Arguments))
+                    response(Response.WithStatus("ECHO").With(request.Arguments))
             );
             registry.Command("BIN", (request, response) => {
                 var payload = new StringBuilder();
                 for(var i = 0; i < 20; i++) {
                     payload.Append(Guid.NewGuid().ToString());
                 }
-                response(Response.WithStatus("OK").WithPayload(Encoding.ASCII.GetBytes(payload.ToString())));
+                response(Response.WithStatus("OK").WithData(Encoding.ASCII.GetBytes(payload.ToString())));
             });
             Console.WriteLine("starting server to listen on {0}", ip);
             var server = new ArpyseeServer(new IPEndPoint(ip, 12345), registry, useAsync);

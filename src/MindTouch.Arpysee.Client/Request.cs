@@ -21,8 +21,9 @@
 using System;
 using System.IO;
 using System.Text;
+using MindTouch.Arpysee.Client.Protocol;
 
-namespace MindTouch.Arpysee.Client.Protocol {
+namespace MindTouch.Arpysee.Client {
     public class Request {
 
         private static readonly byte[] _linefeed = new[] { (byte)'\r', (byte)'\n' };
@@ -45,21 +46,21 @@ namespace MindTouch.Arpysee.Client.Protocol {
 
         public string Command { get { return _command; } }
         public bool ExpectsData { get { return _expectData; } }
-        public Request AppendArgument(string arg) {
+        public Request With(string arg) {
             ThrowIfDone();
             _request.WriteByte((byte)' ');
             _request.Write(Encoding.ASCII.GetBytes(arg));
             return this;
         }
 
-        public Request AppendArgument(uint arg) {
+        public Request With(uint arg) {
             ThrowIfDone();
             _request.WriteByte((byte)' ');
             _request.Write(Encoding.ASCII.GetBytes(arg.ToString()));
             return this;
         }
 
-        public Request AppendArgument(TimeSpan arg) {
+        public Request With(TimeSpan arg) {
             ThrowIfDone();
             _request.WriteByte((byte)' ');
             _request.Write(Encoding.ASCII.GetBytes(((uint)arg.TotalSeconds).ToString()));
@@ -70,7 +71,7 @@ namespace MindTouch.Arpysee.Client.Protocol {
             ThrowIfDone();
             _data = data;
             _dataLength = dataLength;
-            return AppendArgument((uint)_dataLength);
+            return With((uint)_dataLength);
         }
 
         public Request ExpectData() {

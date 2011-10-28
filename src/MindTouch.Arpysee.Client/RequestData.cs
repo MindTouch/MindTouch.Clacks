@@ -21,7 +21,7 @@
 using System;
 using System.IO;
 
-namespace MindTouch.Arpysee.Client.Protocol {
+namespace MindTouch.Arpysee.Client {
     public class RequestData {
         private readonly byte[] _bytes;
         private readonly Stream _stream;
