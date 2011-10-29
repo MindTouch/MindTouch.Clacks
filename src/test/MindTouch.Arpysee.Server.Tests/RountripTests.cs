@@ -84,8 +84,8 @@ namespace MindTouch.Arpysee.Server.Tests {
             var port = RandomPort;
             using(ServerBuilder.Configure(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port))
                 .UseAsyncIO(useAsync)
-                .WithCommands(r => r.Default((request, response) =>
-                    response(Response.Create("ECHO").WithArguments(request.Arguments)))
+                .WithDefaultHandler((request, response) =>
+                    response(Response.Create("ECHO").WithArguments(request.Arguments))
                 )
                 .Build()
             ) {

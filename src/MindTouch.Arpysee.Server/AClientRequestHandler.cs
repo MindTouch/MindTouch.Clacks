@@ -19,6 +19,7 @@
  */
 using System;
 using System.Diagnostics;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -27,11 +28,13 @@ namespace MindTouch.Arpysee.Server {
 
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
+        private readonly Action<IClientHandler> _removeCallback;
+        private readonly EndPoint _remote;
         protected readonly Socket _socket;
         protected readonly ICommandDispatcher _dispatcher;
-        private readonly Action<IClientHandler> _removeCallback;
         protected readonly StringBuilder _commandBuffer = new StringBuilder();
         protected readonly byte[] _buffer = new byte[16 * 1024];
+
         protected int _bufferPosition;
         protected int _bufferDataLength;
         protected bool _carriageReturn;
@@ -40,8 +43,10 @@ namespace MindTouch.Arpysee.Server {
         private ulong _commandCounter;
         private bool _isDisposed;
 
+
         protected AClientRequestHandler(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback) {
             _socket = socket;
+            _remote = _socket.RemoteEndPoint;
             _dispatcher = dispatcher;
             _removeCallback = removeCallback;
         }
@@ -190,8 +195,10 @@ namespace MindTouch.Arpysee.Server {
             if(_isDisposed) {
                 return;
             }
-            _log.DebugFormat("Disposing client from {0}", _socket.RemoteEndPoint);
-            _socket.Close();
+            _log.DebugFormat("Disposing client from {0}", _remote);
+            try {
+                _socket.Close();
+            } catch { }
             _removeCallback(this);
         }
     }

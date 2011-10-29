@@ -60,15 +60,11 @@ Creating a server that can echo arguments
     var server = ServerBuilder
       .Configure(new IPEndPoint("127.0.0.1", 12345))
       .ASyncIO()
-      .WithCommands(r => {
-
-        // create the ECHO command
-        r.Command(
-          "ECHO",
-          (request, response) =>
-            response(Response.Create("ECHO").WithArguments(request.Arguments))
-        );
-      })
+      .WithCommand("ECHO")
+        .HandledBy((request, response) =>
+          response(Response.Create("ECHO").WithArguments(request.Arguments)
+        )
+        .Then();
       .Build();
 
     // Run the server until you press enter

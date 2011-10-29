@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MindTouch.Arpysee
  * 
  * Copyright (C) 2011 Arne F. Claassen
@@ -20,14 +20,12 @@
 using System;
 
 namespace MindTouch.Arpysee.Server {
-    public interface IServerBuilder {
-        ArpyseeServer Build();
-        IServerBuilder UseSyncIO();
-        IServerBuilder UseAsyncIO();
-        IServerBuilder UseAsyncIO(bool useAsync);
-        IServerBuilder WithCommands(Action<ICommandRegistry> registry);
-        IServerBuilder WithDefaultHandler(Action<IRequest, Action<IResponse>> handler);
-        IServerBuilder WithErrorHandler(Action<IRequest, Exception, Action<IResponse>> handler);
-        IServerBuilderCommandRegistration WithCommand(string command);
+    public interface IServerBuilderCommandRegistration {
+        IServerBuilderCommandRegistration IsDisconnect();
+        IServerBuilderCommandRegistration HandledBy(Action<IRequest, Action<IResponse>> handler);
+        IServerBuilderCommandRegistration ExpectsData();
+        IServerBuilderCommandRegistration ExpectsNoData();
+        IServerBuilder Then();
+
     }
 }

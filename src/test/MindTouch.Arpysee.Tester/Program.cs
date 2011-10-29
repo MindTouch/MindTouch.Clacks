@@ -43,25 +43,28 @@ namespace MindTouch.Arpysee.Tester {
         }
 
         private static void Server(IPAddress ip, bool useAsync) {
-            var registry = new CommandRepository();
-            registry.Default(
-                (request, response) =>
-                    response(Response.Create("UNKNOWNCOMMAND"))
-            );
-            registry.Command(
-                "ECHO",
-                (request, response) =>
-                    response(Response.Create("ECHO").WithArguments(request.Arguments))
-            );
-            registry.Command("BIN", (request, response) => {
-                var payload = new StringBuilder();
-                for(var i = 0; i < 20; i++) {
-                    payload.Append(Guid.NewGuid().ToString());
-                }
-                response(Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payload.ToString())));
-            });
             Console.WriteLine("starting server to listen on {0}", ip);
-            var server = new ArpyseeServer(new IPEndPoint(ip, 12345), registry, useAsync);
+            var server = ServerBuilder
+                .Configure(new IPEndPoint(ip, 12345))
+                .UseAsyncIO(useAsync)
+                .WithDefaultHandler((request, response) =>
+                    response(Response.Create("UNKNOWNCOMMAND"))
+                )
+                .WithCommand("ECHO")
+                    .HandledBy((request, response) =>
+                        response(Response.Create("ECHO").WithArguments(request.Arguments))
+                    )
+                    .Then()
+                .WithCommand("BIN")
+                    .HandledBy((request, response) => {
+                        var payload = new StringBuilder();
+                        for(var i = 0; i < 20; i++) {
+                            payload.Append(Guid.NewGuid().ToString());
+                        }
+                        response(Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payload.ToString())));
+                    })
+                    .Then()
+                .Build();
             Console.ReadLine();
             server.Dispose();
         }

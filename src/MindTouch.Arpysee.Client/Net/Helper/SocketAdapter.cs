@@ -85,12 +85,16 @@ namespace MindTouch.Arpysee.Client.Net.Helper {
 
         public bool Connected {
             get {
-                if(!_socket.Connected) {
+                try {
+                    if(!_socket.Connected) {
+                        return false;
+                    }
+                    var part1 = _socket.Poll(100, SelectMode.SelectRead);
+                    var part2 = (_socket.Available == 0);
+                    return !(part1 && part2);
+                }catch {
                     return false;
                 }
-                var part1 = _socket.Poll(100, SelectMode.SelectRead);
-                var part2 = (_socket.Available == 0);
-                return !(part1 && part2);
             }
         }
 

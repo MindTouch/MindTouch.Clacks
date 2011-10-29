@@ -63,18 +63,10 @@ namespace MindTouch.Arpysee.Client {
         }
 
         public Response Exec(Request request) {
-            VerifyConnection();
+            ThrowIfDisposed();
             _socket.SendRequest(request);
             var response = _socket.ReceiveResponse(_buffer, request);
             return response;
-        }
-
-        private void VerifyConnection() {
-            ThrowIfDisposed();
-            if(Connected()) {
-                return;
-            }
-            ThrowIfDisposed();
         }
 
         private void ThrowIfDisposed() {

@@ -35,7 +35,7 @@ namespace MindTouch.Arpysee.Server {
         }
 
         public ArpyseeServer Build() {
-            return new ArpyseeServer(_endPoint,_repository,_clientHandlerFactory);
+            return new ArpyseeServer(_endPoint, _repository, _clientHandlerFactory);
         }
 
         public IServerBuilder UseSyncIO() {
@@ -47,13 +47,27 @@ namespace MindTouch.Arpysee.Server {
         }
 
         public IServerBuilder UseAsyncIO(bool useAsync) {
-             _clientHandlerFactory = useAsync ? (IClientHandlerFactory)new AsyncClientHandlerFactory(): new SyncClientHandlerFactory();
+            _clientHandlerFactory = useAsync ? (IClientHandlerFactory)new AsyncClientHandlerFactory() : new SyncClientHandlerFactory();
             return this;
         }
 
         public IServerBuilder WithCommands(Action<ICommandRegistry> registry) {
             registry(_repository);
             return this;
+        }
+
+        public IServerBuilder WithDefaultHandler(Action<IRequest, Action<IResponse>> handler) {
+            _repository.Default(handler);
+            return this;
+        }
+
+        public IServerBuilder WithErrorHandler(Action<IRequest, Exception, Action<IResponse>> handler) {
+            _repository.Error(handler);
+            return this;
+        }
+
+        public IServerBuilderCommandRegistration WithCommand(string command) {
+            return new ServerBuilderCommandRegistration(this, _repository, command);
         }
     }
 }

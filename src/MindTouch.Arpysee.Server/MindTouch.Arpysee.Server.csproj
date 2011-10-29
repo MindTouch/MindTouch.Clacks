@@ -47,6 +47,7 @@
   <ItemGroup>
     <Compile Include="AsyncClientHandlerFactory.cs" />
     <Compile Include="AClientRequestHandler.cs" />
+    <Compile Include="CommandConfigurationException.cs" />
     <Compile Include="CommandRegistration.cs" />
     <Compile Include="DataExpectationException.cs" />
     <Compile Include="DataTerminatorMissingException.cs" />
@@ -57,9 +58,11 @@
     <Compile Include="InvalidCommandException.cs" />
     <Compile Include="IRequest.cs" />
     <Compile Include="IServerBuilder.cs" />
+    <Compile Include="IServerBuilderCommandRegistration.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Request.cs" />
     <Compile Include="ServerBuilder.cs" />
+    <Compile Include="ServerBuilderCommandRegistration.cs" />
     <Compile Include="SyncClientHandlerFactory.cs" />
     <Compile Include="SyncClientHandler.cs" />
     <Compile Include="DataExpectation.cs" />
