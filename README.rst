@@ -61,13 +61,8 @@ Creating a server that can echo arguments
       .Configure(new IPEndPoint("127.0.0.1", 12345))
       .ASyncIO()
       .WithCommands(r => {
-        // create a default handler to deal with unknown commands
-        r.Default(
-          (request, response) =>
-            response(Response.Create("UNKNOWNCOMMAND"))
-        );
 
-        // create the ECHO commands
+        // create the ECHO command
         r.Command(
           "ECHO",
           (request, response) =>

@@ -23,12 +23,13 @@ using System.Net.Sockets;
 using System.Text;
 
 namespace MindTouch.Arpysee.Server {
-    public abstract class AClientRequestHandler : IDisposable {
+    public abstract class AClientRequestHandler : IDisposable, IClientHandler {
 
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
         protected readonly Socket _socket;
         protected readonly ICommandDispatcher _dispatcher;
+        private readonly Action<IClientHandler> _removeCallback;
         protected readonly StringBuilder _commandBuffer = new StringBuilder();
         protected readonly byte[] _buffer = new byte[16 * 1024];
         protected int _bufferPosition;
@@ -37,14 +38,20 @@ namespace MindTouch.Arpysee.Server {
         protected ICommandHandler _handler;
         private Stopwatch _requestTimer;
         private ulong _commandCounter;
+        private bool _isDisposed;
 
-        protected AClientRequestHandler(Socket socket, ICommandDispatcher dispatcher) {
+        protected AClientRequestHandler(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback) {
             _socket = socket;
             _dispatcher = dispatcher;
+            _removeCallback = removeCallback;
         }
 
         public void ProcessRequests() {
-            StartCommandRequest();
+            try {
+                StartCommandRequest();
+            } catch(Exception e) {
+                _log.Warn("starting request processing failed", e);
+            }
         }
 
         /* WorkFlow
@@ -90,7 +97,11 @@ namespace MindTouch.Arpysee.Server {
                 status,
                 _requestTimer.Elapsed.TotalMilliseconds
             );
-            StartCommandRequest();
+            if(_handler.DisconnectOnCompletion) {
+                Dispose();
+            } else {
+                StartCommandRequest();
+            }
         }
 
         // 4.
@@ -114,7 +125,7 @@ namespace MindTouch.Arpysee.Server {
                     _log.DebugFormat("[{0}] Received command [{1}] in {2:0.00}ms, expect data: {3} ",
                         _commandCounter,
                         command[0],
-                        _requestTimer.Elapsed.TotalMilliseconds, 
+                        _requestTimer.Elapsed.TotalMilliseconds,
                         _handler.ExpectsData
                     );
                     if(_handler.ExpectsData) {
@@ -176,8 +187,12 @@ namespace MindTouch.Arpysee.Server {
         protected abstract void ProcessResponse();
 
         public void Dispose() {
+            if(_isDisposed) {
+                return;
+            }
             _log.DebugFormat("Disposing client from {0}", _socket.RemoteEndPoint);
             _socket.Close();
+            _removeCallback(this);
         }
     }
 }

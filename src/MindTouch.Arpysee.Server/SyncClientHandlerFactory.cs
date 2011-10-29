@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MindTouch.Arpysee
  * 
  * Copyright (C) 2011 Arne F. Claassen
@@ -17,9 +17,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+using System;
+using System.Net.Sockets;
+
 namespace MindTouch.Arpysee.Server {
-    public interface IClientHandler {
-        void ProcessRequests();
-        void Dispose();
+    public class SyncClientHandlerFactory : IClientHandlerFactory {
+        public IClientHandler Create(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback) {
+            return new SyncClientHandler(socket, dispatcher, removeCallback);
+        }
     }
 }

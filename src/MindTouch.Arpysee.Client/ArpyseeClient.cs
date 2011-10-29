@@ -54,6 +54,9 @@ namespace MindTouch.Arpysee.Client {
 
         public bool Disposed {
             get {
+                if(_disposed) {
+                    return true;
+                }
                 Connected();
                 return _disposed;
             }

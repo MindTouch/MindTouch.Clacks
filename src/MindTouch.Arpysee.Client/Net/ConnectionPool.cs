@@ -27,6 +27,7 @@ using MindTouch.Arpysee.Client.Net.Helper;
 namespace MindTouch.Arpysee.Client.Net {
 
     // TODO: need to timeout idle pools
+    // TODO: need way to configure "BYE" command for automatic socket disposal
     public class ConnectionPool : IConnectionPool, IDisposable {
 
         private class Available {

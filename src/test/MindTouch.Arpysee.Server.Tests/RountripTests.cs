@@ -21,6 +21,7 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Text;
+using System.Threading;
 using log4net;
 using MindTouch.Arpysee.Client;
 using MindTouch.Arpysee.Client.Net.Helper;
@@ -32,6 +33,42 @@ namespace MindTouch.Arpysee.Server.Tests {
     public class RountripTests {
 
         private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
+        [SetUp]
+        public void Setup() {
+            _log.Debug("priming logger");
+        }
+
+        [Test]
+        public void Async_Can_disconnect_client_via_command() {
+            DisconnectTest(true);
+        }
+
+        [Test]
+        public void Sync_Can_disconnect_client_via_command() {
+            DisconnectTest(false);
+        }
+
+        private static void DisconnectTest(bool useAsync) {
+            var port = RandomPort;
+            _log.Debug("creating server");
+            using(ServerBuilder.Configure(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port))
+                .UseAsyncIO(useAsync)
+                .Build()
+            ) {
+                Console.WriteLine("created server");
+                using(var client = new ArpyseeClient("127.0.0.1", port)) {
+                    Assert.IsFalse(client.Disposed);
+                    Console.WriteLine("created client");
+                    var response = client.Exec(new Client.Request("BYE"));
+                    Console.WriteLine("got response");
+                    Assert.AreEqual("BYE", response.Status);
+                    Thread.Sleep(100);
+                    Console.WriteLine("checking disposed");
+                    Assert.IsTrue(client.Disposed);
+                }
+            }
+        }
 
         [Test]
         public void Async_Can_echo_data() {
@@ -45,11 +82,13 @@ namespace MindTouch.Arpysee.Server.Tests {
 
         private static void EchoData(bool useAsync) {
             var port = RandomPort;
-            var registry = new CommandRepository();
-            registry.Default((request, response) => 
-                response(Response.Create("ECHO").WithArguments(request.Arguments)));
-            _log.Debug("creating server");
-            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, useAsync)) {
+            using(ServerBuilder.Configure(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port))
+                .UseAsyncIO(useAsync)
+                .WithCommands(r => r.Default((request, response) =>
+                    response(Response.Create("ECHO").WithArguments(request.Arguments)))
+                )
+                .Build()
+            ) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", port)) {
                     Console.WriteLine("created client");
@@ -63,22 +102,22 @@ namespace MindTouch.Arpysee.Server.Tests {
 
         [Test]
         public void Async_Can_send_binary_payload_with_auto_data_detection() {
-            Can_send_binary_payload_with_auto_data_detection(new AsyncClientHandler());
+            Can_send_binary_payload_with_auto_data_detection(new AsyncClientHandlerFactory());
         }
 
         [Test]
         public void Sync_Can_send_binary_payload_with_auto_data_detection() {
-            Can_send_binary_payload_with_auto_data_detection(new SyncClientHandler());
+            Can_send_binary_payload_with_auto_data_detection(new SyncClientHandlerFactory());
         }
 
 
-        private static void Can_send_binary_payload_with_auto_data_detection(IClientHandler clientHandler) {
+        private static void Can_send_binary_payload_with_auto_data_detection(IClientHandlerFactory clientHandlerFactory) {
             var port = RandomPort;
             var payloadstring = "blahblahblah";
             var payload = Encoding.ASCII.GetBytes(payloadstring);
             var registry = new CommandRepository();
             registry.Default((request, response) => response(Response.Create("OK").WithArguments(new[] { request.Data.Length.ToString(), Encoding.ASCII.GetString(request.Data) })));
-            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, clientHandler)) {
+            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, clientHandlerFactory)) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", port)) {
                     Console.WriteLine("created client");
@@ -124,15 +163,15 @@ namespace MindTouch.Arpysee.Server.Tests {
 
         [Test]
         public void Async_Can_receive_many_binary_payload() {
-            Receive_many_binary_payloads(new AsyncClientHandler());
+            Receive_many_binary_payloads(new AsyncClientHandlerFactory());
         }
 
         [Test]
         public void Sync_Can_receive_many_binary_payload() {
-            Receive_many_binary_payloads(new SyncClientHandler());
+            Receive_many_binary_payloads(new SyncClientHandlerFactory());
         }
 
-        private static void Receive_many_binary_payloads(IClientHandler clientHandler) {
+        private static void Receive_many_binary_payloads(IClientHandlerFactory clientHandlerFactory) {
             var port = RandomPort;
             string payloadstring = "";
             var registry = new CommandRepository();
@@ -144,7 +183,7 @@ namespace MindTouch.Arpysee.Server.Tests {
                 payloadstring = payload.ToString();
                 response(Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring)));
             });
-            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, clientHandler)) {
+            using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, clientHandlerFactory)) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", port)) {
                     var n = 20000;

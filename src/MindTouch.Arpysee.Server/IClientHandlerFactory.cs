@@ -17,9 +17,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+using System;
+using System.Net.Sockets;
+
 namespace MindTouch.Arpysee.Server {
-    public interface IClientHandler {
-        void ProcessRequests();
-        void Dispose();
+
+    public interface IClientHandlerFactory {
+        IClientHandler Create(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback);
     }
+
 }

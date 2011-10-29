@@ -87,18 +87,10 @@ namespace MindTouch.Arpysee.Server {
         private ICommandHandler BuildDisconnectHandler() {
             return CommandHandler.DisconnectHandler(_disconnectCommand, (request, response) => {
                 try {
-                    _defaultCommandRegistration.Handler(request, response);
+                    _disconnectRegistration.Handler(request, response);
                 } catch(Exception handlerException) {
-                    try {
-
-                        if(_errorHandler != null) {
-                            _errorHandler(request, handlerException, response);
-                            return;
-                        }
-                    } catch(Exception errorHandlerException) {
-                        _log.Warn(string.Format("The error handler failed on exception of type {0}", handlerException.GetType()), errorHandlerException);
-                    }
-                    response(Response.Create("ERROR").WithArgument(handlerException.Message).WithData(Encoding.ASCII.GetBytes(handlerException.StackTrace)));
+                    _log.Warn("disconnect handler threw an exception, continuating with disconnect", handlerException);
+                    response(Response.Create("BYE"));
                 }
             });
         }

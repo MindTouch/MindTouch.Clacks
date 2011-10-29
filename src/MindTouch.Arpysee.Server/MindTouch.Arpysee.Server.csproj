@@ -45,24 +45,25 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="AsyncClientHandler.cs" />
+    <Compile Include="AsyncClientHandlerFactory.cs" />
     <Compile Include="AClientRequestHandler.cs" />
     <Compile Include="CommandRegistration.cs" />
     <Compile Include="DataExpectationException.cs" />
     <Compile Include="DataTerminatorMissingException.cs" />
     <Compile Include="ArpyseeServer.cs" />
-    <Compile Include="AsyncClientRequestHandler.cs" />
+    <Compile Include="AsyncClientHandler.cs" />
     <Compile Include="CommandRepository.cs" />
+    <Compile Include="IClientHandler.cs" />
     <Compile Include="InvalidCommandException.cs" />
     <Compile Include="IRequest.cs" />
     <Compile Include="IServerBuilder.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Request.cs" />
     <Compile Include="ServerBuilder.cs" />
+    <Compile Include="SyncClientHandlerFactory.cs" />
     <Compile Include="SyncClientHandler.cs" />
-    <Compile Include="SyncClientRequestHandler.cs" />
     <Compile Include="DataExpectation.cs" />
-    <Compile Include="IClientHandler.cs" />
+    <Compile Include="IClientHandlerFactory.cs" />
     <Compile Include="ICommandDispatcher.cs" />
     <Compile Include="ICommandHandler.cs" />
     <Compile Include="ICommandRegistration.cs" />

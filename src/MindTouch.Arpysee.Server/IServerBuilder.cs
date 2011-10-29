@@ -22,8 +22,9 @@ using System;
 namespace MindTouch.Arpysee.Server {
     public interface IServerBuilder {
         ArpyseeServer Build();
-        IServerBuilder SyncIO();
-        IServerBuilder ASyncIO();
+        IServerBuilder UseSyncIO();
+        IServerBuilder UseAsyncIO();
+        IServerBuilder UseAsyncIO(bool useAsync);
         IServerBuilder WithCommands(Action<ICommandRegistry> registry);
     }
 }

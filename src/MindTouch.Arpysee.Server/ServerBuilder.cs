@@ -28,23 +28,26 @@ namespace MindTouch.Arpysee.Server {
         }
 
         private readonly IPEndPoint _endPoint;
-        private IClientHandler _clientHandler = new AsyncClientHandler();
+        private IClientHandlerFactory _clientHandlerFactory = new AsyncClientHandlerFactory();
         private readonly CommandRepository _repository = new CommandRepository();
         private ServerBuilder(IPEndPoint endPoint) {
             _endPoint = endPoint;
         }
 
         public ArpyseeServer Build() {
-            return new ArpyseeServer(_endPoint,_repository,_clientHandler);
+            return new ArpyseeServer(_endPoint,_repository,_clientHandlerFactory);
         }
 
-        public IServerBuilder SyncIO() {
-            _clientHandler = new SyncClientHandler();
-            return this;
+        public IServerBuilder UseSyncIO() {
+            return UseAsyncIO(false);
         }
 
-        public IServerBuilder ASyncIO() {
-            _clientHandler = new AsyncClientHandler();
+        public IServerBuilder UseAsyncIO() {
+            return UseAsyncIO(true);
+        }
+
+        public IServerBuilder UseAsyncIO(bool useAsync) {
+             _clientHandlerFactory = useAsync ? (IClientHandlerFactory)new AsyncClientHandlerFactory(): new SyncClientHandlerFactory();
             return this;
         }
 

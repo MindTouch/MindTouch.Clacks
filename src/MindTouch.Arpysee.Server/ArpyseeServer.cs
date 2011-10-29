@@ -18,8 +18,10 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Linq;
 
 namespace MindTouch.Arpysee.Server {
     public class ArpyseeServer : IDisposable {
@@ -28,50 +30,72 @@ namespace MindTouch.Arpysee.Server {
 
         private readonly IPEndPoint _listenEndpoint;
         private readonly ICommandDispatcher _dispatcher;
-        private readonly IClientHandler _clientHandler;
+        private readonly IClientHandlerFactory _clientHandlerFactory;
         private readonly Socket _listenSocket;
+        private readonly HashSet<IClientHandler> _openConnections = new HashSet<IClientHandler>();
 
         public ArpyseeServer(IPEndPoint listenEndpoint, ICommandDispatcher dispatcher, bool asyncClientHandler)
-            : this(listenEndpoint, dispatcher, asyncClientHandler ? (IClientHandler)new AsyncClientHandler() : new SyncClientHandler()) {
+            : this(listenEndpoint, dispatcher, asyncClientHandler ? (IClientHandlerFactory)new AsyncClientHandlerFactory() : new SyncClientHandlerFactory()) {
         }
 
-        public ArpyseeServer(IPEndPoint listenEndpoint, ICommandDispatcher dispatcher, IClientHandler clientHandler) {
+        public ArpyseeServer(IPEndPoint listenEndpoint, ICommandDispatcher dispatcher, IClientHandlerFactory clientHandlerFactory) {
             _listenEndpoint = listenEndpoint;
             _dispatcher = dispatcher;
-            _clientHandler = clientHandler;
+            _clientHandlerFactory = clientHandlerFactory;
             _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             _listenSocket.Bind(_listenEndpoint);
             _listenSocket.Listen(10);
-            _log.InfoFormat("Created server on {0} with handler {1}", listenEndpoint, clientHandler);
+            _log.InfoFormat("Created server on {0} with handler {1}", listenEndpoint, clientHandlerFactory);
             BeginWaitForConnection();
         }
 
         private void BeginWaitForConnection() {
             try {
                 _listenSocket.BeginAccept(OnAccept, _listenSocket);
-            } catch(SocketException) {
+            } catch(SocketException e) {
+                _log.Warn("Wait for connection failed", e);
                 return;
-            } catch(ObjectDisposedException) {
+            } catch(ObjectDisposedException e) {
+                _log.Debug("Aborted wait for socket due to object disposed");
                 return;
             }
         }
 
         private void OnAccept(IAsyncResult result) {
             BeginWaitForConnection();
+            Socket socket;
             try {
-                var socket = _listenSocket.EndAccept(result);
+                socket = _listenSocket.EndAccept(result);
                 _log.DebugFormat("Accepted client from {0}", socket.RemoteEndPoint);
-                _clientHandler.Handle(socket, _dispatcher);
             } catch(SocketException e) {
                 _log.Error("Socket error on receive, shutting down server", e);
+                return;
             } catch(ObjectDisposedException e) {
-                _log.Error("Server already disposed, abort listen", e);
+                _log.Debug("Server already disposed, abort listen");
+                return;
+            }
+            var handler = _clientHandlerFactory.Create(socket, _dispatcher, RemoveHandler);
+            lock(_openConnections) {
+                _openConnections.Add(handler);
+            }
+            handler.ProcessRequests();
+        }
 
+        private void RemoveHandler(IClientHandler handler) {
+            lock(_openConnections) {
+                _openConnections.Remove(handler);
             }
         }
 
         public void Dispose() {
             _listenSocket.Close();
+            lock(_openConnections) {
+                var connections = _openConnections.ToArray();
+                foreach(var connection in connections) {
+                    connection.Dispose();
+                }
+            }
+            _log.Debug("Disposed server socket");
         }
     }
 }
