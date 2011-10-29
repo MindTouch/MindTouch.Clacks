@@ -81,7 +81,7 @@ namespace MindTouch.Arpysee.Server {
                     Dispose();
                     return;
                 }
-                GetCommandData();
+                EndCommandRequest(response.Status);
             }));
         }
     }

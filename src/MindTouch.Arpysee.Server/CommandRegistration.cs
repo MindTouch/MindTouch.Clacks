@@ -20,10 +20,28 @@
 using System;
 
 namespace MindTouch.Arpysee.Server {
-    public interface ICommandRegistry {
-        void Default(Action<IRequest, Action<IResponse>> handler);
-        void Error(Action<IRequest, Exception, Action<IResponse>> handler);
-        void Disconnect(string command, Action<IRequest, Action<IResponse>> handler);
-        ICommandRegistration Command(string command, Action<IRequest, Action<IResponse>> handler);
+    public class CommandRegistration : ICommandRegistration {
+
+        public CommandRegistration() {
+            DataExpectation = DataExpectation.Auto;
+        }
+
+        public DataExpectation DataExpectation { get; set; }
+        public Action<IRequest, Action<IResponse>> Handler { get; private set; }
+
+        public CommandRegistration(Action<IRequest, Action<IResponse>> handler) {
+            Handler = handler;
+        }
+
+        ICommandRegistration ICommandRegistration.ExpectData() {
+            DataExpectation = DataExpectation.Always;
+            return this;
+        }
+
+        ICommandRegistration ICommandRegistration.ExpectNoData() {
+            DataExpectation = DataExpectation.Never;
+            return this;
+        }
+
     }
 }

@@ -17,11 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System;
-
 namespace MindTouch.Arpysee.Server {
     public interface ICommandDispatcher {
         ICommandHandler GetHandler(string[] command);
-        void HandleError(IRequest request, Exception e, Action<IResponse> response);
     }
 }

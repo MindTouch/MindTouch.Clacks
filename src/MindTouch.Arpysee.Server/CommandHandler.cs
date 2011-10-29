@@ -23,10 +23,15 @@ using System.Collections.Generic;
 namespace MindTouch.Arpysee.Server {
     public class CommandHandler : ICommandHandler {
 
+        public static ICommandHandler DisconnectHandler(string command, Action<IRequest, Action<IResponse>> handler) {
+            return new CommandHandler(command, handler);
+        }
+
         private readonly string _command;
         private readonly string[] _arguments;
         private readonly Action<IRequest, Action<IResponse>> _handler;
         private readonly int _dataLength;
+        private readonly bool _disconnect;
         private int _received;
         private List<byte[]> _dataChunks;
 
@@ -37,13 +42,18 @@ namespace MindTouch.Arpysee.Server {
             _handler = handler;
         }
 
+        private CommandHandler(string command, Action<IRequest, Action<IResponse>> handler) {
+            _command = command;
+            _handler = handler;
+            _disconnect = true;
+        }
+
         public void Dispose() { }
 
         public bool ExpectsData { get { return _dataLength > 0; } }
-
-        public int OutstandingBytes {
-            get { return _dataLength - _received; }
-        }
+        public bool DisconnectOnCompletion { get { return _disconnect; } }
+        public int OutstandingBytes { get { return _dataLength - _received; } }
+        public string Command { get { return _command; } }
 
         public void AcceptData(byte[] chunk) {
             if(_dataChunks == null) {
@@ -61,14 +71,6 @@ namespace MindTouch.Arpysee.Server {
                 throw new DataExpectationException(false);
             }
             _handler(new Request(_command, _arguments, _dataLength, _dataChunks), callback);
-        }
-    }
-
-    public class DataExpectationException : Exception {
-        private readonly bool _tooMuchData;
-
-        public DataExpectationException(bool tooMuchData) {
-            _tooMuchData = tooMuchData;
         }
     }
 }

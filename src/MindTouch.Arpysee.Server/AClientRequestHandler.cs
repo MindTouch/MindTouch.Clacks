@@ -18,12 +18,14 @@
  * limitations under the License.
  */
 using System;
+using System.Diagnostics;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
 
 namespace MindTouch.Arpysee.Server {
     public abstract class AClientRequestHandler : IDisposable {
+
+        private static readonly Logger.ILog _log = Logger.CreateLog();
 
         protected readonly Socket _socket;
         protected readonly ICommandDispatcher _dispatcher;
@@ -33,16 +35,18 @@ namespace MindTouch.Arpysee.Server {
         protected int _bufferDataLength;
         protected bool _carriageReturn;
         protected ICommandHandler _handler;
+        private Stopwatch _requestTimer;
+        private ulong _commandCounter;
 
         protected AClientRequestHandler(Socket socket, ICommandDispatcher dispatcher) {
             _socket = socket;
             _dispatcher = dispatcher;
         }
 
-public void ProcessRequests() {
-            GetCommandData();
+        public void ProcessRequests() {
+            StartCommandRequest();
         }
-        
+
         /* WorkFlow
           * 1. If data in buffer go to 4.
           * 2. Wait for command data
@@ -65,16 +69,29 @@ public void ProcessRequests() {
           */
 
         // 2&3, 9&10, Receive buffer trail
-        protected abstract void Receive(Action<int,int> continuation);
+        protected abstract void Receive(Action<int, int> continuation);
 
         // 1.
-        protected void GetCommandData() {
+        private void StartCommandRequest() {
+            _commandCounter++;
+            _requestTimer = Stopwatch.StartNew();
             if(_bufferPosition != 0) {
                 ProcessCommandData(_bufferPosition, _bufferDataLength);
+                return;
             }
             Receive(ProcessCommandData);
         }
 
+        protected void EndCommandRequest(string status) {
+            _requestTimer.Stop();
+            _log.DebugFormat("[{0}] [{1}] excecuted with status [{2}] in {3:0.00}ms",
+                _commandCounter,
+                _handler.Command,
+                status,
+                _requestTimer.Elapsed.TotalMilliseconds
+            );
+            StartCommandRequest();
+        }
 
         // 4.
         protected void ProcessCommandData(int position, int length) {
@@ -94,8 +111,19 @@ public void ProcessRequests() {
                     var command = _commandBuffer.ToString().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
                     _commandBuffer.Length = 0;
                     _handler = _dispatcher.GetHandler(command);
+                    _log.DebugFormat("[{0}] Received command [{1}] in {2:0.00}ms, expect data: {3} ",
+                        _commandCounter,
+                        command[0],
+                        _requestTimer.Elapsed.TotalMilliseconds, 
+                        _handler.ExpectsData
+                    );
                     if(_handler.ExpectsData) {
-                        GetPayloadData();
+
+                        // 8.
+                        if(_bufferPosition != 0) {
+                            ProcessPayloadData(_bufferPosition, _bufferDataLength);
+                        }
+                        Receive(ProcessPayloadData);
                     } else {
 
                         // 7.
@@ -108,14 +136,6 @@ public void ProcessRequests() {
 
             // 5.
             Receive(ProcessCommandData);
-        }
-
-        // 8.
-        private void GetPayloadData() {
-            if(_bufferPosition != 0) {
-                ProcessPayloadData(_bufferPosition, _bufferDataLength);
-            }
-            Receive(ProcessPayloadData);
         }
 
         // 11.
@@ -151,11 +171,12 @@ public void ProcessRequests() {
         }
 
         /// <summary>
-        /// 13/14. -> Calls GetCommandData
+        /// 13/14. -> Calls StartCommandRequest
         /// </summary>
         protected abstract void ProcessResponse();
 
         public void Dispose() {
+            _log.DebugFormat("Disposing client from {0}", _socket.RemoteEndPoint);
             _socket.Close();
         }
     }

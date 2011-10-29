@@ -20,10 +20,5 @@
 using System;
 
 namespace MindTouch.Arpysee.Server {
-    public interface ICommandRegistry {
-        void Default(Action<IRequest, Action<IResponse>> handler);
-        void Error(Action<IRequest, Exception, Action<IResponse>> handler);
-        void Disconnect(string command, Action<IRequest, Action<IResponse>> handler);
-        ICommandRegistration Command(string command, Action<IRequest, Action<IResponse>> handler);
-    }
+    public class InvalidCommandException : Exception { }
 }

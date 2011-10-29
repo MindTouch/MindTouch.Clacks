@@ -26,40 +26,98 @@ namespace MindTouch.Arpysee.Server {
 
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
-        private readonly Dictionary<string, ICommandHandlerFactory> _commands = new Dictionary<string, ICommandHandlerFactory>();
-        private ICommandHandlerFactory _defaultCommandHandlerFactory = new CommandHandlerFactory((r, c) => c(Response.Create("UNKNOWN")));
+        private readonly Dictionary<string, CommandRegistration> _commands = new Dictionary<string, CommandRegistration>();
         private Action<IRequest, Exception, Action<IResponse>> _errorHandler;
+        private CommandRegistration _defaultCommandRegistration = new CommandRegistration((r, c) => c(Response.Create("UNKNOWN")));
+        private CommandRegistration _disconnectRegistration = new CommandRegistration((r, c) => c(Response.Create("BYE")));
+        private string _disconnectCommand = "BYE";
 
-        public ICommandHandler GetHandler(string[] command) {
-            ICommandHandlerFactory commandHandlerFactory;
-            if(!_commands.TryGetValue(command[0], out commandHandlerFactory)) {
-                commandHandlerFactory = _defaultCommandHandlerFactory;
+        public ICommandHandler GetHandler(string[] commandArgs) {
+            var command = commandArgs[0];
+            if(command == _disconnectCommand) {
+                return BuildDisconnectHandler();
             }
-            return commandHandlerFactory.Handle(command);
+            CommandRegistration registration;
+            if(!_commands.TryGetValue(command, out registration)) {
+                registration = _defaultCommandRegistration;
+            }
+            int dataLength = 0;
+            string[] arguments;
+            if(registration.DataExpectation == DataExpectation.Auto) {
+                if(commandArgs.Length > 1) {
+                    int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength);
+                }
+            } else if(registration.DataExpectation == DataExpectation.Always) {
+                if(commandArgs.Length == 1 || !int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength)) {
+                    throw new InvalidCommandException();
+                }
+            }
+            if(dataLength == 0) {
+                arguments = new string[commandArgs.Length - 1];
+                if(arguments.Length > 0) {
+                    Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
+                }
+            } else {
+                arguments = new string[commandArgs.Length - 2];
+                if(arguments.Length > 0) {
+                    Array.Copy(commandArgs, 1, arguments, 0, arguments.Length - 1);
+                }
+            }
+
+            // TODO: be nice to refactor this in a way where the handler isn't wrapped with another handler. Sacrificing about 10% throughput
+            // on commands with that
+            return new CommandHandler(command, arguments, dataLength, (request, response) => {
+                try {
+                    registration.Handler(request, response);
+                } catch(Exception handlerException) {
+                    try {
+
+                        if(_errorHandler != null) {
+                            _errorHandler(request, handlerException, response);
+                            return;
+                        }
+                    } catch(Exception errorHandlerException) {
+                        _log.Warn(string.Format("The error handler failed on exception of type {0}", handlerException.GetType()), errorHandlerException);
+                    }
+                    response(Response.Create("ERROR").WithArgument(handlerException.Message).WithData(Encoding.ASCII.GetBytes(handlerException.StackTrace)));
+                }
+            });
         }
 
-        public void HandleError(IRequest request, Exception ex, Action<IResponse> response) {
-            try {
-                if(_errorHandler != null) {
-                    _errorHandler(request, ex, response);
-                    return;
+        private ICommandHandler BuildDisconnectHandler() {
+            return CommandHandler.DisconnectHandler(_disconnectCommand, (request, response) => {
+                try {
+                    _defaultCommandRegistration.Handler(request, response);
+                } catch(Exception handlerException) {
+                    try {
+
+                        if(_errorHandler != null) {
+                            _errorHandler(request, handlerException, response);
+                            return;
+                        }
+                    } catch(Exception errorHandlerException) {
+                        _log.Warn(string.Format("The error handler failed on exception of type {0}", handlerException.GetType()), errorHandlerException);
+                    }
+                    response(Response.Create("ERROR").WithArgument(handlerException.Message).WithData(Encoding.ASCII.GetBytes(handlerException.StackTrace)));
                 }
-            } catch(Exception e) {
-                _log.Warn(string.Format("The error handler failed on exception of type {0}", ex.GetType()), e);
-            }
-            response(Response.Create("ERROR").WithArgument(ex.Message).WithData(Encoding.ASCII.GetBytes(ex.StackTrace)));
+            });
         }
 
         public void Default(Action<IRequest, Action<IResponse>> handler) {
-            _defaultCommandHandlerFactory = new CommandHandlerFactory(handler);
+            _defaultCommandRegistration = new CommandRegistration(handler);
         }
 
         public void Error(Action<IRequest, Exception, Action<IResponse>> handler) {
             _errorHandler = handler;
         }
 
+        public void Disconnect(string command, Action<IRequest, Action<IResponse>> handler) {
+            _disconnectCommand = command;
+            _disconnectRegistration = new CommandRegistration(handler);
+        }
+
         public ICommandRegistration Command(string command, Action<IRequest, Action<IResponse>> handler) {
-            var registration = new CommandHandlerFactory(handler);
+            var registration = new CommandRegistration(handler);
             _commands[command] = registration;
             return registration;
         }

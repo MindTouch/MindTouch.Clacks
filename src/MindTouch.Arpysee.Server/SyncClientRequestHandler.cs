@@ -80,9 +80,9 @@ namespace MindTouch.Arpysee.Server {
                     return;
                 }
                 if(currentThreadId == Thread.CurrentThread.ManagedThreadId) {
-                    ThreadPool.QueueUserWorkItem((o) => GetCommandData());
+                    ThreadPool.QueueUserWorkItem((o) => EndCommandRequest(response.Status));
                 } else {
-                    GetCommandData();
+                    EndCommandRequest(response.Status);
                 }
             });
         }

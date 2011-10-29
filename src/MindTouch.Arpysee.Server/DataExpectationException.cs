@@ -17,8 +17,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+using System;
+
 namespace MindTouch.Arpysee.Server {
-    public interface ICommandHandlerFactory {
-        ICommandHandler Handle(string[] command);
+    public class DataExpectationException : Exception {
+        public readonly bool TooMuchData;
+
+        public DataExpectationException(bool tooMuchData) {
+            TooMuchData = tooMuchData;
+        }
     }
 }

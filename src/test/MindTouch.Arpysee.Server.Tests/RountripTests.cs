@@ -21,6 +21,7 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Text;
+using log4net;
 using MindTouch.Arpysee.Client;
 using MindTouch.Arpysee.Client.Net.Helper;
 using NUnit.Framework;
@@ -29,6 +30,8 @@ namespace MindTouch.Arpysee.Server.Tests {
 
     [TestFixture]
     public class RountripTests {
+
+        private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         [Test]
         public void Async_Can_echo_data() {
@@ -45,6 +48,7 @@ namespace MindTouch.Arpysee.Server.Tests {
             var registry = new CommandRepository();
             registry.Default((request, response) => 
                 response(Response.Create("ECHO").WithArguments(request.Arguments)));
+            _log.Debug("creating server");
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, useAsync)) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", port)) {

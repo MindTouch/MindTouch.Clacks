@@ -23,6 +23,9 @@ using System.Net.Sockets;
 
 namespace MindTouch.Arpysee.Server {
     public class ArpyseeServer : IDisposable {
+
+        private static readonly Logger.ILog _log = Logger.CreateLog();
+
         private readonly IPEndPoint _listenEndpoint;
         private readonly ICommandDispatcher _dispatcher;
         private readonly IClientHandler _clientHandler;
@@ -39,6 +42,7 @@ namespace MindTouch.Arpysee.Server {
             _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             _listenSocket.Bind(_listenEndpoint);
             _listenSocket.Listen(10);
+            _log.InfoFormat("Created server on {0} with handler {1}", listenEndpoint, clientHandler);
             BeginWaitForConnection();
         }
 
@@ -54,11 +58,16 @@ namespace MindTouch.Arpysee.Server {
 
         private void OnAccept(IAsyncResult result) {
             BeginWaitForConnection();
-            AsyncClientRequestHandler asyncClientHandler = null;
             try {
-                _clientHandler.Handle(_listenSocket.EndAccept(result), _dispatcher);
-            } catch(SocketException) {
-            } catch(ObjectDisposedException) { }
+                var socket = _listenSocket.EndAccept(result);
+                _log.DebugFormat("Accepted client from {0}", socket.RemoteEndPoint);
+                _clientHandler.Handle(socket, _dispatcher);
+            } catch(SocketException e) {
+                _log.Error("Socket error on receive, shutting down server", e);
+            } catch(ObjectDisposedException e) {
+                _log.Error("Server already disposed, abort listen", e);
+
+            }
         }
 
         public void Dispose() {
