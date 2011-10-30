@@ -29,18 +29,12 @@ namespace MindTouch.Arpysee.Server {
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
         private readonly IPEndPoint _listenEndpoint;
-        private readonly ICommandDispatcher _dispatcher;
         private readonly IClientHandlerFactory _clientHandlerFactory;
         private readonly Socket _listenSocket;
         private readonly HashSet<IClientHandler> _openConnections = new HashSet<IClientHandler>();
 
-        public ArpyseeServer(IPEndPoint listenEndpoint, ICommandDispatcher dispatcher, bool asyncClientHandler)
-            : this(listenEndpoint, dispatcher, asyncClientHandler ? (IClientHandlerFactory)new AsyncClientHandlerFactory() : new SyncClientHandlerFactory()) {
-        }
-
-        public ArpyseeServer(IPEndPoint listenEndpoint, ICommandDispatcher dispatcher, IClientHandlerFactory clientHandlerFactory) {
+        public ArpyseeServer(IPEndPoint listenEndpoint, IClientHandlerFactory clientHandlerFactory) {
             _listenEndpoint = listenEndpoint;
-            _dispatcher = dispatcher;
             _clientHandlerFactory = clientHandlerFactory;
             _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             _listenSocket.Bind(_listenEndpoint);
@@ -74,7 +68,7 @@ namespace MindTouch.Arpysee.Server {
                 _log.Debug("Server already disposed, abort listen");
                 return;
             }
-            var handler = _clientHandlerFactory.Create(socket, _dispatcher, RemoveHandler);
+            var handler = _clientHandlerFactory.Create(socket, RemoveHandler);
             lock(_openConnections) {
                 _openConnections.Add(handler);
             }

@@ -19,17 +19,25 @@
  */
 using System;
 using System.Net.Sockets;
-using System.Text;
 
-namespace MindTouch.Arpysee.Server {
+namespace MindTouch.Arpysee.Server.Async {
     public class AsyncClientHandler : AClientRequestHandler {
 
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
-        public AsyncClientHandler(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback)
-            : base(socket, dispatcher, removeCallback) { }
+        private readonly IAsyncCommandDispatcher _dispatcher;
+        private IAsyncCommandHandler _commandHandler;
+
+        public AsyncClientHandler(Socket socket, IAsyncCommandDispatcher dispatcher, Action<IClientHandler> removeCallback)
+            : base(socket, removeCallback) {
+            _dispatcher = dispatcher;
+        }
 
         // 2.
+        protected override ICommandHandler Handler {
+            get { return _commandHandler; }
+        }
+
         protected override void Receive(Action<int, int> continuation) {
             try {
                 _bufferPosition = 0;
@@ -60,16 +68,22 @@ namespace MindTouch.Arpysee.Server {
             }
         }
 
+        protected override void InitializeHandler(string[] command) {
+            _commandHandler = _dispatcher.GetHandler(command);
+        }
+
         // 13/14.
         protected override void ProcessResponse() {
-            //_handler.GetResponse(response => AsyncResponseHandler.SendResponse(_socket, response, e => {
-            //    if(e != null) {
-            //        _log.Warn("Send failed", e);
-            //        Dispose();
-            //        return;
-            //    }
-            //    EndCommandRequest(response.Status);
-            //}));
+            var responseHandler = new AsyncResponseHandler(
+                _socket,
+                EndCommandRequest,
+                error => {
+                    _log.Warn("Send failed", error);
+                    Dispose();
+
+                }
+            );
+            _commandHandler.GetResponse(responseHandler.SendResponse);
         }
     }
 }

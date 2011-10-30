@@ -20,6 +20,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MindTouch.Arpysee.Server.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MindTouch.Arpysee.Tester", "test\MindTouch.Arpysee.Tester\MindTouch.Arpysee.Tester.csproj", "{3BA089B1-E54E-446C-B637-D516A2F87EE7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MindTouch.Arpysee.Server.PerfTests", "MindTouch.Arpysee.Server.PerfTests\MindTouch.Arpysee.Server.PerfTests.csproj", "{D8E834F0-231A-4826-AC15-35DA3E847469}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -80,6 +82,16 @@ Global
 		{3BA089B1-E54E-446C-B637-D516A2F87EE7}.Release|Mixed Platforms.Build.0 = Release|x86
 		{3BA089B1-E54E-446C-B637-D516A2F87EE7}.Release|x86.ActiveCfg = Release|x86
 		{3BA089B1-E54E-446C-B637-D516A2F87EE7}.Release|x86.Build.0 = Release|x86
+		{D8E834F0-231A-4826-AC15-35DA3E847469}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D8E834F0-231A-4826-AC15-35DA3E847469}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D8E834F0-231A-4826-AC15-35DA3E847469}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{D8E834F0-231A-4826-AC15-35DA3E847469}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{D8E834F0-231A-4826-AC15-35DA3E847469}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D8E834F0-231A-4826-AC15-35DA3E847469}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D8E834F0-231A-4826-AC15-35DA3E847469}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D8E834F0-231A-4826-AC15-35DA3E847469}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{D8E834F0-231A-4826-AC15-35DA3E847469}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{D8E834F0-231A-4826-AC15-35DA3E847469}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -88,5 +100,6 @@ Global
 		{07100C4F-00EE-4FFB-B2EE-72767E56605C} = {9365CDD6-7246-4A08-86FE-483B6702705A}
 		{6D80CD5C-4704-43DA-83D3-E6650228B1C4} = {97B8C75A-D419-43A3-9987-464674D1879B}
 		{3BA089B1-E54E-446C-B637-D516A2F87EE7} = {97B8C75A-D419-43A3-9987-464674D1879B}
+		{D8E834F0-231A-4826-AC15-35DA3E847469} = {97B8C75A-D419-43A3-9987-464674D1879B}
 	EndGlobalSection
 EndGlobal

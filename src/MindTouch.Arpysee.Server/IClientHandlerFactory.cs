@@ -24,7 +24,7 @@ using System.Net.Sockets;
 namespace MindTouch.Arpysee.Server {
 
     public interface IClientHandlerFactory {
-        IClientHandler Create(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback);
+        IClientHandler Create(Socket socket, Action<IClientHandler> removeHandler);
     }
 
 }

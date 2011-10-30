@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MindTouch.Arpysee
  * 
  * Copyright (C) 2011 Arne F. Claassen
@@ -17,17 +17,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System;
+using System.IO;
+using System.Text;
 
-namespace MindTouch.Arpysee.Server {
-    public interface IServerBuilder {
-        ArpyseeServer Build();
-        IServerBuilder UseSyncIO();
-        IServerBuilder UseAsyncIO();
-        IServerBuilder UseAsyncIO(bool useAsync);
-        IServerBuilder WithCommands(Action<ICommandRegistry> registry);
-        IServerBuilder WithDefaultHandler(Action<IRequest, Action<IResponse>> handler);
-        IServerBuilder WithErrorHandler(Action<IRequest, Exception, Action<IResponse>> handler);
-        IServerBuilderCommandRegistration WithCommand(string command);
+namespace MindTouch.Arpysee.Server.Tests {
+    public static class TestExtensions {
+        public static MemoryStream AsStream(this string data) {
+            return new MemoryStream(Encoding.UTF8.GetBytes(data)) { Position = 0 };
+        }
+
+        public static string AsText(this Stream stream) {
+            stream.Position = 0;
+            using(var reader = new StreamReader(stream)) {
+                return reader.ReadToEnd();
+            }
+        }
+
     }
 }
+

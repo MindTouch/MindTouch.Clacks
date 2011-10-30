@@ -32,7 +32,6 @@ namespace MindTouch.Arpysee.Server {
         private readonly EndPoint _remote;
 
         protected readonly Socket _socket;
-        protected readonly ICommandDispatcher _dispatcher;
         protected readonly StringBuilder _commandBuffer = new StringBuilder();
         protected readonly byte[] _buffer = new byte[16 * 1024];
         private readonly Stopwatch _requestTimer = new Stopwatch();
@@ -43,15 +42,15 @@ namespace MindTouch.Arpysee.Server {
         protected int _bufferPosition;
         protected int _bufferDataLength;
         protected bool _carriageReturn;
-        protected ICommandHandler _handler;
 
 
-        protected AClientRequestHandler(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback) {
+        protected AClientRequestHandler(Socket socket, Action<IClientHandler> removeCallback) {
             _socket = socket;
             _remote = _socket.RemoteEndPoint;
-            _dispatcher = dispatcher;
             _removeCallback = removeCallback;
         }
+
+        protected abstract ICommandHandler Handler { get; }
 
         public void ProcessRequests() {
             try {
@@ -84,6 +83,7 @@ namespace MindTouch.Arpysee.Server {
 
         // 2&3, 9&10, Receive buffer trail
         protected abstract void Receive(Action<int, int> continuation);
+        protected abstract void InitializeHandler(string[] command);
 
         // 1.
         private void StartCommandRequest() {
@@ -100,12 +100,12 @@ namespace MindTouch.Arpysee.Server {
             _requestTimer.Stop();
             _log.DebugFormat("[{0}] [{1}] excecuted with status [{2}] in {3:0.00}ms",
                 _commandCounter,
-                _handler.Command,
+                Handler.Command,
                 status,
                 _requestTimer.Elapsed.TotalMilliseconds
             );
             _requestTimer.Reset();
-            if(_handler.DisconnectOnCompletion) {
+            if(Handler.DisconnectOnCompletion) {
                 Dispose();
             } else {
                 StartCommandRequest();
@@ -129,14 +129,14 @@ namespace MindTouch.Arpysee.Server {
                     // 6.
                     var command = _commandBuffer.ToString().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
                     _commandBuffer.Length = 0;
-                    _handler = _dispatcher.GetHandler(command);
+                    InitializeHandler(command);
                     _log.DebugFormat("[{0}] Received command [{1}] in {2:0.00}ms, expect data: {3} ",
                         _commandCounter,
                         command[0],
                         _requestTimer.Elapsed.TotalMilliseconds,
-                        _handler.ExpectsData
+                        Handler.ExpectsData
                     );
-                    if(_handler.ExpectsData) {
+                    if(Handler.ExpectsData) {
 
                         // 8.
                         if(_bufferPosition != 0) {
@@ -160,12 +160,12 @@ namespace MindTouch.Arpysee.Server {
         // 11.
         protected void ProcessPayloadData(int position, int length) {
 
-            var outstanding = _handler.OutstandingBytes;
+            var outstanding = Handler.OutstandingBytes;
             var payloadLength = Math.Min(length, outstanding);
             var payload = new byte[payloadLength];
             Array.Copy(_buffer, position, payload, 0, payloadLength);
-            _handler.AcceptData(payload);
-            if(_handler.OutstandingBytes == 0) {
+            Handler.AcceptData(payload);
+            if(Handler.OutstandingBytes == 0) {
 
                 // check and consume trailing \r\n
                 if(length < payloadLength + 2) {

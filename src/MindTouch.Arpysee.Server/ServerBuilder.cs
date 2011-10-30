@@ -19,55 +19,62 @@
  */
 using System;
 using System.Net;
+using MindTouch.Arpysee.Server.Async;
+using MindTouch.Arpysee.Server.Sync;
 
 namespace MindTouch.Arpysee.Server {
-    public class ServerBuilder : IServerBuilder {
+    public class ServerBuilder : ISyncServerBuilder, IAsyncServerBuilder {
 
-        public static IServerBuilder Configure(IPEndPoint endPoint) {
-            return new ServerBuilder(endPoint);
+        public static ISyncServerBuilder CreateSync(IPEndPoint endPoint) {
+            return new ServerBuilder(endPoint, false);
+        }
+
+        public static IAsyncServerBuilder CreateAsync(IPEndPoint endPoint) {
+            return new ServerBuilder(endPoint, true);
         }
 
         private readonly IPEndPoint _endPoint;
-        private IClientHandlerFactory _clientHandlerFactory = new AsyncClientHandlerFactory();
-        private readonly CommandRepository _repository = new CommandRepository();
-        private ServerBuilder(IPEndPoint endPoint) {
+        private readonly IClientHandlerFactory _clientHandlerFactory;
+        private readonly AsyncCommandRepository _asyncRepository = new AsyncCommandRepository();
+        private readonly SyncCommandRepository _syncRepository = new SyncCommandRepository();
+
+        private ServerBuilder(IPEndPoint endPoint, bool isAsync) {
             _endPoint = endPoint;
+            _clientHandlerFactory = isAsync
+                ? (IClientHandlerFactory)new AsyncClientHandlerFactory(_asyncRepository)
+                : new SyncClientHandlerFactory(_syncRepository);
         }
 
         public ArpyseeServer Build() {
-            return new ArpyseeServer(_endPoint, _repository, _clientHandlerFactory);
+            return new ArpyseeServer(_endPoint, _clientHandlerFactory);
         }
 
-        public IServerBuilder UseSyncIO() {
-            return UseAsyncIO(false);
-        }
-
-        public IServerBuilder UseAsyncIO() {
-            return UseAsyncIO(true);
-        }
-
-        public IServerBuilder UseAsyncIO(bool useAsync) {
-            _clientHandlerFactory = useAsync ? (IClientHandlerFactory)new AsyncClientHandlerFactory() : new SyncClientHandlerFactory();
+        IAsyncServerBuilder IAsyncServerBuilder.WithDefaultHandler(Action<IRequest, Action<IResponse>> handler) {
+            _asyncRepository.Default(handler);
             return this;
         }
 
-        public IServerBuilder WithCommands(Action<ICommandRegistry> registry) {
-            registry(_repository);
+        IAsyncServerBuilder IAsyncServerBuilder.WithErrorHandler(Action<IRequest, Exception, Action<IResponse>> handler) {
+            _asyncRepository.Error(handler);
             return this;
         }
 
-        public IServerBuilder WithDefaultHandler(Action<IRequest, Action<IResponse>> handler) {
-            _repository.Default(handler);
+        IAsyncFluentCommandRegistration IAsyncServerBuilder.WithCommand(string command) {
+           return new AsyncFluentCommandRegistration(this,_asyncRepository,command);
+        }
+
+        ISyncServerBuilder ISyncServerBuilder.WithDefaultHandler(Func<IRequest, IResponse> handler) {
+            _syncRepository.Default(handler);
             return this;
         }
 
-        public IServerBuilder WithErrorHandler(Action<IRequest, Exception, Action<IResponse>> handler) {
-            _repository.Error(handler);
+        ISyncServerBuilder ISyncServerBuilder.WithErrorHandler(Func<IRequest, Exception, IResponse> handler) {
+            _syncRepository.Error(handler);
             return this;
         }
 
-        public IServerBuilderCommandRegistration WithCommand(string command) {
-            return new ServerBuilderCommandRegistration(this, _repository, command);
+        ISyncFluentCommandRegistration ISyncServerBuilder.WithCommand(string command) {
+            return new SyncFluentCommandRegistration(this, _syncRepository, command);
         }
     }
 }

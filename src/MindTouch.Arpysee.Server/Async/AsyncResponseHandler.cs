@@ -21,49 +21,59 @@ using System;
 using System.Net.Sockets;
 using System.Text;
 
-namespace MindTouch.Arpysee.Server {
+namespace MindTouch.Arpysee.Server.Async {
     public class AsyncResponseHandler {
         private const string TERMINATOR = "\r\n";
 
-        public static void SendResponse(Socket socket, IResponse response, Action<Exception> callback) {
-            var handler = new AsyncResponseHandler(socket, response);
-            handler.Exec(callback);
-        }
-
         private readonly Socket _socket;
-        private readonly IResponse _response;
+        private readonly Action<string> _completion;
+        private readonly Action<Exception> _error;
 
-        private AsyncResponseHandler(Socket socket, IResponse response) {
+        public AsyncResponseHandler(Socket socket, Action<string> completion, Action<Exception> error) {
             _socket = socket;
-            _response = response;
+            _completion = completion;
+            _error = error;
         }
 
-        private void Exec(Action<Exception> callback) {
+        public void SendResponse(IResponse response, Action callback) {
             var sb = new StringBuilder();
-            sb.Append(_response.Status);
-            if(_response.Arguments != null) {
+            sb.Append(response.Status);
+            if(response.Arguments != null) {
                 sb.Append(" ");
-                sb.Append(string.Join(" ", _response.Arguments));
+                sb.Append(string.Join(" ", response.Arguments));
             }
-            if(_response.Data != null) {
+            if(response.Data != null) {
                 sb.Append(" ");
-                sb.Append(_response.Data.Length);
+                sb.Append(response.Data.Length);
             }
             sb.Append(TERMINATOR);
             var data = Encoding.ASCII.GetBytes(sb.ToString());
-            if(_response.Data != null) {
-                var d2 = new byte[data.Length + _response.Data.Length + 2];
+            if(response.Data != null) {
+                var d2 = new byte[data.Length + response.Data.Length + 2];
                 data.CopyTo(d2, 0);
-                Array.Copy(_response.Data, 0, d2, data.Length, _response.Data.Length);
+                Array.Copy(response.Data, 0, d2, data.Length, response.Data.Length);
                 d2[d2.Length - 2] = (byte)'\r';
                 d2[d2.Length - 1] = (byte)'\n';
                 data = d2;
             }
             try {
-                _socket.BeginSend(data, 0, data.Length, SocketFlags.None, r => callback(null), null);
+                _socket.BeginSend(data, 0, data.Length, SocketFlags.None, r => {
+                    try {
+                        _socket.EndSend(r);
+                        if(callback != null) {
+                            callback();
+                        } else {
+                            _completion(response.Status);
+                        }
+                    } catch(Exception e) {
+                        _error(e);
+                    }
+                }, null);
             } catch(Exception e) {
-                callback(e);
+                _error(e);
             }
         }
     }
+
+    public class NoResponseException : Exception { }
 }

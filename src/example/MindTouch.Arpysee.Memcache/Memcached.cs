@@ -12,10 +12,9 @@ namespace MindTouch.Arpysee.Memcache {
 
         public Memcached(IPEndPoint endPoint) {
             _server = ServerBuilder
-                .Configure(endPoint)
-                .UseAsyncIO()
-                .WithCommand("set").HandledBy(Set).ExpectsData().Then()
-                .WithCommand("get").HandledBy(Get).ExpectsData().Then()
+                .CreateAsync(endPoint)
+                .WithCommand("set").HandledBy(Set).ExpectsData().Register()
+                .WithCommand("get").HandledBy(Get).ExpectsData().Register()
                 .Build();
         }
 

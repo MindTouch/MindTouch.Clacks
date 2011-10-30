@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MindTouch.Arpysee
  * 
  * Copyright (C) 2011 Arne F. Claassen
@@ -17,15 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System;
-using System.Collections;
-
-namespace MindTouch.Arpysee.Server {
-    public interface ICommandHandler : IDisposable {
-        bool ExpectsData { get; }
-        bool DisconnectOnCompletion { get; }
-        int OutstandingBytes { get; }
-        string Command { get; }
-        void AcceptData(byte[] chunk);
+namespace MindTouch.Arpysee.Server.Async {
+    public interface IAsyncCommandDispatcher {
+        IAsyncCommandHandler GetHandler(string[] commandArgs);
     }
 }

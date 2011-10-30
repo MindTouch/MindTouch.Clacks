@@ -19,63 +19,49 @@
  */
 using System;
 
-namespace MindTouch.Arpysee.Server {
-    public class ServerBuilderCommandRegistration : IServerBuilderCommandRegistration {
+namespace MindTouch.Arpysee.Server.Sync {
+    public class SyncFluentCommandRegistration : ISyncFluentCommandRegistration {
         private readonly ServerBuilder _serverBuilder;
-        private readonly CommandRepository _repository;
+        private readonly SyncCommandRepository _repository;
         private readonly string _command;
         private bool _isDisconnect;
-        private bool? _expectsData = null;
-        private Action<IRequest, Action<IResponse>> _handler;
-        private Func<IRequest, IResponse> _syncHandler;
+        private DataExpectation _dataExpectation = DataExpectation.Auto;
+        private Func<IRequest, IResponse> _handler;
 
-        public ServerBuilderCommandRegistration(ServerBuilder serverBuilder, CommandRepository repository, string command) {
+        public SyncFluentCommandRegistration(ServerBuilder serverBuilder, SyncCommandRepository repository, string command) {
             _serverBuilder = serverBuilder;
             _repository = repository;
             _command = command;
         }
 
-        public IServerBuilderCommandRegistration IsDisconnect() {
+        public ISyncFluentCommandRegistration IsDisconnect() {
             _isDisconnect = true;
             return this;
         }
 
-        public IServerBuilderCommandRegistration HandledBy(Action<IRequest, Action<IResponse>> handler) {
+        public ISyncFluentCommandRegistration HandledBy(Func<IRequest, IResponse> handler) {
             _handler = handler;
             return this;
         }
-        public IServerBuilderCommandRegistration HandledBy(Func<IRequest, IResponse> handler) {
-            _syncHandler = handler;
+
+        public ISyncFluentCommandRegistration ExpectsData() {
+            _dataExpectation = DataExpectation.Always;
             return this;
         }
 
-        public IServerBuilderCommandRegistration ExpectsData() {
-            _expectsData = true;
+        public ISyncFluentCommandRegistration ExpectsNoData() {
+            _dataExpectation = DataExpectation.Never;
             return this;
         }
 
-        public IServerBuilderCommandRegistration ExpectsNoData() {
-            _expectsData = false;
-            return this;
-        }
-
-        public IServerBuilder Then() {
+        public ISyncServerBuilder Register() {
             if(_handler == null) {
                 throw new CommandConfigurationException(string.Format("Must define a handler for command '{0}'", _command));
             }
             if(_isDisconnect) {
                 _repository.Disconnect(_command, _handler);
             } else {
-                var registration = _syncHandler == null
-                    ? _repository.Command(_command, _handler)
-                    : _repository.Command(_command, _syncHandler);
-                if(_expectsData.HasValue) {
-                    if(_expectsData.Value) {
-                        registration.ExpectData();
-                    } else {
-                        registration.ExpectNoData();
-                    }
-                }
+                _repository.AddCommand(_command, _handler, _dataExpectation);
             }
             return _serverBuilder;
         }

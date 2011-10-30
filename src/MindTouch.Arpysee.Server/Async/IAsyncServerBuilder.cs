@@ -19,13 +19,11 @@
  */
 using System;
 
-namespace MindTouch.Arpysee.Server {
-    public interface IServerBuilderCommandRegistration {
-        IServerBuilderCommandRegistration IsDisconnect();
-        IServerBuilderCommandRegistration HandledBy(Action<IRequest, Action<IResponse>> handler);
-        IServerBuilderCommandRegistration ExpectsData();
-        IServerBuilderCommandRegistration ExpectsNoData();
-        IServerBuilder Then();
-
+namespace MindTouch.Arpysee.Server.Async {
+    public interface IAsyncServerBuilder {
+        ArpyseeServer Build();
+        IAsyncServerBuilder WithDefaultHandler(Action<IRequest, Action<IResponse>> handler);
+        IAsyncServerBuilder WithErrorHandler(Action<IRequest, Exception, Action<IResponse>> handler);
+        IAsyncFluentCommandRegistration WithCommand(string command);
     }
 }

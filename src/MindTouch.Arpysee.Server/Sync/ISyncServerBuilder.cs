@@ -18,12 +18,12 @@
  * limitations under the License.
  */
 using System;
-using System.Net.Sockets;
 
-namespace MindTouch.Arpysee.Server {
-    public class AsyncClientHandlerFactory : IClientHandlerFactory {
-        public IClientHandler Create(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback) {
-            return new AsyncClientHandler(socket, dispatcher, removeCallback);
-        }
+namespace MindTouch.Arpysee.Server.Sync {
+    public interface ISyncServerBuilder {
+        ArpyseeServer Build();
+        ISyncServerBuilder WithDefaultHandler(Func<IRequest, IResponse> handler);
+        ISyncServerBuilder WithErrorHandler(Func<IRequest, Exception, IResponse> handler);
+        ISyncFluentCommandRegistration WithCommand(string command);
     }
 }

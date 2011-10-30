@@ -19,25 +19,24 @@
  */
 using System;
 using System.Collections.Generic;
-using System.Text;
 
-namespace MindTouch.Arpysee.Server {
-    public class CommandRepository : ICommandRegistry, ICommandDispatcher {
+namespace MindTouch.Arpysee.Server.Sync {
+    public class SyncCommandRepository : ISyncCommandDispatcher {
 
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
-        private readonly Dictionary<string, CommandRegistration> _commands = new Dictionary<string, CommandRegistration>();
-        private Action<IRequest, Exception, Action<IResponse>> _errorHandler;
-        private CommandRegistration _defaultCommandRegistration = new CommandRegistration((r, c) => c(Response.Create("UNKNOWN")));
-        private CommandRegistration _disconnectRegistration = new CommandRegistration((r, c) => c(Response.Create("BYE")));
+        private readonly Dictionary<string, SyncCommandRegistration> _commands = new Dictionary<string, SyncCommandRegistration>();
+        private Func<IRequest, Exception, IResponse> _errorHandler;
+        private SyncCommandRegistration _defaultCommandRegistration = new SyncCommandRegistration(r => Response.Create("UNKNOWN"));
+        private SyncCommandRegistration _disconnectRegistration = new SyncCommandRegistration(r => Response.Create("BYE"));
         private string _disconnectCommand = "BYE";
 
-        public ICommandHandler GetHandler(string[] commandArgs) {
+        public ISyncCommandHandler GetHandler(string[] commandArgs) {
             var command = commandArgs[0];
             if(command == _disconnectCommand) {
                 return BuildDisconnectHandler();
             }
-            CommandRegistration registration;
+            SyncCommandRegistration registration;
             if(!_commands.TryGetValue(command, out registration)) {
                 registration = _defaultCommandRegistration;
             }
@@ -63,46 +62,35 @@ namespace MindTouch.Arpysee.Server {
                     Array.Copy(commandArgs, 1, arguments, 0, arguments.Length - 1);
                 }
             }
-
-            // TODO: be nice to refactor this in a way where the handler isn't wrapped with another handler. Sacrificing about 10% throughput
-            // on commands with that
-            return registration.GetHandler(command, arguments, dataLength, _errorHandler);
+            return new SyncCommandHandler(command, arguments, dataLength, registration.Handler, _errorHandler);
         }
 
-        private ICommandHandler BuildDisconnectHandler() {
-            return CommandHandler.DisconnectHandler(_disconnectCommand, (request, response) => {
+        private ISyncCommandHandler BuildDisconnectHandler() {
+            return SyncCommandHandler.DisconnectHandler(_disconnectCommand, request => {
                 try {
-                    _disconnectRegistration.Handler(request, response);
+                    return _disconnectRegistration.Handler(request);
                 } catch(Exception handlerException) {
                     _log.Warn("disconnect handler threw an exception, continuating with disconnect", handlerException);
-                    response(Response.Create("BYE"));
+                    return Response.Create("BYE");
                 }
             });
         }
 
-        public void Default(Action<IRequest, Action<IResponse>> handler) {
-            _defaultCommandRegistration = new CommandRegistration(handler);
+        public void Default(Func<IRequest, IResponse> handler) {
+            _defaultCommandRegistration = new SyncCommandRegistration(handler);
         }
 
-        public void Error(Action<IRequest, Exception, Action<IResponse>> handler) {
+        public void Error(Func<IRequest, Exception, IResponse> handler) {
             _errorHandler = handler;
         }
 
-        public void Disconnect(string command, Action<IRequest, Action<IResponse>> handler) {
+        public void Disconnect(string command, Func<IRequest, IResponse> handler) {
             _disconnectCommand = command;
-            _disconnectRegistration = new CommandRegistration(handler);
+            _disconnectRegistration = new SyncCommandRegistration(handler);
         }
 
-        public ICommandRegistration Command(string command, Action<IRequest, Action<IResponse>> handler) {
-            var registration = new CommandRegistration(handler);
-            _commands[command] = registration;
-            return registration;
-        }
-
-        public ICommandRegistration Command(string command, Func<IRequest, IResponse> syncHandler) {
-            var registration = new CommandRegistration(syncHandler);
-            _commands[command] = registration;
-            return registration;
+        public void AddCommand(string command, Func<IRequest, IResponse> handler, DataExpectation dataExpectation) {
+            _commands[command] = new SyncCommandRegistration(handler, dataExpectation);
         }
     }
 }

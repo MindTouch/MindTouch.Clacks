@@ -18,14 +18,18 @@
  * limitations under the License.
  */
 using System;
-using System.Collections;
+using System.Net.Sockets;
 
-namespace MindTouch.Arpysee.Server {
-    public interface ICommandHandler : IDisposable {
-        bool ExpectsData { get; }
-        bool DisconnectOnCompletion { get; }
-        int OutstandingBytes { get; }
-        string Command { get; }
-        void AcceptData(byte[] chunk);
+namespace MindTouch.Arpysee.Server.Sync {
+    public class SyncClientHandlerFactory : IClientHandlerFactory {
+        private readonly ISyncCommandDispatcher _dispatcher;
+
+        public SyncClientHandlerFactory(ISyncCommandDispatcher dispatcher) {
+            _dispatcher = dispatcher;
+        }
+
+        public IClientHandler Create(Socket socket, Action<IClientHandler> removeHandler) {
+            return new SyncClientHandler(socket, _dispatcher, removeHandler);
+        }
     }
 }

@@ -21,7 +21,11 @@ namespace MindTouch.Arpysee.Tester {
                 useAsync = args[2] == "sync";
             }
             if(type == "server") {
-                Server(ip, useAsync);
+                if(useAsync) {
+                    AsyncServer(ip);
+                } else {
+                    Server(ip);
+                }
             } else {
                 Client(ip);
             }
@@ -42,11 +46,10 @@ namespace MindTouch.Arpysee.Tester {
             }
         }
 
-        private static void Server(IPAddress ip, bool useAsync) {
+        private static void AsyncServer(IPAddress ip) {
             Console.WriteLine("starting server to listen on {0}", ip);
             var server = ServerBuilder
-                .Configure(new IPEndPoint(ip, 12345))
-                .UseAsyncIO(useAsync)
+                .CreateAsync(new IPEndPoint(ip, 12345))
                 .WithDefaultHandler((request, response) =>
                     response(Response.Create("UNKNOWNCOMMAND"))
                 )
@@ -54,7 +57,7 @@ namespace MindTouch.Arpysee.Tester {
                     .HandledBy((request, response) =>
                         response(Response.Create("ECHO").WithArguments(request.Arguments))
                     )
-                    .Then()
+                    .Register()
                 .WithCommand("BIN")
                     .HandledBy((request, response) => {
                         var payload = new StringBuilder();
@@ -63,7 +66,33 @@ namespace MindTouch.Arpysee.Tester {
                         }
                         response(Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payload.ToString())));
                     })
-                    .Then()
+                    .Register()
+                .Build();
+            Console.ReadLine();
+            server.Dispose();
+        }
+
+        private static void Server(IPAddress ip) {
+            Console.WriteLine("starting server to listen on {0}", ip);
+            var server = ServerBuilder
+                .CreateSync(new IPEndPoint(ip, 12345))
+                .WithDefaultHandler(request =>
+                    Response.Create("UNKNOWNCOMMAND")
+                )
+                .WithCommand("ECHO")
+                    .HandledBy(request =>
+                        Response.Create("ECHO").WithArguments(request.Arguments)
+                    )
+                    .Register()
+                .WithCommand("BIN")
+                    .HandledBy(request => {
+                        var payload = new StringBuilder();
+                        for(var i = 0; i < 20; i++) {
+                            payload.Append(Guid.NewGuid().ToString());
+                        }
+                        return Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payload.ToString()));
+                    })
+                    .Register()
                 .Build();
             Console.ReadLine();
             server.Dispose();

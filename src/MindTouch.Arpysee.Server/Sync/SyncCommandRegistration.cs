@@ -18,12 +18,22 @@
  * limitations under the License.
  */
 using System;
-using System.Net.Sockets;
 
-namespace MindTouch.Arpysee.Server {
-    public class SyncClientHandlerFactory : IClientHandlerFactory {
-        public IClientHandler Create(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback) {
-            return new SyncClientHandler(socket, dispatcher, removeCallback);
+namespace MindTouch.Arpysee.Server.Sync {
+    public class SyncCommandRegistration {
+        private static readonly Logger.ILog _log = Logger.CreateLog();
+
+        private readonly DataExpectation _dataExpectation;
+        private readonly Func<IRequest, IResponse> _handler;
+
+        public SyncCommandRegistration(Func<IRequest, IResponse> handler) : this(handler, DataExpectation.Auto) { }
+
+        public SyncCommandRegistration(Func<IRequest, IResponse> handler, DataExpectation dataExpectation) {
+            _handler = handler;
+            _dataExpectation = dataExpectation;
         }
+
+        public DataExpectation DataExpectation { get { return _dataExpectation; } }
+        public Func<IRequest, IResponse> Handler { get { return _handler; } }
     }
 }

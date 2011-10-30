@@ -17,13 +17,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System;
-
-namespace MindTouch.Arpysee.Server {
-    public interface ICommandRegistry {
-        void Default(Action<IRequest, Action<IResponse>> handler);
-        void Error(Action<IRequest, Exception, Action<IResponse>> handler);
-        void Disconnect(string command, Action<IRequest, Action<IResponse>> handler);
-        ICommandRegistration Command(string command, Action<IRequest, Action<IResponse>> handler);
+namespace MindTouch.Arpysee.Server.Sync {
+    public interface ISyncCommandDispatcher {
+        ISyncCommandHandler GetHandler(string[] command);
     }
 }

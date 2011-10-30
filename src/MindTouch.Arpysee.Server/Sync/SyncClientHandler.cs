@@ -22,16 +22,24 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-namespace MindTouch.Arpysee.Server {
+namespace MindTouch.Arpysee.Server.Sync {
     public class SyncClientHandler : AClientRequestHandler {
 
         private const string TERMINATOR = "\r\n";
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
-        public SyncClientHandler(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback)
-            : base(socket, dispatcher, removeCallback) { }
+        private readonly ISyncCommandDispatcher _dispatcher;
+        private ISyncCommandHandler _commandHandler;
+       
+        public SyncClientHandler(Socket socket, ISyncCommandDispatcher dispatcher, Action<IClientHandler> removeCallback) : base(socket, removeCallback) {
+            _dispatcher = dispatcher;
+        }
 
         // 13/14.
+        protected override ICommandHandler Handler {
+            get { return _commandHandler; }
+        }
+
         protected override void Receive(Action<int, int> continuation) {
             int received;
             try {
@@ -52,11 +60,13 @@ namespace MindTouch.Arpysee.Server {
             continuation(0, received);
         }
 
+        protected override void InitializeHandler(string[] command) {
+            _commandHandler = _dispatcher.GetHandler(command);
+        }
+
         protected override void ProcessResponse() {
-            var currentThreadId = Thread.CurrentThread.ManagedThreadId;
             string finalStatus = null;
-            //foreach(var response in _handler.GetResponse()) {
-            var response = _handler.GetSingleResponse(); 
+            foreach(var response in _commandHandler.GetResponse()) {
                 finalStatus = response.Status;
                 var sb = new StringBuilder();
                 sb.Append(response.Status);
@@ -88,7 +98,7 @@ namespace MindTouch.Arpysee.Server {
                     _log.Debug("socket was already disposed");
                     return;
                 }
-            //}
+            }
             ThreadPool.QueueUserWorkItem((o) => EndCommandRequest(finalStatus));
         }
     }

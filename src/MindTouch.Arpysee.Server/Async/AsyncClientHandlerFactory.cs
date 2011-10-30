@@ -17,9 +17,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace MindTouch.Arpysee.Server {
-    public interface ICommandRegistration {
-        ICommandRegistration ExpectData();
-        ICommandRegistration ExpectNoData();
+using System;
+using System.Net.Sockets;
+
+namespace MindTouch.Arpysee.Server.Async {
+    public class AsyncClientHandlerFactory : IClientHandlerFactory {
+        private readonly IAsyncCommandDispatcher _dispatcher;
+
+        public AsyncClientHandlerFactory(IAsyncCommandDispatcher dispatcher) {
+            _dispatcher = dispatcher;
+        }
+
+        public IClientHandler Create(Socket socket,  Action<IClientHandler> removeCallback) {
+            return new AsyncClientHandler(socket, _dispatcher, removeCallback);
+        }
     }
 }

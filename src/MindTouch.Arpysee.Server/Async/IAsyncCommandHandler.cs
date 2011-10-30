@@ -18,14 +18,9 @@
  * limitations under the License.
  */
 using System;
-using System.Collections;
 
-namespace MindTouch.Arpysee.Server {
-    public interface ICommandHandler : IDisposable {
-        bool ExpectsData { get; }
-        bool DisconnectOnCompletion { get; }
-        int OutstandingBytes { get; }
-        string Command { get; }
-        void AcceptData(byte[] chunk);
+namespace MindTouch.Arpysee.Server.Async {
+    public interface IAsyncCommandHandler : ICommandHandler {
+        void GetResponse(Action<IResponse,Action> responseCallback);
     }
 }
