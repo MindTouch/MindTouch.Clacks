@@ -18,7 +18,9 @@
  * limitations under the License.
  */
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace MindTouch.Arpysee.Server {
     public class CommandHandler : ICommandHandler {
@@ -66,11 +68,69 @@ namespace MindTouch.Arpysee.Server {
             }
         }
 
-        public void GetResponse(Action<IResponse> callback) {
+        public IEnumerable<IResponse> GetResponse() {
             if(_received < _dataLength) {
                 throw new DataExpectationException(false);
             }
-            _handler(new Request(_command, _arguments, _dataLength, _dataChunks), callback);
+            return new SingleResponseEnumerable(new Request(_command, _arguments, _dataLength, _dataChunks), _handler);
+        }
+    }
+
+    public class SingleResponseEnumerable : IEnumerable<IResponse> {
+        private readonly SingleResponseEnumerator _enumerator;
+
+        public SingleResponseEnumerable(Request request, Action<IRequest, Action<IResponse>> handler) {
+            _enumerator = new SingleResponseEnumerator(request, handler);
+        }
+
+        public IEnumerator<IResponse> GetEnumerator() {
+            return _enumerator;
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
+        }
+    }
+
+    public class SingleResponseEnumerator : IEnumerator<IResponse> {
+        private readonly Request _request;
+        private readonly Action<IRequest, Action<IResponse>> _handler;
+        private IResponse _response = null;
+        private ManualResetEvent _signal = new ManualResetEvent(false);
+
+        public SingleResponseEnumerator(Request request, Action<IRequest, Action<IResponse>> handler) {
+            _request = request;
+            _handler = handler;
+        }
+
+        public void Dispose() { }
+
+        public bool MoveNext() {
+            if(_response != null) {
+                return false;
+            }
+            _handler(_request, response => {
+                _response = response;
+                _signal.Set();
+            });
+            return true;
+        }
+
+        public void Reset() {
+            throw new NotSupportedException();
+        }
+
+        public IResponse Current {
+            get {
+                if(_response == null) {
+                    _signal.WaitOne();
+                }
+                return _response;
+            }
+        }
+
+        object IEnumerator.Current {
+            get { return Current; }
         }
     }
 }

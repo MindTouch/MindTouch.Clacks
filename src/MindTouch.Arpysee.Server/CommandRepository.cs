@@ -66,22 +66,7 @@ namespace MindTouch.Arpysee.Server {
 
             // TODO: be nice to refactor this in a way where the handler isn't wrapped with another handler. Sacrificing about 10% throughput
             // on commands with that
-            return new CommandHandler(command, arguments, dataLength, (request, response) => {
-                try {
-                    registration.Handler(request, response);
-                } catch(Exception handlerException) {
-                    try {
-
-                        if(_errorHandler != null) {
-                            _errorHandler(request, handlerException, response);
-                            return;
-                        }
-                    } catch(Exception errorHandlerException) {
-                        _log.Warn(string.Format("The error handler failed on exception of type {0}", handlerException.GetType()), errorHandlerException);
-                    }
-                    response(Response.Create("ERROR").WithArgument(handlerException.Message).WithData(Encoding.ASCII.GetBytes(handlerException.StackTrace)));
-                }
-            });
+            return registration.GetHandler(command, arguments, dataLength, _errorHandler);
         }
 
         private ICommandHandler BuildDisconnectHandler() {
@@ -110,6 +95,12 @@ namespace MindTouch.Arpysee.Server {
 
         public ICommandRegistration Command(string command, Action<IRequest, Action<IResponse>> handler) {
             var registration = new CommandRegistration(handler);
+            _commands[command] = registration;
+            return registration;
+        }
+
+        public ICommandRegistration Command(string command, Func<IRequest, IResponse> syncHandler) {
+            var registration = new CommandRegistration(syncHandler);
             _commands[command] = registration;
             return registration;
         }

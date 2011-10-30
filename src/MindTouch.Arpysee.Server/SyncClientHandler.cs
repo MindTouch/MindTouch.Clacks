@@ -28,7 +28,7 @@ namespace MindTouch.Arpysee.Server {
         private const string TERMINATOR = "\r\n";
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
-        public SyncClientHandler(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback) 
+        public SyncClientHandler(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback)
             : base(socket, dispatcher, removeCallback) { }
 
         // 13/14.
@@ -54,7 +54,10 @@ namespace MindTouch.Arpysee.Server {
 
         protected override void ProcessResponse() {
             var currentThreadId = Thread.CurrentThread.ManagedThreadId;
-            _handler.GetResponse(response => {
+            string finalStatus = null;
+            //foreach(var response in _handler.GetResponse()) {
+            var response = _handler.GetSingleResponse(); 
+                finalStatus = response.Status;
                 var sb = new StringBuilder();
                 sb.Append(response.Status);
                 if(response.Arguments != null) {
@@ -85,12 +88,8 @@ namespace MindTouch.Arpysee.Server {
                     _log.Debug("socket was already disposed");
                     return;
                 }
-                if(currentThreadId == Thread.CurrentThread.ManagedThreadId) {
-                    ThreadPool.QueueUserWorkItem((o) => EndCommandRequest(response.Status));
-                } else {
-                    EndCommandRequest(response.Status);
-                }
-            });
+            //}
+            ThreadPool.QueueUserWorkItem((o) => EndCommandRequest(finalStatus));
         }
     }
 }

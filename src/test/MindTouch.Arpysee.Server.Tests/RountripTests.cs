@@ -175,21 +175,33 @@ namespace MindTouch.Arpysee.Server.Tests {
             var port = RandomPort;
             string payloadstring = "";
             var registry = new CommandRepository();
-            registry.Default((request, response) => {
-                var payload = new StringBuilder();
-                for(var i = 0; i < 10; i++) {
-                    payload.Append(Guid.NewGuid().ToString());
+            //registry.Command("BIN",
+            //    (request, response) => {
+            //        var payload = new StringBuilder();
+            //        for(var i = 0; i < 10; i++) {
+            //            payload.Append(Guid.NewGuid().ToString());
+            //        }
+            //        payloadstring = payload.ToString();
+            //        response(Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring)));
+            //    }
+            //);
+            registry.Command("BIN",
+                request => {
+                    var payload = new StringBuilder();
+                    for(var i = 0; i < 10; i++) {
+                        payload.Append(Guid.NewGuid().ToString());
+                    }
+                    payloadstring = payload.ToString();
+                    return Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring));
                 }
-                payloadstring = payload.ToString();
-                response(Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring)));
-            });
+            );
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, clientHandlerFactory)) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", port)) {
                     var n = 30000;
                     var t = Stopwatch.StartNew();
                     for(var i = 0; i < n; i++) {
-                        var response = client.Exec(new Client.Request("foo").ExpectData("OK"));
+                        var response = client.Exec(new Client.Request("BIN").ExpectData("OK"));
                         Assert.AreEqual("OK", response.Status);
                         Assert.AreEqual(0, response.Arguments.Length);
                         Assert.AreEqual(payloadstring, response.Data.AsText());

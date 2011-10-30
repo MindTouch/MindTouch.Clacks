@@ -27,6 +27,7 @@ namespace MindTouch.Arpysee.Server {
         private bool _isDisconnect;
         private bool? _expectsData = null;
         private Action<IRequest, Action<IResponse>> _handler;
+        private Func<IRequest, IResponse> _syncHandler;
 
         public ServerBuilderCommandRegistration(ServerBuilder serverBuilder, CommandRepository repository, string command) {
             _serverBuilder = serverBuilder;
@@ -41,6 +42,10 @@ namespace MindTouch.Arpysee.Server {
 
         public IServerBuilderCommandRegistration HandledBy(Action<IRequest, Action<IResponse>> handler) {
             _handler = handler;
+            return this;
+        }
+        public IServerBuilderCommandRegistration HandledBy(Func<IRequest, IResponse> handler) {
+            _syncHandler = handler;
             return this;
         }
 
@@ -61,7 +66,9 @@ namespace MindTouch.Arpysee.Server {
             if(_isDisconnect) {
                 _repository.Disconnect(_command, _handler);
             } else {
-                var registration = _repository.Command(_command, _handler);
+                var registration = _syncHandler == null
+                    ? _repository.Command(_command, _handler)
+                    : _repository.Command(_command, _syncHandler);
                 if(_expectsData.HasValue) {
                     if(_expectsData.Value) {
                         registration.ExpectData();

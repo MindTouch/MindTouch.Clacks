@@ -49,6 +49,7 @@
     <Compile Include="AClientRequestHandler.cs" />
     <Compile Include="CommandConfigurationException.cs" />
     <Compile Include="CommandRegistration.cs" />
+    <Compile Include="SyncCommandHandler.cs" />
     <Compile Include="DataExpectationException.cs" />
     <Compile Include="DataTerminatorMissingException.cs" />
     <Compile Include="ArpyseeServer.cs" />

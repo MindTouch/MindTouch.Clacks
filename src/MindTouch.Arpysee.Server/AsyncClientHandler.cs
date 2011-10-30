@@ -62,14 +62,14 @@ namespace MindTouch.Arpysee.Server {
 
         // 13/14.
         protected override void ProcessResponse() {
-            _handler.GetResponse(response => AsyncResponseHandler.SendResponse(_socket, response, e => {
-                if(e != null) {
-                    _log.Warn("Send failed", e);
-                    Dispose();
-                    return;
-                }
-                EndCommandRequest(response.Status);
-            }));
+            //_handler.GetResponse(response => AsyncResponseHandler.SendResponse(_socket, response, e => {
+            //    if(e != null) {
+            //        _log.Warn("Send failed", e);
+            //        Dispose();
+            //        return;
+            //    }
+            //    EndCommandRequest(response.Status);
+            //}));
         }
     }
 }

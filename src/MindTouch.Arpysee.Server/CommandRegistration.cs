@@ -18,9 +18,13 @@
  * limitations under the License.
  */
 using System;
+using System.Text;
 
 namespace MindTouch.Arpysee.Server {
     public class CommandRegistration : ICommandRegistration {
+
+        private static readonly Logger.ILog _log = Logger.CreateLog();
+        private Action<IRequest, Exception, Action<IResponse>> _errorHandler;
 
         public CommandRegistration() {
             DataExpectation = DataExpectation.Auto;
@@ -28,9 +32,12 @@ namespace MindTouch.Arpysee.Server {
 
         public DataExpectation DataExpectation { get; set; }
         public Action<IRequest, Action<IResponse>> Handler { get; private set; }
-
+        public Func<IRequest, IResponse> SyncHandler { get; private set; }
         public CommandRegistration(Action<IRequest, Action<IResponse>> handler) {
             Handler = handler;
+        }
+        public CommandRegistration(Func<IRequest, IResponse> handler) {
+            SyncHandler = handler;
         }
 
         ICommandRegistration ICommandRegistration.ExpectData() {
@@ -43,5 +50,28 @@ namespace MindTouch.Arpysee.Server {
             return this;
         }
 
+        public ICommandHandler GetHandler(string command, string[] arguments, int dataLength, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
+            _errorHandler = errorHandler;
+            return SyncHandler == null
+                       ? (ICommandHandler)new CommandHandler(command, arguments, dataLength, WrappedHandler)
+                       : new SyncCommandHandler(command, arguments, dataLength, SyncHandler);
+        }
+
+        private void WrappedHandler(IRequest request, Action<IResponse> response) {
+            try {
+                Handler(request, response);
+            } catch(Exception handlerException) {
+                try {
+
+                    if(_errorHandler != null) {
+                        _errorHandler(request, handlerException, response);
+                        return;
+                    }
+                } catch(Exception errorHandlerException) {
+                    _log.Warn(string.Format("The error handler failed on exception of type {0}", handlerException.GetType()), errorHandlerException);
+                }
+                response(Response.Create("ERROR").WithArgument(handlerException.Message).WithData(Encoding.ASCII.GetBytes(handlerException.StackTrace)));
+            }
+        }
     }
 }
