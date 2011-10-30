@@ -186,7 +186,7 @@ namespace MindTouch.Arpysee.Server.Tests {
             using(var server = new ArpyseeServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), registry, clientHandlerFactory)) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", port)) {
-                    var n = 20000;
+                    var n = 30000;
                     var t = Stopwatch.StartNew();
                     for(var i = 0; i < n; i++) {
                         var response = client.Exec(new Client.Request("foo").ExpectData("OK"));

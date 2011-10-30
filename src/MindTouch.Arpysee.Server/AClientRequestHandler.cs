@@ -30,18 +30,20 @@ namespace MindTouch.Arpysee.Server {
 
         private readonly Action<IClientHandler> _removeCallback;
         private readonly EndPoint _remote;
+
         protected readonly Socket _socket;
         protected readonly ICommandDispatcher _dispatcher;
         protected readonly StringBuilder _commandBuffer = new StringBuilder();
         protected readonly byte[] _buffer = new byte[16 * 1024];
+        private readonly Stopwatch _requestTimer = new Stopwatch();
+
+        private ulong _commandCounter;
+        private bool _isDisposed;
 
         protected int _bufferPosition;
         protected int _bufferDataLength;
         protected bool _carriageReturn;
         protected ICommandHandler _handler;
-        private Stopwatch _requestTimer;
-        private ulong _commandCounter;
-        private bool _isDisposed;
 
 
         protected AClientRequestHandler(Socket socket, ICommandDispatcher dispatcher, Action<IClientHandler> removeCallback) {
@@ -86,7 +88,7 @@ namespace MindTouch.Arpysee.Server {
         // 1.
         private void StartCommandRequest() {
             _commandCounter++;
-            _requestTimer = Stopwatch.StartNew();
+            _requestTimer.Start();
             if(_bufferPosition != 0) {
                 ProcessCommandData(_bufferPosition, _bufferDataLength);
                 return;
@@ -102,6 +104,7 @@ namespace MindTouch.Arpysee.Server {
                 status,
                 _requestTimer.Elapsed.TotalMilliseconds
             );
+            _requestTimer.Reset();
             if(_handler.DisconnectOnCompletion) {
                 Dispose();
             } else {
