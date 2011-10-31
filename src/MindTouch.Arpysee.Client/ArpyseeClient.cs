@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 using System.Net;
 using MindTouch.Arpysee.Client.Net;
 
@@ -30,8 +31,8 @@ namespace MindTouch.Arpysee.Client {
         private readonly byte[] _buffer = new byte[16 * 1024];
         private bool _disposed;
 
-        public ArpyseeClient(IPAddress address, int port)
-            : this(ConnectionPool.GetPool(address, port)) {
+        public ArpyseeClient(IPEndPoint endPoint)
+            : this(ConnectionPool.GetPool(endPoint)) {
         }
 
         public ArpyseeClient(string host, int port)
@@ -67,6 +68,22 @@ namespace MindTouch.Arpysee.Client {
             _socket.SendRequest(request);
             var response = _socket.ReceiveResponse(_buffer, request);
             return response;
+        }
+
+        public IEnumerable<Response> Exec(MultiRequest request) {
+            ThrowIfDisposed();
+            _socket.SendRequest(request);
+            var responses = new List<Response>();
+            while(true) {
+                var response = _socket.ReceiveResponse(_buffer, request);
+                if(response.Status == request.TerminationStatus) {
+                    return responses;
+                }
+                if(request.IsExpected(response.Status)) {
+                    continue;
+                }
+                return new[] { response };
+            }
         }
 
         private void ThrowIfDisposed() {

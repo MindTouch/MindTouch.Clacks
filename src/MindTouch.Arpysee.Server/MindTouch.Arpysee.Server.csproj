@@ -47,6 +47,10 @@
   <ItemGroup>
     <Compile Include="Async\AsyncClientHandlerFactory.cs" />
     <Compile Include="AClientRequestHandler.cs" />
+    <Compile Include="Async\AsyncMultiCommandHandler.cs" />
+    <Compile Include="Async\AsyncMultiCommandRegistration.cs" />
+    <Compile Include="Async\AsyncSingleCommandRegistration.cs" />
+    <Compile Include="Async\IAsyncCommandRegistration.cs" />
     <Compile Include="CommandConfigurationException.cs" />
     <Compile Include="Async\IAsyncCommandDispatcher.cs" />
     <Compile Include="Async\IAsyncServerBuilder.cs" />
@@ -54,7 +58,7 @@
     <Compile Include="Sync\ISyncCommandHandler.cs" />
     <Compile Include="Async\AsyncFluentCommandRegistration.cs" />
     <Compile Include="Sync\SyncCommandRegistration.cs" />
-    <Compile Include="Async\AsyncCommandRegistration.cs" />
+    <Compile Include="Async\AAsyncCommandRegistration.cs" />
     <Compile Include="Sync\SyncCommandRepository.cs" />
     <Compile Include="Async\IAsyncCommandHandler.cs" />
     <Compile Include="Sync\SyncCommandHandler.cs" />

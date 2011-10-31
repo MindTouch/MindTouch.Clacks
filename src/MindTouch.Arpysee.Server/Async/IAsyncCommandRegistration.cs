@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MindTouch.Arpysee
  * 
  * Copyright (C) 2011 Arne F. Claassen
@@ -20,20 +20,7 @@
 using System;
 
 namespace MindTouch.Arpysee.Server.Async {
-    public class AsyncCommandRegistration {
-        private static readonly Logger.ILog _log = Logger.CreateLog();
-
-        private readonly DataExpectation _dataExpectation;
-        private readonly Action<IRequest, Action<IResponse>> _handler;
-
-        public AsyncCommandRegistration(Action<IRequest, Action<IResponse>> handler) : this(handler, DataExpectation.Auto) { }
-
-        public AsyncCommandRegistration(Action<IRequest, Action<IResponse>> handler, DataExpectation dataExpectation) {
-            _handler = handler;
-            _dataExpectation = dataExpectation;
-        }
-
-        public DataExpectation DataExpectation { get { return _dataExpectation; } }
-        public Action<IRequest, Action<IResponse>> Handler { get { return _handler; } }
+    public interface IAsyncCommandRegistration {
+        IAsyncCommandHandler GetHandler(string[] commandArgs, Action<IRequest, Exception, Action<IResponse>> errorHandler);
     }
 }

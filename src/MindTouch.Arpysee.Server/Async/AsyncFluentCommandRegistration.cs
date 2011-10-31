@@ -26,7 +26,8 @@ namespace MindTouch.Arpysee.Server.Async {
         private readonly string _command;
         private bool _isDisconnect;
         private DataExpectation _dataExpectation = DataExpectation.Auto;
-        private Action<IRequest, Action<IResponse>> _handler;
+        private Action<IRequest, Action<IResponse>> _singleResponseHandler;
+        private Action<IRequest, Action<IResponse, Action>> _multiResponseHandler;
 
         public AsyncFluentCommandRegistration(ServerBuilder serverBuilder, AsyncCommandRepository repository, string command) {
             _serverBuilder = serverBuilder;
@@ -40,7 +41,12 @@ namespace MindTouch.Arpysee.Server.Async {
         }
 
         public IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse>> handler) {
-            _handler = handler;
+            _singleResponseHandler = handler;
+            return this;
+        }
+
+        public IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse, Action>> handler) {
+            _multiResponseHandler = handler;
             return this;
         }
 
@@ -55,13 +61,15 @@ namespace MindTouch.Arpysee.Server.Async {
         }
 
         public IAsyncServerBuilder Register() {
-            if(_handler == null) {
+            if(_singleResponseHandler == null && _multiResponseHandler == null) {
                 throw new CommandConfigurationException(string.Format("Must define a handler for command '{0}'", _command));
             }
             if(_isDisconnect) {
-                _repository.Disconnect(_command, _handler);
+                _repository.Disconnect(_command, _singleResponseHandler);
+            } else if(_singleResponseHandler != null) {
+                _repository.AddCommand(_command, _singleResponseHandler, _dataExpectation);
             } else {
-                _repository.AddCommand(_command, _handler, _dataExpectation);
+                _repository.AddCommand(_command, _multiResponseHandler, _dataExpectation);
             }
             return _serverBuilder;
         }

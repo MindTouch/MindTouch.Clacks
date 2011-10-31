@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 
 namespace MindTouch.Arpysee.Server.Sync {
     public class SyncFluentCommandRegistration : ISyncFluentCommandRegistration {
@@ -42,6 +43,10 @@ namespace MindTouch.Arpysee.Server.Sync {
         public ISyncFluentCommandRegistration HandledBy(Func<IRequest, IResponse> handler) {
             _handler = handler;
             return this;
+        }
+
+        public ISyncFluentCommandRegistration HandledBy(Func<IRequest, IEnumerable<IResponse>> handler) {
+            throw new NotImplementedException();
         }
 
         public ISyncFluentCommandRegistration ExpectsData() {

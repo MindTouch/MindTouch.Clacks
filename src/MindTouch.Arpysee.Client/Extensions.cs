@@ -29,7 +29,7 @@ namespace MindTouch.Arpysee.Client {
             stream.Write(buffer, 0, buffer.Length);
         }
 
-        public static void SendRequest(this ISocket socket, Request request) {
+        public static void SendRequest(this ISocket socket, ARequest request) {
             var bytes = request.AsBytes();
             socket.SendBuffer(bytes,bytes.Length);
         }

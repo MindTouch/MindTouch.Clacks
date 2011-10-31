@@ -13,8 +13,7 @@ using Response = MindTouch.Arpysee.Server.Response;
 namespace MindTouch.Arpysee.Tester {
     class Program {
         static void Main(string[] args) {
-            var port = 12345;
-            var ip = IPAddress.Parse(args[0]);
+            var endpoint = new IPEndPoint(IPAddress.Parse(args[0]), 12345);
             var type = args[1];
             var useAsync = true;
             if(args.Length > 2) {
@@ -22,17 +21,17 @@ namespace MindTouch.Arpysee.Tester {
             }
             if(type == "server") {
                 if(useAsync) {
-                    AsyncServer(ip);
+                    AsyncServer(endpoint);
                 } else {
-                    Server(ip);
+                    Server(endpoint);
                 }
             } else {
-                Client(ip);
+                Client(endpoint);
             }
         }
 
-        private static void Client(IPAddress ip) {
-            using(var client = new ArpyseeClient(ip, 12345)) {
+        private static void Client(IPEndPoint ip) {
+            using(var client = new ArpyseeClient(ip)) {
                 Console.WriteLine("connected to server");
                 var n = 10000;
                 var t = Stopwatch.StartNew();
@@ -46,10 +45,10 @@ namespace MindTouch.Arpysee.Tester {
             }
         }
 
-        private static void AsyncServer(IPAddress ip) {
+        private static void AsyncServer(IPEndPoint ip) {
             Console.WriteLine("starting server to listen on {0}", ip);
             var server = ServerBuilder
-                .CreateAsync(new IPEndPoint(ip, 12345))
+                .CreateAsync(ip)
                 .WithDefaultHandler((request, response) =>
                     response(Response.Create("UNKNOWNCOMMAND"))
                 )
@@ -72,10 +71,10 @@ namespace MindTouch.Arpysee.Tester {
             server.Dispose();
         }
 
-        private static void Server(IPAddress ip) {
+        private static void Server(IPEndPoint ip) {
             Console.WriteLine("starting server to listen on {0}", ip);
             var server = ServerBuilder
-                .CreateSync(new IPEndPoint(ip, 12345))
+                .CreateSync(ip)
                 .WithDefaultHandler(request =>
                     Response.Create("UNKNOWNCOMMAND")
                 )

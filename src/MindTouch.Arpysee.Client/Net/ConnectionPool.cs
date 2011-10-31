@@ -45,12 +45,12 @@ namespace MindTouch.Arpysee.Client.Net {
         public static readonly int DefaultMaxConnections = 100;
         private static readonly Dictionary<string, ConnectionPool> _pools = new Dictionary<string, ConnectionPool>();
 
-        public static ConnectionPool GetPool(IPAddress address, int port) {
+        public static ConnectionPool GetPool(IPEndPoint endPoint) {
             lock(_pools) {
                 ConnectionPool pool;
-                var key = string.Format("{0}:{1}", address, port);
+                var key = string.Format("{0}:{1}", endPoint.Address, endPoint.Port);
                 if(!_pools.TryGetValue(key, out pool)) {
-                    pool = new ConnectionPool(address, port);
+                    pool = new ConnectionPool(endPoint);
                     _pools[key] = pool;
                 }
                 return pool;
@@ -69,8 +69,8 @@ namespace MindTouch.Arpysee.Client.Net {
             }
         }
 
-        public static ConnectionPool Create(IPAddress address, int port) {
-            return new ConnectionPool(address, port);
+        public static ConnectionPool Create(IPEndPoint endpoint) {
+            return new ConnectionPool(endpoint);
         }
 
         public static ConnectionPool Create(string host, int port) {
@@ -84,7 +84,7 @@ namespace MindTouch.Arpysee.Client.Net {
         private TimeSpan _cleanupInterval = TimeSpan.FromSeconds(60);
         private bool _disposed;
 
-        private ConnectionPool(IPAddress address, int port) : this(() => SocketAdapter.Open(address, port, DefaultConnectTimeout)) { }
+        private ConnectionPool(IPEndPoint endpoint) : this(() => SocketAdapter.Open(endpoint, DefaultConnectTimeout)) { }
 
         private ConnectionPool(string host, int port) : this(() => SocketAdapter.Open(host, port, DefaultConnectTimeout)) { }
 

@@ -18,11 +18,13 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 
 namespace MindTouch.Arpysee.Server.Sync {
     public interface ISyncFluentCommandRegistration {
         ISyncFluentCommandRegistration IsDisconnect();
-        ISyncFluentCommandRegistration HandledBy(Func<IRequest,IResponse> handler);
+        ISyncFluentCommandRegistration HandledBy(Func<IRequest, IResponse> handler);
+        ISyncFluentCommandRegistration HandledBy(Func<IRequest, IEnumerable<IResponse>> handler);
         ISyncFluentCommandRegistration ExpectsData();
         ISyncFluentCommandRegistration ExpectsNoData();
         ISyncServerBuilder Register();

@@ -25,10 +25,10 @@ namespace MindTouch.Arpysee.Server.Async {
 
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
-        private readonly Dictionary<string, AsyncCommandRegistration> _commands = new Dictionary<string, AsyncCommandRegistration>();
+        private readonly Dictionary<string, IAsyncCommandRegistration> _commands = new Dictionary<string, IAsyncCommandRegistration>();
         private Action<IRequest, Exception, Action<IResponse>> _errorHandler;
-        private AsyncCommandRegistration _defaultCommandRegistration = new AsyncCommandRegistration((r, c) => c(Response.Create("UNKNOWN")));
-        private AsyncCommandRegistration _disconnectRegistration = new AsyncCommandRegistration((r, c) => c(Response.Create("BYE")));
+        private AsyncSingleCommandRegistration _defaultCommandRegistration = new AsyncSingleCommandRegistration((r, c) => c(Response.Create("UNKNOWN")));
+        private Action<IRequest, Action<IResponse>> _disconnectHandler = (r, c) => c(Response.Create("BYE"));
         private string _disconnectCommand = "BYE";
 
         public IAsyncCommandHandler GetHandler(string[] commandArgs) {
@@ -36,39 +36,17 @@ namespace MindTouch.Arpysee.Server.Async {
             if(command == _disconnectCommand) {
                 return BuildDisconnectHandler();
             }
-            AsyncCommandRegistration registration;
+            IAsyncCommandRegistration registration;
             if(!_commands.TryGetValue(command, out registration)) {
                 registration = _defaultCommandRegistration;
             }
-            int dataLength = 0;
-            string[] arguments;
-            if(registration.DataExpectation == DataExpectation.Auto) {
-                if(commandArgs.Length > 1) {
-                    int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength);
-                }
-            } else if(registration.DataExpectation == DataExpectation.Always) {
-                if(commandArgs.Length == 1 || !int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength)) {
-                    throw new InvalidCommandException();
-                }
-            }
-            if(dataLength == 0) {
-                arguments = new string[commandArgs.Length - 1];
-                if(arguments.Length > 0) {
-                    Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
-                }
-            } else {
-                arguments = new string[commandArgs.Length - 2];
-                if(arguments.Length > 0) {
-                    Array.Copy(commandArgs, 1, arguments, 0, arguments.Length - 1);
-                }
-            }
-            return new AsyncCommandHandler(command, arguments, dataLength, registration.Handler, _errorHandler);
+            return registration.GetHandler(commandArgs, _errorHandler);
         }
 
         private IAsyncCommandHandler BuildDisconnectHandler() {
             return AsyncCommandHandler.DisconnectHandler(_disconnectCommand, (request, response) => {
                 try {
-                    _disconnectRegistration.Handler(request, response);
+                    _disconnectHandler(request, response);
                 } catch(Exception handlerException) {
                     _log.Warn("disconnect handler threw an exception, continuating with disconnect", handlerException);
                     response(Response.Create("BYE"));
@@ -77,7 +55,7 @@ namespace MindTouch.Arpysee.Server.Async {
         }
 
         public void Default(Action<IRequest, Action<IResponse>> handler) {
-            _defaultCommandRegistration = new AsyncCommandRegistration(handler, DataExpectation.Auto);
+            _defaultCommandRegistration = new AsyncSingleCommandRegistration(handler, DataExpectation.Auto);
         }
 
         public void Error(Action<IRequest, Exception, Action<IResponse>> handler) {
@@ -86,12 +64,16 @@ namespace MindTouch.Arpysee.Server.Async {
 
         public void Disconnect(string command, Action<IRequest, Action<IResponse>> handler) {
             _disconnectCommand = command;
-            _disconnectRegistration = new AsyncCommandRegistration(handler, DataExpectation.Never);
+            _disconnectHandler = handler;
         }
 
         public void AddCommand(string command, Action<IRequest, Action<IResponse>> handler, DataExpectation dataExpectation) {
-            _commands[command] = new AsyncCommandRegistration(handler, dataExpectation);
+            _commands[command] = new AsyncSingleCommandRegistration(handler, dataExpectation);
         }
 
+        public void AddCommand(string command, Action<IRequest, Action<IResponse, Action>> handler, DataExpectation dataExpectation) {
+            _commands[command] = new AsyncMultiCommandRegistration(handler, dataExpectation);
+        }
     }
+
 }

@@ -38,5 +38,20 @@ namespace MindTouch.Arpysee.Server.Tests {
             );
         }
 
+        [Test]
+        public void Can_call_action_recursively() {
+            var i = 0;
+            Action action = null;
+            action = () => {
+                Console.WriteLine("iteration {0}", i);
+                i++;
+                if(i == 10) {
+                    return;
+                }
+                action();
+            };
+            action();
+            Assert.AreEqual(10, i);
+        }
     }
 }

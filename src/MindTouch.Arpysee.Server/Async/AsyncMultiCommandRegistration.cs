@@ -17,10 +17,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace MindTouch.Arpysee.Client {
-    public interface IRequestInfo {
-        bool IsMultiRequest { get; }
-        bool ExpectsData(string status);
-        byte[] AsBytes();
+using System;
+
+namespace MindTouch.Arpysee.Server.Async {
+    public class AsyncMultiCommandRegistration : AAsyncCommandRegistration<Action<IRequest, Action<IResponse, Action>>> {
+        public AsyncMultiCommandRegistration(Action<IRequest, Action<IResponse, Action>> handler, DataExpectation dataExpectation) : base(handler, dataExpectation) {}
+        protected override IAsyncCommandHandler BuildHandler(string[] commandArgs, int dataLength, string[] arguments, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
+            return new AsyncMultiCommandHandler(commandArgs[0], arguments, dataLength, _handler, errorHandler);
+        }
     }
 }

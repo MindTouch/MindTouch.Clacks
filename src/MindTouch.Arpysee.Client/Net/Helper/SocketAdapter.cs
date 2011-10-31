@@ -49,11 +49,11 @@ namespace MindTouch.Arpysee.Client.Net.Helper {
             return new SocketAdapter(socket);
         }
 
-        public static ISocket Open(IPAddress address, int port, TimeSpan connectTimeout) {
+        public static ISocket Open(IPEndPoint endPoint, TimeSpan connectTimeout) {
             var timeout = new ManualResetEvent(false);
             Exception connectFailure = null;
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            var ar = socket.BeginConnect(address, port, r => {
+            var ar = socket.BeginConnect(endPoint, r => {
                 try {
                     socket.EndConnect(r);
                 } catch(Exception e) {

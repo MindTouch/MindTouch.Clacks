@@ -20,12 +20,13 @@
 using System;
 
 namespace MindTouch.Arpysee.Server.Async {
-    public interface IAsyncFluentCommandRegistration {
-        IAsyncFluentCommandRegistration IsDisconnect();
-        IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse>> handler);
-        IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse,Action>> handler);
-        IAsyncFluentCommandRegistration ExpectsData();
-        IAsyncFluentCommandRegistration ExpectsNoData();
-        IAsyncServerBuilder Register();
+    public class AsyncSingleCommandRegistration : AAsyncCommandRegistration<Action<IRequest, Action<IResponse>>> {
+
+        public AsyncSingleCommandRegistration(Action<IRequest, Action<IResponse>> handler) : base(handler, DataExpectation.Auto) { }
+        public AsyncSingleCommandRegistration(Action<IRequest, Action<IResponse>> handler, DataExpectation dataExpectation) : base(handler, dataExpectation) { }
+
+        protected override IAsyncCommandHandler BuildHandler(string[] commandArgs, int dataLength, string[] arguments, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
+            return new AsyncCommandHandler(commandArgs[0], arguments, dataLength, _handler, errorHandler);
+        }
     }
 }
