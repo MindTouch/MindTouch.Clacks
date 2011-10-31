@@ -37,7 +37,7 @@ namespace MindTouch.Arpysee.Tester {
                 var t = Stopwatch.StartNew();
                 for(var i = 0; i < n; i++) {
                     var response = client.Exec(new Request("BIN").ExpectData("OK"));
-                    var text = response.Data.AsText();
+                    var text = Encoding.ASCII.GetString(response.Data);
                 }
                 t.Stop();
                 var rate = n / t.Elapsed.TotalSeconds;

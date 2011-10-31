@@ -158,9 +158,11 @@ namespace MindTouch.Arpysee.Client {
             _expectsData.Add(status);
         }
 
-
-        bool IRequestInfo.ExpectsData(string status) {
-            return _expectsData.Contains(status);
+        int IRequestInfo.ExpectedBytes(Response response) {
+            if(!_expectsData.Contains(response.Status)) {
+                return -1;
+            }
+            return int.Parse(response.Arguments[response.Arguments.Length - 1]);
         }
 
         public byte[] AsBytes() {

@@ -25,10 +25,13 @@ using MindTouch.Arpysee.Client.Net;
 namespace MindTouch.Arpysee.Client {
 
     // TODO: need way to control Receive and Send timeouts
+    // Note: ArpyseeClient is not threadsafe. It's assumed that whatever code incorporates manages access to it
+    // in a threadsafe manner
     public class ArpyseeClient : IDisposable {
         public const string DEFAULT_TUBE = "default";
         private readonly ISocket _socket;
         private readonly byte[] _buffer = new byte[16 * 1024];
+        private readonly ResponseReceiver _receiver;
         private bool _disposed;
 
         public ArpyseeClient(IPEndPoint endPoint)
@@ -48,6 +51,7 @@ namespace MindTouch.Arpysee.Client {
                 throw new ArgumentNullException("socket");
             }
             _socket = socket;
+            _receiver = new ResponseReceiver(_socket);
             InitSocket();
         }
 
@@ -58,7 +62,10 @@ namespace MindTouch.Arpysee.Client {
                 if(_disposed) {
                     return true;
                 }
-                Connected();
+                if(!_socket.Connected) {
+                    _socket.Dispose();
+                    _disposed = true;
+                }
                 return _disposed;
             }
         }
@@ -66,23 +73,25 @@ namespace MindTouch.Arpysee.Client {
         public Response Exec(Request request) {
             ThrowIfDisposed();
             _socket.SendRequest(request);
-            var response = _socket.ReceiveResponse(_buffer, request);
+            _receiver.Reset(request);
+            var response = _receiver.GetResponse();
             return response;
         }
 
         public IEnumerable<Response> Exec(MultiRequest request) {
             ThrowIfDisposed();
             _socket.SendRequest(request);
+            _receiver.Reset(request);
             var responses = new List<Response>();
             while(true) {
-                var response = _socket.ReceiveResponse(_buffer, request);
+                var response = _receiver.GetResponse();
                 if(response.Status == request.TerminationStatus) {
                     return responses;
                 }
-                if(request.IsExpected(response.Status)) {
-                    continue;
+                if(!request.IsExpected(response.Status)) {
+                    return new[] { response };
                 }
-                return new[] { response };
+                responses.Add(response);
             }
         }
 
@@ -92,19 +101,11 @@ namespace MindTouch.Arpysee.Client {
             }
         }
 
-        private bool Connected() {
-            if(!_socket.Connected) {
-                _socket.Dispose();
-                _disposed = true;
-            }
-            return !_disposed;
-        }
-
         public void Dispose() {
             Dispose(true);
         }
 
-        private void Dispose(bool suppressFinalizer) {
+        protected virtual void Dispose(bool suppressFinalizer) {
             if(_disposed) {
                 return;
             }

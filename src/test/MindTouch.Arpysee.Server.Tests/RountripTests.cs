@@ -171,9 +171,9 @@ namespace MindTouch.Arpysee.Server.Tests {
                     var response = client.Exec(new Client.Request("foo").ExpectData("OK"));
                     Console.WriteLine("got response");
                     Assert.AreEqual("OK", response.Status);
-                    Assert.AreEqual(0, response.Arguments.Length);
-                    Assert.AreEqual(payload.Length, response.DataLength);
-                    Assert.AreEqual(payloadstring, response.Data.AsText());
+                    Assert.AreEqual(1, response.Arguments.Length);
+                    Assert.AreEqual(payload.Length, response.Data.Length);
+                    Assert.AreEqual(payload, response.Data);
                 }
             }
         }

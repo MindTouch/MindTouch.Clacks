@@ -1,4 +1,23 @@
-﻿using System;
+﻿/*
+ * MindTouch.Arpysee
+ * 
+ * Copyright (C) 2011 Arne F. Claassen
+ * geekblog [at] claassen [dot] net
+ * http://github.com/sdether/MindTouch.Arpysee
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,8 +33,26 @@ namespace MindTouch.Arpysee.Memcache {
             _client = new ArpyseeClient(endPoint);
         }
 
+        public void Put(string key, uint flags, TimeSpan ttl, byte[] data) {
+            _client.Exec(Request
+                .Create("set")
+                .WithArgument(key)
+                .WithArgument(flags)
+                .WithArgument(Math.Floor(ttl.TotalSeconds))
+                .WithData(data)
+            );
+        }
+
+        public KeyData Get(string key) {
+            return Gets(new[] { key }).Values.FirstOrDefault();
+        }
+
         public IDictionary<string, KeyData> Gets(IEnumerable<string> keys) {
-            var responses = _client.Exec(MultiRequest.Create("gets").ExpectMultiple("VALUE", true).TerminatedBy("END"));
+            var responses = _client.Exec(MultiRequest
+                .Create("gets")
+                .ExpectMultiple("VALUE", true)
+                .TerminatedBy("END")
+            );
             var values = new Dictionary<string, KeyData>();
             foreach(var response in responses) {
                 if(response.Status != "VALUE") {
@@ -23,7 +60,6 @@ namespace MindTouch.Arpysee.Memcache {
                 }
                 values[response.Arguments[0]] = new KeyData {
                     Data = response.Data,
-                    DataLength = response.DataLength,
                     Flags = uint.Parse(response.Arguments[1])
                 };
             }
@@ -36,8 +72,7 @@ namespace MindTouch.Arpysee.Memcache {
     }
 
     public class KeyData {
-        public Stream Data;
-        public long DataLength;
+        public byte[] Data;
         public uint Flags;
     }
 }

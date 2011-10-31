@@ -20,7 +20,7 @@
 namespace MindTouch.Arpysee.Client {
     public interface IRequestInfo {
         bool IsMultiRequest { get; }
-        bool ExpectsData(string status);
+        int ExpectedBytes(Response response);
         byte[] AsBytes();
     }
 }

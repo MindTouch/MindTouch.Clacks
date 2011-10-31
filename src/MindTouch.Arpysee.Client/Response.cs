@@ -22,46 +22,21 @@ using System;
 using System.IO;
 
 namespace MindTouch.Arpysee.Client {
+
     public class Response {
         public readonly string Status;
         public readonly string[] Arguments;
-        private readonly long _dataLength;
-        private readonly MemoryStream _data;
+        public byte[] Data;
 
-        public Response(string[] response, bool expectData) {
+        public Response(string[] response) {
             if(response.Length == 0) {
                 throw new EmptyResponseException();
             }
             Status = response[0];
-            if(!expectData) {
-                Arguments = new string[response.Length - 1];
-                if(Arguments.Length > 0) {
-                    Array.Copy(response, 1, Arguments, 0, Arguments.Length);
-                }
-                return;
+            Arguments = new string[response.Length - 1];
+            if(Arguments.Length > 0) {
+                Array.Copy(response, 1, Arguments, 0, Arguments.Length);
             }
-            Arguments = new string[response.Length - 2];
-            if(Arguments.Length > 1) {
-                Array.Copy(response, 1, Arguments, 0, Arguments.Length - 1);
-            }
-            _dataLength = long.Parse(response[response.Length - 1]);
-            _data = new MemoryStream((int)_dataLength);
-        }
-
-        public Stream Data {
-            get {
-                if(_data == null) {
-                    return null;
-                }
-                _data.Position = 0;
-                return _data;
-            }
-        }
-
-        public long DataLength { get { return _dataLength; } }
-
-        public void AddData(byte[] buffer, int offset, int count) {
-            _data.Write(buffer, offset, count);
-        }
+       }
     }
 }

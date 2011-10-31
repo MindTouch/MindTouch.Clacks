@@ -31,7 +31,7 @@ namespace MindTouch.Arpysee.Client {
 
         public static void SendRequest(this ISocket socket, ARequest request) {
             var bytes = request.AsBytes();
-            socket.SendBuffer(bytes,bytes.Length);
+            socket.SendBuffer(bytes, bytes.Length);
         }
 
         private static void SendBuffer(this ISocket socket, byte[] buffer, int count) {
@@ -41,79 +41,6 @@ namespace MindTouch.Arpysee.Client {
                 offset += sent;
                 count -= sent;
             }
-        }
-
-        public static Response ReceiveResponse(this ISocket socket, byte[] buffer, IRequestInfo request) {
-
-            // read status line
-            var totalRead = 0;
-            var lineEndIndex = 0;
-            var carriageReturn = false;
-            var read = 0;
-            while(lineEndIndex == 0) {
-                read = socket.Receive(buffer, totalRead, buffer.Length - totalRead);
-                if(read == -1) {
-                    throw new WriteException();
-                }
-
-                // look for \r\n
-                for(var i = totalRead; i < totalRead + read; i++) {
-                    if(buffer[i] == '\r') {
-                        carriageReturn = true;
-                    } else if(carriageReturn && buffer[i] == '\n') {
-                        lineEndIndex = i;
-                        break;
-                    }
-                }
-                totalRead += read;
-            }
-            var responseLine = Encoding.ASCII.GetString(buffer, 0, lineEndIndex - 1).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-            var response = new Response(responseLine, request.ExpectsData(responseLine[0]));
-            var expectedDataBytes = response.DataLength;
-            if(expectedDataBytes == 0) {
-                return response;
-            }
-            var offset = lineEndIndex + 1;
-            int dataLength = 0;
-            if(offset < read) {
-
-                // there is some data in buffer
-                var remaining = read - offset;
-                dataLength = Math.Min((int)expectedDataBytes, remaining);
-                response.AddData(buffer, offset, dataLength);
-                expectedDataBytes -= remaining;
-                offset += dataLength;
-            }
-            while(expectedDataBytes > 0) {
-                read = socket.Receive(buffer, 0, buffer.Length);
-                if(read == -1) {
-                    throw new ReadException("Unexpected end of stream");
-                }
-                dataLength = Math.Min((int)expectedDataBytes, read);
-                response.AddData(buffer, 0, dataLength);
-                expectedDataBytes -= read;
-                offset = dataLength;
-            }
-            var tail = new byte[2];
-            var tailOffset = 0;
-            var tailCount = 2;
-            if(expectedDataBytes == -1) {
-                tailOffset = 1;
-                tailCount = 1;
-                tail[0] = buffer[offset];
-            } else if(expectedDataBytes == -2) {
-                tailOffset = 2;
-                tailCount = 0;
-                tail[0] = buffer[offset];
-                tail[1] = buffer[offset + 1];
-            }
-            if(tailCount > 0) {
-                socket.Receive(tail, tailOffset, tailCount);
-            }
-            if(tail[0] != '\r' || tail[1] != '\n') {
-                throw new ReadException("Expected trailing CrLf");
-            }
-            return response;
         }
     }
 }

@@ -90,8 +90,8 @@ namespace MindTouch.Arpysee.Server.Tests {
                 for(var i = 0; i < n; i++) {
                     var response = client.Exec(new Client.Request("BIN").ExpectData("OK"));
                     Assert.AreEqual("OK", response.Status);
-                    Assert.AreEqual(0, response.Arguments.Length);
-                    Assert.AreEqual(payloadstring, response.Data.AsText());
+                    Assert.AreEqual(1, response.Arguments.Length);
+                    Assert.AreEqual(payloadstring, Encoding.ASCII.GetString(response.Data));
                 }
                 t.Stop();
                 var rate = n / t.Elapsed.TotalSeconds;

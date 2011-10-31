@@ -41,7 +41,6 @@ namespace MindTouch.Arpysee.Server.Sync {
                 registration = _defaultCommandRegistration;
             }
             int dataLength = 0;
-            string[] arguments;
             if(registration.DataExpectation == DataExpectation.Auto) {
                 if(commandArgs.Length > 1) {
                     int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength);
@@ -51,16 +50,9 @@ namespace MindTouch.Arpysee.Server.Sync {
                     throw new InvalidCommandException();
                 }
             }
-            if(dataLength == 0) {
-                arguments = new string[commandArgs.Length - 1];
-                if(arguments.Length > 0) {
-                    Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
-                }
-            } else {
-                arguments = new string[commandArgs.Length - 2];
-                if(arguments.Length > 0) {
-                    Array.Copy(commandArgs, 1, arguments, 0, arguments.Length - 1);
-                }
+            var arguments = new string[commandArgs.Length - 1];
+            if(arguments.Length > 0) {
+                Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
             }
             return new SyncCommandHandler(command, arguments, dataLength, registration.Handler, _errorHandler);
         }

@@ -171,16 +171,16 @@ namespace MindTouch.Arpysee.Server {
                 if(length < payloadLength + 2) {
 
                     // missing trailing \r\n, let's try to receive those before moving on
-                    Receive(CheckBufferTrail);
+                    Receive(CheckBufferTail);
                     return;
                 }
-                CheckBufferTrail(position + outstanding, length - outstanding);
+                CheckBufferTail(position + outstanding, length - outstanding);
                 return;
             }
             Receive(ProcessPayloadData);
         }
 
-        protected void CheckBufferTrail(int position, int length) {
+        protected void CheckBufferTail(int position, int length) {
             if(_buffer[position] != '\r' || _buffer[position + 1] != '\n') {
                 throw new DataTerminatorMissingException();
             }

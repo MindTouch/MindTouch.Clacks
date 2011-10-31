@@ -33,7 +33,6 @@ namespace MindTouch.Arpysee.Server.Async {
 
         public IAsyncCommandHandler GetHandler(string[] commandArgs, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
             var dataLength = 0;
-            string[] arguments;
             switch(_dataExpectation) {
             case DataExpectation.Auto:
                 if(commandArgs.Length > 1) {
@@ -46,16 +45,9 @@ namespace MindTouch.Arpysee.Server.Async {
                 }
                 break;
             }
-            if(dataLength == 0) {
-                arguments = new string[commandArgs.Length - 1];
-                if(arguments.Length > 0) {
-                    Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
-                }
-            } else {
-                arguments = new string[commandArgs.Length - 2];
-                if(arguments.Length > 0) {
-                    Array.Copy(commandArgs, 1, arguments, 0, arguments.Length - 1);
-                }
+            var arguments = new string[commandArgs.Length - 1];
+            if(arguments.Length > 0) {
+                Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
             }
             return BuildHandler(commandArgs, dataLength, arguments, errorHandler);
         }
