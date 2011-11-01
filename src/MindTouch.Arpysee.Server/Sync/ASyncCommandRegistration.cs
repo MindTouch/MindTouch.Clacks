@@ -21,8 +21,6 @@ using System;
 
 namespace MindTouch.Arpysee.Server.Sync {
     public abstract class ASyncCommandRegistration<THandler> : ISyncCommandRegistration {
-        private static readonly Logger.ILog _log = Logger.CreateLog();
-
         protected readonly DataExpectation _dataExpectation;
         protected readonly THandler _handler;
 

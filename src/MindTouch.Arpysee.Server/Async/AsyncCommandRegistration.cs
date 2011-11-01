@@ -20,15 +20,12 @@
 using System;
 
 namespace MindTouch.Arpysee.Server.Async {
-    public abstract class AAsyncCommandRegistration<THandler> : IAsyncCommandRegistration {
-        private static readonly Logger.ILog _log = Logger.CreateLog();
-
+    public class AsyncCommandRegistration : IAsyncCommandRegistration {
         protected readonly DataExpectation _dataExpectation;
-        protected readonly THandler _handler;
-
-        protected AAsyncCommandRegistration(THandler handler, DataExpectation dataExpectation) {
-            _handler = handler;
+        protected readonly CommandHandlerBuilder _builder;
+        public AsyncCommandRegistration(DataExpectation dataExpectation, CommandHandlerBuilder builder) {
             _dataExpectation = dataExpectation;
+            _builder = builder;
         }
 
         public IAsyncCommandHandler GetHandler(string[] commandArgs, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
@@ -49,9 +46,9 @@ namespace MindTouch.Arpysee.Server.Async {
             if(arguments.Length > 0) {
                 Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
             }
-            return BuildHandler(commandArgs[0], dataLength, arguments, errorHandler);
+            return _builder(commandArgs[0], dataLength, arguments, errorHandler);
         }
-
-        protected abstract IAsyncCommandHandler BuildHandler(string command, int dataLength, string[] arguments, Action<IRequest, Exception, Action<IResponse>> errorHandler);
     }
+
+    public delegate IAsyncCommandHandler CommandHandlerBuilder(string command, int dataLength, string[] arguments, Action<IRequest, Exception, Action<IResponse>> errorHandler);
 }

@@ -28,7 +28,12 @@ namespace MindTouch.Arpysee.Server.Async {
         private readonly Dictionary<string, IAsyncCommandRegistration> _commands = new Dictionary<string, IAsyncCommandRegistration>();
         private Action<IRequest, Exception, Action<IResponse>> _errorHandler
             = (r, e, c) => c(Response.Create("ERROR").WithArgument(e.GetType()).WithArgument(e.Message));
-        private AsyncSingleCommandRegistration _defaultCommandRegistration = new AsyncSingleCommandRegistration((r, c) => c(Response.Create("UNKNOWN")));
+        private IAsyncCommandRegistration _defaultCommandRegistration 
+            = new AsyncCommandRegistration(
+                DataExpectation.Auto,
+                (command, dataLength, arguments, errorHandler) =>
+                    new AsyncSingleCommandHandler(command, arguments, dataLength, (r, c) => c(Response.Create("UNKNOWN")), errorHandler)
+            );
         private Action<IRequest, Action<IResponse>> _disconnectHandler = (r, c) => c(Response.Create("BYE"));
         private string _disconnectCommand = "BYE";
 
@@ -56,7 +61,11 @@ namespace MindTouch.Arpysee.Server.Async {
         }
 
         public void Default(Action<IRequest, Action<IResponse>> handler) {
-            _defaultCommandRegistration = new AsyncSingleCommandRegistration(handler, DataExpectation.Auto);
+            _defaultCommandRegistration = new AsyncCommandRegistration(
+                DataExpectation.Auto,
+                (command, dataLength, arguments, errorHandler) =>
+                    new AsyncSingleCommandHandler(command, arguments, dataLength, handler, errorHandler)
+            );
         }
 
         public void Error(Action<IRequest, Exception, Action<IResponse>> handler) {
@@ -69,15 +78,27 @@ namespace MindTouch.Arpysee.Server.Async {
         }
 
         public void AddCommand(string command, Action<IRequest, Action<IResponse>> handler, DataExpectation dataExpectation) {
-            _commands[command] = new AsyncSingleCommandRegistration(handler, dataExpectation);
+            _commands[command] = new AsyncCommandRegistration(
+                dataExpectation,
+                (cmd, dataLength, arguments, errorHandler) =>
+                    new AsyncSingleCommandHandler(cmd, arguments, dataLength, handler, errorHandler)
+            );
         }
 
         public void AddCommand(string command, Action<IRequest, Action<IResponse, Action>> handler, DataExpectation dataExpectation) {
-            _commands[command] = new AsyncMultiCommandRegistration(handler, dataExpectation);
+            _commands[command] = new AsyncCommandRegistration(
+                dataExpectation,
+                (cmd, dataLength, arguments, errorHandler) =>
+                    new AsyncMultiCommandHandler(cmd, arguments, dataLength, handler, errorHandler)
+            );
         }
 
         public void AddCommand(string command, Action<IRequest, Action<IEnumerable<IResponse>>> handler, DataExpectation dataExpectation) {
-            _commands[command] = new SyncMultiCommandRegistration(handler, dataExpectation);
+            _commands[command] = new AsyncCommandRegistration(
+                dataExpectation,
+                (cmd, dataLength, arguments, errorHandler) =>
+                    new SyncMultiCommandHandler(cmd, arguments, dataLength, handler, errorHandler)
+            );
         }
     }
 

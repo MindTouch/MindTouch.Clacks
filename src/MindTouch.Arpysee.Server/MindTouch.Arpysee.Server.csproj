@@ -48,10 +48,8 @@
     <Compile Include="Async\AsyncClientHandlerFactory.cs" />
     <Compile Include="AClientRequestHandler.cs" />
     <Compile Include="Async\AsyncMultiCommandHandler.cs" />
-    <Compile Include="Async\AsyncMultiCommandRegistration.cs" />
-    <Compile Include="Async\AsyncSingleCommandRegistration.cs" />
+    <Compile Include="Async\AsyncCommandRegistration.cs" />
     <Compile Include="Async\SyncMultiCommandHandler.cs" />
-    <Compile Include="Async\SyncMultiCommandRegistration.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Async\IAsyncCommandRegistration.cs" />
     <Compile Include="CommandConfigurationException.cs" />
