@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 
 namespace MindTouch.Arpysee.Server.Async {
     public class AsyncFluentCommandRegistration : IAsyncFluentCommandRegistration {
@@ -27,7 +28,8 @@ namespace MindTouch.Arpysee.Server.Async {
         private bool _isDisconnect;
         private DataExpectation _dataExpectation = DataExpectation.Auto;
         private Action<IRequest, Action<IResponse>> _singleResponseHandler;
-        private Action<IRequest, Action<IResponse, Action>> _multiResponseHandler;
+        private Action<IRequest, Action<IResponse, Action>> _multiAsyncResponseHandler;
+        private Action<IRequest, Action<IEnumerable<IResponse>>> _multiSyncResponseHandler;
 
         public AsyncFluentCommandRegistration(ServerBuilder serverBuilder, AsyncCommandRepository repository, string command) {
             _serverBuilder = serverBuilder;
@@ -46,7 +48,12 @@ namespace MindTouch.Arpysee.Server.Async {
         }
 
         public IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse, Action>> handler) {
-            _multiResponseHandler = handler;
+            _multiAsyncResponseHandler = handler;
+            return this;
+        }
+
+        public IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IEnumerable<IResponse>>> handler) {
+            _multiSyncResponseHandler = handler;
             return this;
         }
 
@@ -61,15 +68,17 @@ namespace MindTouch.Arpysee.Server.Async {
         }
 
         public IAsyncServerBuilder Register() {
-            if(_singleResponseHandler == null && _multiResponseHandler == null) {
+            if(_singleResponseHandler == null && _multiAsyncResponseHandler == null && _multiSyncResponseHandler == null) {
                 throw new CommandConfigurationException(string.Format("Must define a handler for command '{0}'", _command));
             }
             if(_isDisconnect) {
                 _repository.Disconnect(_command, _singleResponseHandler);
             } else if(_singleResponseHandler != null) {
                 _repository.AddCommand(_command, _singleResponseHandler, _dataExpectation);
+            } else if(_multiSyncResponseHandler != null) {
+                _repository.AddCommand(_command, _multiSyncResponseHandler, _dataExpectation);
             } else {
-                _repository.AddCommand(_command, _multiResponseHandler, _dataExpectation);
+                _repository.AddCommand(_command, _multiAsyncResponseHandler, _dataExpectation);
             }
             return _serverBuilder;
         }

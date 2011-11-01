@@ -18,12 +18,14 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 
 namespace MindTouch.Arpysee.Server.Async {
     public interface IAsyncFluentCommandRegistration {
         IAsyncFluentCommandRegistration IsDisconnect();
         IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse>> handler);
-        IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse,Action>> handler);
+        IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse, Action>> handler);
+        IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IEnumerable<IResponse>>> handler);
         IAsyncFluentCommandRegistration ExpectsData();
         IAsyncFluentCommandRegistration ExpectsNoData();
         IAsyncServerBuilder Register();

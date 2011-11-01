@@ -74,6 +74,10 @@ namespace MindTouch.Arpysee.Server.Async {
         public void AddCommand(string command, Action<IRequest, Action<IResponse, Action>> handler, DataExpectation dataExpectation) {
             _commands[command] = new AsyncMultiCommandRegistration(handler, dataExpectation);
         }
+
+        public void AddCommand(string command, Action<IRequest, Action<IEnumerable<IResponse>>> handler, DataExpectation dataExpectation) {
+            _commands[command] = new SyncMultiCommandRegistration(handler, dataExpectation);
+        }
     }
 
 }

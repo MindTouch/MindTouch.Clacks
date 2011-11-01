@@ -248,7 +248,7 @@ namespace MindTouch.Arpysee.Server.Tests {
         }
 
         [Test]
-        public void Async_Can_receive_multi_response() {
+        public void Async_Can_receive_multi_response_with_async_multi_handler() {
             Receive_multi_response(ServerBuilder
                 .CreateAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
                 .WithCommand("MULTI")
@@ -271,6 +271,23 @@ namespace MindTouch.Arpysee.Server.Tests {
                             responseCallback(response, request.Arguments.Length == idx ? completion : iterator);
                         };
                         iterator();
+                    })
+                    .Register()
+                .Build());
+        }
+
+        [Test]
+        public void Async_Can_receive_multi_response_with_async_sync_handler() {
+            Receive_multi_response(ServerBuilder
+                .CreateAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+                .WithCommand("MULTI")
+                    .HandledBy((request, responseCallback) => {
+                        var responses = request.Arguments
+                           .Select(data => Response.Create("VALUE").WithArgument(data))
+                           .Cast<IResponse>()
+                           .ToList();
+                        responses.Add(Response.Create("END"));
+                        responseCallback(responses);
                     })
                     .Register()
                 .Build());
