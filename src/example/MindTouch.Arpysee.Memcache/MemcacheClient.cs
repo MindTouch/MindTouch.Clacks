@@ -48,15 +48,21 @@ namespace MindTouch.Arpysee.Memcache {
         }
 
         public IDictionary<string, KeyData> Gets(IEnumerable<string> keys) {
-            var responses = _client.Exec(MultiRequest
-                .Create("gets")
+            var request = MultiRequest
+                .Create("get")
                 .ExpectMultiple("VALUE", true)
-                .TerminatedBy("END")
-            );
+                .TerminatedBy("END");
+            foreach(var key in keys) {
+                request.WithArgument(key);
+            }
+            var responses = _client.Exec(request);
             var values = new Dictionary<string, KeyData>();
             foreach(var response in responses) {
+                if(response.Status == "END") {
+                    break;
+                }
                 if(response.Status != "VALUE") {
-                    throw new Exception(string.Format("received bad response status '{0}", response.Status));
+                    throw new Exception(string.Format("received bad response status '{0}'", response.Status));
                 }
                 values[response.Arguments[0]] = new KeyData {
                     Data = response.Data,

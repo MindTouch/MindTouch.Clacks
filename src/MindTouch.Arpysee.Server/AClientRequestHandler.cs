@@ -141,6 +141,7 @@ namespace MindTouch.Arpysee.Server {
                         // 8.
                         if(_bufferPosition != 0) {
                             ProcessPayloadData(_bufferPosition, _bufferDataLength);
+                            return;
                         }
                         Receive(ProcessPayloadData);
                     } else {

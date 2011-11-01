@@ -19,14 +19,11 @@
  */
 using System;
 
-namespace MindTouch.Arpysee.Server.Async {
-    public class AsyncSingleCommandRegistration : AAsyncCommandRegistration<Action<IRequest, Action<IResponse>>> {
-
-        public AsyncSingleCommandRegistration(Action<IRequest, Action<IResponse>> handler) : base(handler, DataExpectation.Auto) { }
-        public AsyncSingleCommandRegistration(Action<IRequest, Action<IResponse>> handler, DataExpectation dataExpectation) : base(handler, dataExpectation) { }
-
-        protected override IAsyncCommandHandler BuildHandler(string command, int dataLength, string[] arguments, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
-            return new AsyncSingleCommandHandler(command, arguments, dataLength, _handler, errorHandler);
-        }
+namespace MindTouch.Arpysee.Memcache {
+    public class MemcacheData {
+        public string Key;
+        public uint Flags;
+        public DateTime Expiration;
+        public byte[] Bytes;
     }
 }

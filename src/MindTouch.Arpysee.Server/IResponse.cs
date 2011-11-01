@@ -22,7 +22,7 @@ using System.Collections.Generic;
 namespace MindTouch.Arpysee.Server {
     public interface IResponse {
         string Status { get;}
-        string[] Arguments { get; }
+        IEnumerable<string> Arguments { get; }
         byte[] Data { get; }
     }
 }

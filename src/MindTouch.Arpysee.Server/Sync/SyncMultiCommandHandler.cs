@@ -20,23 +20,18 @@
 using System;
 using System.Collections.Generic;
 
-namespace MindTouch.Arpysee.Server.Async {
-    public class AsyncCommandHandler : IAsyncCommandHandler {
-
-        public static IAsyncCommandHandler DisconnectHandler(string command, Action<IRequest, Action<IResponse>> handler) {
-            return new AsyncCommandHandler(command, handler);
-        }
+namespace MindTouch.Arpysee.Server.Sync {
+    public class SyncMultiCommandHandler : ISyncCommandHandler {
 
         private readonly string _command;
         private readonly string[] _arguments;
-        private readonly Action<IRequest, Action<IResponse>> _handler;
-        private readonly Action<IRequest, Exception, Action<IResponse>> _errorHandler;
+        private readonly Func<IRequest, IEnumerable<IResponse>> _handler;
+        private readonly Func<IRequest, Exception, IResponse> _errorHandler;
         private readonly int _dataLength;
-        private readonly bool _disconnect;
         private int _received;
         private List<byte[]> _dataChunks;
 
-        public AsyncCommandHandler(string command, string[] arguments, int dataLength, Action<IRequest, Action<IResponse>> handler, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
+        public SyncMultiCommandHandler(string command, string[] arguments, int dataLength, Func<IRequest, IEnumerable<IResponse>> handler, Func<IRequest, Exception, IResponse> errorHandler) {
             _command = command;
             _arguments = arguments;
             _dataLength = dataLength;
@@ -44,16 +39,10 @@ namespace MindTouch.Arpysee.Server.Async {
             _errorHandler = errorHandler;
         }
 
-        private AsyncCommandHandler(string command, Action<IRequest, Action<IResponse>> handler) {
-            _command = command;
-            _handler = handler;
-            _disconnect = true;
-        }
-
         public void Dispose() { }
 
         public bool ExpectsData { get { return _dataLength > 0; } }
-        public bool DisconnectOnCompletion { get { return _disconnect; } }
+        public bool DisconnectOnCompletion { get { return false; } }
         public int OutstandingBytes { get { return _dataLength - _received; } }
         public string Command { get { return _command; } }
 
@@ -68,17 +57,18 @@ namespace MindTouch.Arpysee.Server.Async {
             }
         }
 
-        public void GetResponse(Action<IResponse, Action> responseCallback) {
+        public IEnumerable<IResponse> GetResponse() {
             if(_received < _dataLength) {
                 throw new DataExpectationException(false);
             }
             var request = new Request(_command, _arguments, _dataLength, _dataChunks);
-            Action<IResponse> responseAction = response => responseCallback(response, null);
+            IEnumerable<IResponse> responses;
             try {
-                _handler(request, responseAction);
+                responses = _handler(request);
             } catch(Exception e) {
-                _errorHandler(request, e, responseAction);
+                responses = new[] {_errorHandler(request, e) };
             }
+            return responses;
         }
     }
 }

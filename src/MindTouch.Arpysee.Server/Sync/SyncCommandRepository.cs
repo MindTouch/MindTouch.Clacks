@@ -25,10 +25,10 @@ namespace MindTouch.Arpysee.Server.Sync {
 
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
-        private readonly Dictionary<string, SyncCommandRegistration> _commands = new Dictionary<string, SyncCommandRegistration>();
+        private readonly Dictionary<string, ISyncCommandRegistration> _commands = new Dictionary<string, ISyncCommandRegistration>();
         private Func<IRequest, Exception, IResponse> _errorHandler;
-        private SyncCommandRegistration _defaultCommandRegistration = new SyncCommandRegistration(r => Response.Create("UNKNOWN"));
-        private SyncCommandRegistration _disconnectRegistration = new SyncCommandRegistration(r => Response.Create("BYE"));
+        private SyncSingleCommandRegistration _defaultCommandRegistration = new SyncSingleCommandRegistration(r => Response.Create("UNKNOWN"));
+        private Func<IRequest, IResponse> _disconnectHandler = r => Response.Create("BYE");
         private string _disconnectCommand = "BYE";
 
         public ISyncCommandHandler GetHandler(string[] commandArgs) {
@@ -36,31 +36,17 @@ namespace MindTouch.Arpysee.Server.Sync {
             if(command == _disconnectCommand) {
                 return BuildDisconnectHandler();
             }
-            SyncCommandRegistration registration;
+            ISyncCommandRegistration registration;
             if(!_commands.TryGetValue(command, out registration)) {
                 registration = _defaultCommandRegistration;
             }
-            int dataLength = 0;
-            if(registration.DataExpectation == DataExpectation.Auto) {
-                if(commandArgs.Length > 1) {
-                    int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength);
-                }
-            } else if(registration.DataExpectation == DataExpectation.Always) {
-                if(commandArgs.Length == 1 || !int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength)) {
-                    throw new InvalidCommandException();
-                }
-            }
-            var arguments = new string[commandArgs.Length - 1];
-            if(arguments.Length > 0) {
-                Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
-            }
-            return new SyncCommandHandler(command, arguments, dataLength, registration.Handler, _errorHandler);
+            return registration.GetHandler(commandArgs, _errorHandler);
         }
 
         private ISyncCommandHandler BuildDisconnectHandler() {
-            return SyncCommandHandler.DisconnectHandler(_disconnectCommand, request => {
+            return SyncSingleCommandHandler.DisconnectHandler(_disconnectCommand, request => {
                 try {
-                    return _disconnectRegistration.Handler(request);
+                    return _disconnectHandler(request);
                 } catch(Exception handlerException) {
                     _log.Warn("disconnect handler threw an exception, continuating with disconnect", handlerException);
                     return Response.Create("BYE");
@@ -69,7 +55,7 @@ namespace MindTouch.Arpysee.Server.Sync {
         }
 
         public void Default(Func<IRequest, IResponse> handler) {
-            _defaultCommandRegistration = new SyncCommandRegistration(handler);
+            _defaultCommandRegistration = new SyncSingleCommandRegistration(handler);
         }
 
         public void Error(Func<IRequest, Exception, IResponse> handler) {
@@ -78,11 +64,14 @@ namespace MindTouch.Arpysee.Server.Sync {
 
         public void Disconnect(string command, Func<IRequest, IResponse> handler) {
             _disconnectCommand = command;
-            _disconnectRegistration = new SyncCommandRegistration(handler);
+            _disconnectHandler = handler;
         }
 
         public void AddCommand(string command, Func<IRequest, IResponse> handler, DataExpectation dataExpectation) {
-            _commands[command] = new SyncCommandRegistration(handler, dataExpectation);
+            _commands[command] = new SyncSingleCommandRegistration(handler, dataExpectation);
+        }
+        public void AddCommand(string command, Func<IRequest, IEnumerable<IResponse>> handler, DataExpectation dataExpectation) {
+            _commands[command] = new SyncMultiCommandRegistration(handler, dataExpectation);
         }
     }
 }

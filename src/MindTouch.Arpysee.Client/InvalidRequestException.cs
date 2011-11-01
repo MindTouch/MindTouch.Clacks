@@ -19,11 +19,6 @@
  */
 using System;
 
-namespace MindTouch.Arpysee.Server.Async {
-    public class AsyncMultiCommandRegistration : AAsyncCommandRegistration<Action<IRequest, Action<IResponse, Action>>> {
-        public AsyncMultiCommandRegistration(Action<IRequest, Action<IResponse, Action>> handler, DataExpectation dataExpectation) : base(handler, dataExpectation) {}
-        protected override IAsyncCommandHandler BuildHandler(string command, int dataLength, string[] arguments, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
-            return new AsyncMultiCommandHandler(command, arguments, dataLength, _handler, errorHandler);
-        }
-    }
+namespace MindTouch.Arpysee.Client {
+    public class InvalidRequestException : Exception {}
 }

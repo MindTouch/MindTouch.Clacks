@@ -19,11 +19,9 @@
  */
 using System;
 using System.Net.Sockets;
-using System.Text;
 
 namespace MindTouch.Arpysee.Server.Async {
     public class AsyncResponseHandler {
-        private const string TERMINATOR = "\r\n";
 
         private readonly Socket _socket;
         private readonly Action<string> _completion;
@@ -36,27 +34,8 @@ namespace MindTouch.Arpysee.Server.Async {
         }
 
         public void SendResponse(IResponse response, Action callback) {
-            var sb = new StringBuilder();
-            sb.Append(response.Status);
-            if(response.Arguments != null) {
-                sb.Append(" ");
-                sb.Append(string.Join(" ", response.Arguments));
-            }
-            if(response.Data != null) {
-                sb.Append(" ");
-                sb.Append(response.Data.Length);
-            }
-            sb.Append(TERMINATOR);
-            var data = Encoding.ASCII.GetBytes(sb.ToString());
-            if(response.Data != null) {
-                var d2 = new byte[data.Length + response.Data.Length + 2];
-                data.CopyTo(d2, 0);
-                Array.Copy(response.Data, 0, d2, data.Length, response.Data.Length);
-                d2[d2.Length - 2] = (byte)'\r';
-                d2[d2.Length - 1] = (byte)'\n';
-                data = d2;
-            }
             try {
+                var data = response.GetBytes();
                 _socket.BeginSend(data, 0, data.Length, SocketFlags.None, r => {
                     try {
                         _socket.EndSend(r);

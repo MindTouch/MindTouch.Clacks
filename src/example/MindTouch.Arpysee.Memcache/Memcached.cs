@@ -21,11 +21,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text;
+using log4net;
 using MindTouch.Arpysee.Server;
 
 namespace MindTouch.Arpysee.Memcache {
     public class Memcached : IDisposable {
+        private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        
         private readonly ArpyseeServer _server;
         private readonly Dictionary<string, MemcacheData> _storage = new Dictionary<string, MemcacheData>();
 
@@ -33,7 +35,7 @@ namespace MindTouch.Arpysee.Memcache {
             _server = ServerBuilder
                 .CreateAsync(endPoint)
                 .WithCommand("set").HandledBy(Set).ExpectsData().Register()
-                .WithCommand("get").HandledBy(Get).ExpectsData().Register()
+                .WithCommand("get").HandledBy(Get).Register()
                 .Build();
         }
 
@@ -41,7 +43,9 @@ namespace MindTouch.Arpysee.Memcache {
             var arguments = new StorageArgs(request);
             var expiration = arguments.Exptime == TimeSpan.Zero ? DateTime.MinValue : DateTime.UtcNow.Add(arguments.Exptime);
             lock(_storage) {
+                _log.DebugFormat("stored key '{0}'", arguments.Key);
                 _storage[arguments.Key] = new MemcacheData {
+                    Key = arguments.Key,
                     Flags = arguments.Flags,
                     Expiration = expiration,
                     Bytes = request.Data
@@ -58,15 +62,19 @@ namespace MindTouch.Arpysee.Memcache {
                 foreach(var key in request.Arguments) {
                     MemcacheData data;
                     if(!_storage.TryGetValue(key, out data)) {
+                        _log.DebugFormat("did not find key '{0}'", key);
                         continue;
-                    } 
+                    }
+                    _log.DebugFormat("found key '{0}'",key);
                     found.Add(data);
                 }
             }
 
             // create the final response that tells the client no more will be coming
-            Action completion = () => responseCallback(Response.Create("END"), null);
-
+            Action completion = () => {
+                _log.Debug("sending END");
+                responseCallback(Response.Create("END"), null);
+            };
             // if there were no values found, call the final response and exit
             if(!found.Any()) {
                 completion();
@@ -79,7 +87,8 @@ namespace MindTouch.Arpysee.Memcache {
             iterator = () => {
                 var data = found[idx];
                 idx++;
-                var response = Response.Create("VALUE").WithArgument(data.Flags).WithData(data.Bytes);
+                _log.DebugFormat("sending key '{0}'",data.Key);
+                var response = Response.Create("VALUE").WithArgument(data.Key).WithArgument(data.Flags).WithData(data.Bytes);
 
                 // if there are no more items left to return, set the next callback as the completion callback,
                 // instead of ourselves
@@ -92,23 +101,6 @@ namespace MindTouch.Arpysee.Memcache {
 
         public void Dispose() {
             _server.Dispose();
-        }
-    }
-
-    public class MemcacheData {
-        public uint Flags;
-        public DateTime Expiration;
-        public byte[] Bytes;
-    }
-
-    public class StorageArgs {
-        public string Key;
-        public uint Flags;
-        public TimeSpan Exptime;
-        public StorageArgs(IRequest request) {
-            Key = request.Arguments[0];
-            Flags = uint.Parse(request.Arguments[1]);
-            Exptime = TimeSpan.FromSeconds(uint.Parse(request.Arguments[2]));
         }
     }
 }

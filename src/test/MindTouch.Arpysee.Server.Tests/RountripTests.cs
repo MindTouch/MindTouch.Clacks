@@ -18,7 +18,9 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -163,7 +165,6 @@ namespace MindTouch.Arpysee.Server.Tests {
         }
 
         private void Receive_binary_payload(ArpyseeServer server, string payloadstring, byte[] payload) {
-            var registry = new AsyncCommandRepository();
             using(server) {
                 Console.WriteLine("created server");
                 using(var client = new ArpyseeClient("127.0.0.1", _port)) {
@@ -174,6 +175,146 @@ namespace MindTouch.Arpysee.Server.Tests {
                     Assert.AreEqual(1, response.Arguments.Length);
                     Assert.AreEqual(payload.Length, response.Data.Length);
                     Assert.AreEqual(payload, response.Data);
+                }
+            }
+        }
+
+        [Test]
+        public void Async_Can_receive_multi_binary_payload() {
+            Receive_multi_binary_payload(ServerBuilder
+                .CreateAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+                .WithCommand("MULTI")
+                    .HandledBy((request, responseCallback) => {
+                        Action completion = () => {
+                            _log.Debug("sending END");
+                            responseCallback(Response.Create("END"), null);
+                        };
+                        if(!request.Arguments.Any()) {
+                            completion();
+                            return;
+                        }
+                        Action iterator = null;
+                        var idx = 0;
+                        iterator = () => {
+                            var data = request.Arguments[idx];
+                            idx++;
+                            _log.DebugFormat("sending arg '{0}'", data);
+                            var response = Response.Create("VALUE").WithData(Encoding.ASCII.GetBytes(data));
+                            responseCallback(response, request.Arguments.Length == idx ? completion : iterator);
+                        };
+                        iterator();
+                    })
+                    .Register()
+                .Build());
+        }
+
+        [Test]
+        public void Sync_Can_receive_multi_binary_payload() {
+            Receive_multi_binary_payload(ServerBuilder
+                .CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+                .WithCommand("MULTI")
+                    .HandledBy(request => {
+                        var responses = request.Arguments
+                            .Select(data => Response.Create("VALUE").WithData(Encoding.ASCII.GetBytes(data)))
+                            .Cast<IResponse>()
+                            .ToList();
+                        responses.Add(Response.Create("END"));
+                        return responses;
+                    })
+                    .Register()
+                .Build());
+        }
+
+        private void Receive_multi_binary_payload(ArpyseeServer server) {
+            using(server) {
+                Console.WriteLine("created server");
+                using(var client = new ArpyseeClient("127.0.0.1", _port)) {
+                    Console.WriteLine("created client");
+                    var responses = client.Exec(new MultiRequest("MULTI")
+                        .WithArgument("foo")
+                        .WithArgument("bar")
+                        .ExpectMultiple("VALUE", true)
+                        .TerminatedBy("END")
+                    );
+                    Console.WriteLine("got responses");
+                    Assert.AreEqual(3, responses.Count());
+                    Assert.AreEqual("VALUE", responses.ElementAt(0).Status);
+                    Assert.AreEqual("foo", Encoding.ASCII.GetString(responses.ElementAt(0).Data));
+                    Assert.AreEqual("VALUE", responses.ElementAt(1).Status);
+                    Assert.AreEqual("bar", Encoding.ASCII.GetString(responses.ElementAt(1).Data));
+                    Assert.AreEqual("END", responses.ElementAt(2).Status);
+                }
+            }
+        }
+
+        [Test]
+        public void Async_Can_receive_multi_response() {
+            Receive_multi_response(ServerBuilder
+                .CreateAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+                .WithCommand("MULTI")
+                    .HandledBy((request, responseCallback) => {
+                        Action completion = () => {
+                            _log.Debug("sending END");
+                            responseCallback(Response.Create("END"), null);
+                        };
+                        if(!request.Arguments.Any()) {
+                            completion();
+                            return;
+                        }
+                        Action iterator = null;
+                        var idx = 0;
+                        iterator = () => {
+                            var data = request.Arguments[idx];
+                            idx++;
+                            _log.DebugFormat("sending arg '{0}'", data);
+                            var response = Response.Create("VALUE").WithArgument(data);
+                            responseCallback(response, request.Arguments.Length == idx ? completion : iterator);
+                        };
+                        iterator();
+                    })
+                    .Register()
+                .Build());
+        }
+
+        [Test]
+        public void Sync_Can_receive_multi_response() {
+            Receive_multi_response(ServerBuilder
+                .CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+                .WithCommand("MULTI")
+                    .HandledBy(request => {
+                        var responses = request.Arguments
+                            .Select(data => Response.Create("VALUE").WithArgument(data))
+                            .Cast<IResponse>()
+                            .ToList();
+                        responses.Add(Response.Create("END"));
+                        return responses;
+                    })
+                    .Register()
+                .Build());
+        }
+
+        private void Receive_multi_response(ArpyseeServer server) {
+            using(server) {
+                Console.WriteLine("created server");
+                using(var client = new ArpyseeClient("127.0.0.1", _port)) {
+                    Console.WriteLine("created client");
+                    var responses = client.Exec(new MultiRequest("MULTI")
+                        .WithArgument("foo")
+                        .WithArgument("bar")
+                        .ExpectMultiple("VALUE", false)
+                        .TerminatedBy("END")
+                    );
+                    Console.WriteLine("got responses");
+                    Assert.AreEqual(3, responses.Count());
+                    var r = responses.ToArray();
+                    Assert.AreEqual("VALUE", r[0].Status);
+                    Assert.AreEqual(1, r[0].Arguments.Length);
+                    Assert.AreEqual("foo", r[0].Arguments[0]);
+                    Assert.AreEqual("VALUE", r[1].Status);
+                    Assert.AreEqual(1, r[1].Arguments.Length, string.Join(",", r[1].Arguments));
+                    Assert.AreEqual("bar", r[1].Arguments[0]);
+                    Assert.AreEqual("END", r[2].Status);
+                    Assert.AreEqual(0, r[2].Arguments.Length, string.Join(",", r[2].Arguments));
                 }
             }
         }

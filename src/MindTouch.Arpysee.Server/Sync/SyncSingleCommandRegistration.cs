@@ -1,4 +1,4 @@
-/*
+﻿/*
  * MindTouch.Arpysee
  * 
  * Copyright (C) 2011 Arne F. Claassen
@@ -20,20 +20,13 @@
 using System;
 
 namespace MindTouch.Arpysee.Server.Sync {
-    public class SyncCommandRegistration {
-        private static readonly Logger.ILog _log = Logger.CreateLog();
+    public class SyncSingleCommandRegistration : ASyncCommandRegistration<Func<IRequest, IResponse>> {
 
-        private readonly DataExpectation _dataExpectation;
-        private readonly Func<IRequest, IResponse> _handler;
+        public SyncSingleCommandRegistration(Func<IRequest, IResponse> handler) : base(handler, DataExpectation.Auto) { }
+        public SyncSingleCommandRegistration(Func<IRequest, IResponse> handler, DataExpectation dataExpectation) : base(handler, dataExpectation) { }
 
-        public SyncCommandRegistration(Func<IRequest, IResponse> handler) : this(handler, DataExpectation.Auto) { }
-
-        public SyncCommandRegistration(Func<IRequest, IResponse> handler, DataExpectation dataExpectation) {
-            _handler = handler;
-            _dataExpectation = dataExpectation;
+        protected override ISyncCommandHandler BuildHandler(string command, int dataLength, string[] arguments, Func<IRequest, Exception, IResponse> errorHandler) {
+            return new SyncSingleCommandHandler(command, arguments, dataLength, _handler, errorHandler);
         }
-
-        public DataExpectation DataExpectation { get { return _dataExpectation; } }
-        public Func<IRequest, IResponse> Handler { get { return _handler; } }
     }
 }

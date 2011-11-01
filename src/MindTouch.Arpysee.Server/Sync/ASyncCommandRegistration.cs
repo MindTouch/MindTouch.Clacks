@@ -19,19 +19,23 @@
  */
 using System;
 
-namespace MindTouch.Arpysee.Server.Async {
-    public abstract class AAsyncCommandRegistration<THandler> : IAsyncCommandRegistration {
+namespace MindTouch.Arpysee.Server.Sync {
+    public abstract class ASyncCommandRegistration<THandler> : ISyncCommandRegistration {
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
         protected readonly DataExpectation _dataExpectation;
         protected readonly THandler _handler;
 
-        protected AAsyncCommandRegistration(THandler handler, DataExpectation dataExpectation) {
+        protected ASyncCommandRegistration(THandler handler, DataExpectation dataExpectation) {
             _handler = handler;
             _dataExpectation = dataExpectation;
         }
 
-        public IAsyncCommandHandler GetHandler(string[] commandArgs, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
+        public DataExpectation DataExpectation { get { return _dataExpectation; } }
+        public THandler Handler { get { return _handler; } }
+
+        public ISyncCommandHandler GetHandler(string[] commandArgs, Func<IRequest, Exception, IResponse> errorHandler) {
+            var command = commandArgs[0];
             var dataLength = 0;
             switch(_dataExpectation) {
             case DataExpectation.Auto:
@@ -49,9 +53,9 @@ namespace MindTouch.Arpysee.Server.Async {
             if(arguments.Length > 0) {
                 Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
             }
-            return BuildHandler(commandArgs[0], dataLength, arguments, errorHandler);
+            return BuildHandler(command, dataLength, arguments, errorHandler);
         }
 
-        protected abstract IAsyncCommandHandler BuildHandler(string command, int dataLength, string[] arguments, Action<IRequest, Exception, Action<IResponse>> errorHandler);
+        protected abstract ISyncCommandHandler BuildHandler(string command, int dataLength, string[] arguments, Func<IRequest, Exception, IResponse> errorHandler);
     }
 }

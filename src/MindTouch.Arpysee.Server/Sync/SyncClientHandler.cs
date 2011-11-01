@@ -68,26 +68,7 @@ namespace MindTouch.Arpysee.Server.Sync {
             string finalStatus = null;
             foreach(var response in _commandHandler.GetResponse()) {
                 finalStatus = response.Status;
-                var sb = new StringBuilder();
-                sb.Append(response.Status);
-                if(response.Arguments != null) {
-                    sb.Append(" ");
-                    sb.Append(string.Join(" ", response.Arguments));
-                }
-                if(response.Data != null) {
-                    sb.Append(" ");
-                    sb.Append(response.Data.Length);
-                }
-                sb.Append(TERMINATOR);
-                var data = Encoding.ASCII.GetBytes(sb.ToString());
-                if(response.Data != null) {
-                    var d2 = new byte[data.Length + response.Data.Length + 2];
-                    data.CopyTo(d2, 0);
-                    Array.Copy(response.Data, 0, d2, data.Length, response.Data.Length);
-                    d2[d2.Length - 2] = (byte)'\r';
-                    d2[d2.Length - 1] = (byte)'\n';
-                    data = d2;
-                }
+                var data = response.GetBytes();
                 try {
                     _socket.Send(data);
                 } catch(SocketException e) {

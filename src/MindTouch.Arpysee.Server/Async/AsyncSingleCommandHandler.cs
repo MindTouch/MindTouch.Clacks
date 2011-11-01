@@ -20,23 +20,23 @@
 using System;
 using System.Collections.Generic;
 
-namespace MindTouch.Arpysee.Server.Sync {
-    public class SyncCommandHandler : ISyncCommandHandler {
+namespace MindTouch.Arpysee.Server.Async {
+    public class AsyncSingleCommandHandler : IAsyncCommandHandler {
 
-        public static ISyncCommandHandler DisconnectHandler(string command, Func<IRequest, IResponse> handler) {
-            return new SyncCommandHandler(command, handler);
+        public static IAsyncCommandHandler DisconnectHandler(string command, Action<IRequest, Action<IResponse>> handler) {
+            return new AsyncSingleCommandHandler(command, handler);
         }
 
         private readonly string _command;
         private readonly string[] _arguments;
-        private readonly Func<IRequest, IResponse> _handler;
-        private readonly Func<IRequest, Exception, IResponse> _errorHandler;
+        private readonly Action<IRequest, Action<IResponse>> _handler;
+        private readonly Action<IRequest, Exception, Action<IResponse>> _errorHandler;
         private readonly int _dataLength;
         private readonly bool _disconnect;
         private int _received;
         private List<byte[]> _dataChunks;
 
-        public SyncCommandHandler(string command, string[] arguments, int dataLength, Func<IRequest, IResponse> handler, Func<IRequest, Exception, IResponse> errorHandler) {
+        public AsyncSingleCommandHandler(string command, string[] arguments, int dataLength, Action<IRequest, Action<IResponse>> handler, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
             _command = command;
             _arguments = arguments;
             _dataLength = dataLength;
@@ -44,7 +44,7 @@ namespace MindTouch.Arpysee.Server.Sync {
             _errorHandler = errorHandler;
         }
 
-        private SyncCommandHandler(string command, Func<IRequest, IResponse> handler) {
+        private AsyncSingleCommandHandler(string command, Action<IRequest, Action<IResponse>> handler) {
             _command = command;
             _handler = handler;
             _disconnect = true;
@@ -68,18 +68,17 @@ namespace MindTouch.Arpysee.Server.Sync {
             }
         }
 
-        public IEnumerable<IResponse> GetResponse() {
+        public void GetResponse(Action<IResponse, Action> responseCallback) {
             if(_received < _dataLength) {
                 throw new DataExpectationException(false);
             }
             var request = new Request(_command, _arguments, _dataLength, _dataChunks);
-            IResponse response;
+            Action<IResponse> responseAction = response => responseCallback(response, null);
             try {
-                response = _handler(request);
+                _handler(request, responseAction);
             } catch(Exception e) {
-                response = _errorHandler(request, e);
+                _errorHandler(request, e, responseAction);
             }
-            return new[] { response };
         }
     }
 }

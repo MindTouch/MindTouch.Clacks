@@ -45,8 +45,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ARequest.cs" />
     <Compile Include="ArpyseeClient.cs" />
     <Compile Include="ArpyseeClientException.cs" />
+    <Compile Include="InvalidRequestException.cs" />
+    <Compile Include="MultiRequest.cs" />
     <Compile Include="ResponseReceiver.cs" />
     <Compile Include="IRequestInfo.cs" />
     <Compile Include="Logger.cs" />

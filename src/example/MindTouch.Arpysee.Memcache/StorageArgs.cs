@@ -18,15 +18,17 @@
  * limitations under the License.
  */
 using System;
+using MindTouch.Arpysee.Server;
 
-namespace MindTouch.Arpysee.Server.Async {
-    public class AsyncSingleCommandRegistration : AAsyncCommandRegistration<Action<IRequest, Action<IResponse>>> {
-
-        public AsyncSingleCommandRegistration(Action<IRequest, Action<IResponse>> handler) : base(handler, DataExpectation.Auto) { }
-        public AsyncSingleCommandRegistration(Action<IRequest, Action<IResponse>> handler, DataExpectation dataExpectation) : base(handler, dataExpectation) { }
-
-        protected override IAsyncCommandHandler BuildHandler(string command, int dataLength, string[] arguments, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
-            return new AsyncSingleCommandHandler(command, arguments, dataLength, _handler, errorHandler);
+namespace MindTouch.Arpysee.Memcache {
+    public class StorageArgs {
+        public string Key;
+        public uint Flags;
+        public TimeSpan Exptime;
+        public StorageArgs(IRequest request) {
+            Key = request.Arguments[0];
+            Flags = uint.Parse(request.Arguments[1]);
+            Exptime = TimeSpan.FromSeconds(uint.Parse(request.Arguments[2]));
         }
     }
 }

@@ -27,7 +27,8 @@ namespace MindTouch.Arpysee.Server.Sync {
         private readonly string _command;
         private bool _isDisconnect;
         private DataExpectation _dataExpectation = DataExpectation.Auto;
-        private Func<IRequest, IResponse> _handler;
+        private Func<IRequest, IResponse> _singleResponseHandler;
+        private Func<IRequest, IEnumerable<IResponse>> _multiResponseHandler;
 
         public SyncFluentCommandRegistration(ServerBuilder serverBuilder, SyncCommandRepository repository, string command) {
             _serverBuilder = serverBuilder;
@@ -41,12 +42,13 @@ namespace MindTouch.Arpysee.Server.Sync {
         }
 
         public ISyncFluentCommandRegistration HandledBy(Func<IRequest, IResponse> handler) {
-            _handler = handler;
+            _singleResponseHandler = handler;
             return this;
         }
 
         public ISyncFluentCommandRegistration HandledBy(Func<IRequest, IEnumerable<IResponse>> handler) {
-            throw new NotImplementedException();
+            _multiResponseHandler = handler;
+            return this;
         }
 
         public ISyncFluentCommandRegistration ExpectsData() {
@@ -60,13 +62,15 @@ namespace MindTouch.Arpysee.Server.Sync {
         }
 
         public ISyncServerBuilder Register() {
-            if(_handler == null) {
+            if(_singleResponseHandler == null && _multiResponseHandler == null) {
                 throw new CommandConfigurationException(string.Format("Must define a handler for command '{0}'", _command));
             }
             if(_isDisconnect) {
-                _repository.Disconnect(_command, _handler);
+                _repository.Disconnect(_command, _singleResponseHandler);
+            } else if(_singleResponseHandler != null) {
+                _repository.AddCommand(_command, _singleResponseHandler, _dataExpectation);
             } else {
-                _repository.AddCommand(_command, _handler, _dataExpectation);
+                _repository.AddCommand(_command, _multiResponseHandler, _dataExpectation);
             }
             return _serverBuilder;
         }

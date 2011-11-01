@@ -51,7 +51,7 @@ namespace MindTouch.Arpysee.Server {
         }
 
         string IResponse.Status { get { return _status; } }
-        string[] IResponse.Arguments { get { return _args.ToArray(); } }
+        IEnumerable<string> IResponse.Arguments { get { return _args; } }
         byte[] IResponse.Data { get { return _data; } }
     }
 }

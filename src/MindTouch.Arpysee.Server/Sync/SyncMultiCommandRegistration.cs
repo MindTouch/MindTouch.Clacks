@@ -18,15 +18,14 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
 
-namespace MindTouch.Arpysee.Server.Async {
-    public class AsyncSingleCommandRegistration : AAsyncCommandRegistration<Action<IRequest, Action<IResponse>>> {
+namespace MindTouch.Arpysee.Server.Sync {
+    public class SyncMultiCommandRegistration : ASyncCommandRegistration<Func<IRequest, IEnumerable<IResponse>>> {
+        public SyncMultiCommandRegistration(Func<IRequest, IEnumerable<IResponse>> handler, DataExpectation dataExpectation) : base(handler, dataExpectation) { }
 
-        public AsyncSingleCommandRegistration(Action<IRequest, Action<IResponse>> handler) : base(handler, DataExpectation.Auto) { }
-        public AsyncSingleCommandRegistration(Action<IRequest, Action<IResponse>> handler, DataExpectation dataExpectation) : base(handler, dataExpectation) { }
-
-        protected override IAsyncCommandHandler BuildHandler(string command, int dataLength, string[] arguments, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
-            return new AsyncSingleCommandHandler(command, arguments, dataLength, _handler, errorHandler);
+        protected override ISyncCommandHandler BuildHandler(string command, int dataLength, string[] arguments, Func<IRequest, Exception, IResponse> errorHandler) {
+            return new SyncMultiCommandHandler(command, arguments, dataLength, _handler, errorHandler);
         }
     }
 }

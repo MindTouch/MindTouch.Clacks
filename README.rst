@@ -58,13 +58,12 @@ Creating a server that can echo arguments
 ::
     // build server
     var server = ServerBuilder
-      .Configure(new IPEndPoint("127.0.0.1", 12345))
-      .ASyncIO()
+      .CreateAsync(new IPEndPoint("127.0.0.1", 12345))
       .WithCommand("ECHO")
         .HandledBy((request, response) =>
           response(Response.Create("ECHO").WithArguments(request.Arguments)
         )
-        .Then();
+        .Register();
       .Build();
 
     // Run the server until you press enter

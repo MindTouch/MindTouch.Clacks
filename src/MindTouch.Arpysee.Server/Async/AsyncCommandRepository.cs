@@ -44,7 +44,7 @@ namespace MindTouch.Arpysee.Server.Async {
         }
 
         private IAsyncCommandHandler BuildDisconnectHandler() {
-            return AsyncCommandHandler.DisconnectHandler(_disconnectCommand, (request, response) => {
+            return AsyncSingleCommandHandler.DisconnectHandler(_disconnectCommand, (request, response) => {
                 try {
                     _disconnectHandler(request, response);
                 } catch(Exception handlerException) {

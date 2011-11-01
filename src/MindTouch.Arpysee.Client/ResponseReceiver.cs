@@ -35,6 +35,8 @@ namespace MindTouch.Arpysee.Client {
 
         public void Reset(IRequestInfo requestInfo) {
             _requestInfo = requestInfo;
+            _carriageReturn = false;
+            _statusBuffer.Length = 0;
             _bufferPosition = 0;
             _bufferDataLength = 0;
         }
@@ -61,12 +63,22 @@ namespace MindTouch.Arpysee.Client {
                 var idx = read.Position + i;
                 if(_buffer[idx] == '\r') {
                     _carriageReturn = true;
-                } else if(_carriageReturn && _buffer[idx] == '\n') {
+                } else if(_carriageReturn) {
+                    if(_buffer[idx] != '\n') {
+
+                        // it wasn't a \r followed by an \n
+                        throw new IncompleteCommandTerminator();
+                    }
                     _carriageReturn = false;
                     _bufferPosition = idx + 1;
                     _bufferDataLength = read.Length - i - 1;
-                    _statusBuffer.Append(Encoding.ASCII.GetString(_buffer, read.Position, idx - 1));
+                    var consumeLength = i - 1;
+                    if(consumeLength > 0) {
 
+                        // it is possible that this buffer pass is only the terminator or part of the terminator, so only
+                        // read from it if there are non-terminator characters
+                        _statusBuffer.Append(Encoding.ASCII.GetString(_buffer, read.Position, consumeLength));
+                    }
                     // 6.
                     var status = _statusBuffer.ToString().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
                     _statusBuffer.Length = 0;
@@ -81,7 +93,13 @@ namespace MindTouch.Arpysee.Client {
                     return;
                 }
             }
-            _statusBuffer.Append(Encoding.ASCII.GetString(_buffer, read.Position, read.Length));
+            var length = read.Length;
+            if(_carriageReturn) {
+
+                // we've found the \r, but the \n wasn't part of the buffer, so consume all but the last char from buffer
+                length--;
+            }
+            _statusBuffer.Append(Encoding.ASCII.GetString(_buffer, read.Position, length));
             ProcessCommandData(Receive());
         }
 
@@ -89,7 +107,7 @@ namespace MindTouch.Arpysee.Client {
             if(_responseExpectedBytes > 0) {
                 var dataLength = Math.Min(read.Length, _responseExpectedBytes);
                 Array.Copy(_buffer, read.Position, _responseData, _responseDataPosition, dataLength);
-                _responseExpectedBytes -= read.Length;
+                _responseExpectedBytes -= dataLength;
                 read = new Read(read.Position + dataLength, read.Length - dataLength);
             }
 
@@ -120,4 +138,6 @@ namespace MindTouch.Arpysee.Client {
             ProcessPayloadData(Receive());
         }
     }
+
+    public class IncompleteCommandTerminator : Exception { }
 }

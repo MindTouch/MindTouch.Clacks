@@ -55,7 +55,7 @@ namespace MindTouch.Arpysee.Client {
             InitSocket();
         }
 
-        protected virtual void InitSocket() {}
+        protected virtual void InitSocket() { }
 
         public bool Disposed {
             get {
@@ -71,6 +71,9 @@ namespace MindTouch.Arpysee.Client {
         }
 
         public Response Exec(Request request) {
+            if(!request.IsValid) {
+                throw new InvalidRequestException();
+            }
             ThrowIfDisposed();
             _socket.SendRequest(request);
             _receiver.Reset(request);
@@ -79,19 +82,22 @@ namespace MindTouch.Arpysee.Client {
         }
 
         public IEnumerable<Response> Exec(MultiRequest request) {
+            if(!request.IsValid) {
+                throw new InvalidRequestException();
+            }
             ThrowIfDisposed();
             _socket.SendRequest(request);
             _receiver.Reset(request);
             var responses = new List<Response>();
             while(true) {
                 var response = _receiver.GetResponse();
-                if(response.Status == request.TerminationStatus) {
-                    return responses;
-                }
                 if(!request.IsExpected(response.Status)) {
                     return new[] { response };
                 }
                 responses.Add(response);
+                if(response.Status == request.TerminationStatus) {
+                    return responses;
+                }
             }
         }
 
