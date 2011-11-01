@@ -37,6 +37,7 @@ namespace MindTouch.Arpysee.Server.Tests {
 
         private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private int _port;
+        private byte[] _largeBin;
 
         [SetUp]
         public void Setup() {
@@ -333,6 +334,125 @@ namespace MindTouch.Arpysee.Server.Tests {
                     Assert.AreEqual("END", r[2].Status);
                     Assert.AreEqual(0, r[2].Arguments.Length, string.Join(",", r[2].Arguments));
                 }
+            }
+        }
+
+        [Test]
+        public void Async_Exception_in_response_triggers_default_error_handler() {
+            Expect_error_handler(ServerBuilder
+                .CreateAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+                .WithDefaultHandler((request, response) => {
+                    throw new Exception("failz");
+                })
+                .Build());
+        }
+
+        [Test]
+        public void Sync_Exception_in_response_triggers_default_error_handler() {
+            Expect_error_handler(ServerBuilder
+               .CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+                .WithDefaultHandler((request) => {
+                    throw new Exception("failz");
+                })
+                .Build());
+        }
+
+        private void Expect_error_handler(ArpyseeServer server) {
+            using(server) {
+                Console.WriteLine("created server");
+                using(var client = new ArpyseeClient("127.0.0.1", _port)) {
+                    Console.WriteLine("created client");
+                    var response = client.Exec(new Client.Request("FAIL"));
+                    Console.WriteLine("got response");
+                    Assert.AreEqual("ERROR", response.Status);
+                }
+            }
+        }
+
+        [Test]
+        public void Async_Can_send_large_binary_payload() {
+            Send_large_binary_payload(ServerBuilder
+                .CreateAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+                .WithDefaultHandler((request, response) => {
+                    Assert.AreEqual(LargeBin.Length, request.Data.Length);
+                    Assert.AreEqual(LargeBin, request.Data);
+                    response(Response.Create("OK"));
+                })
+                .Build());
+        }
+
+        [Test]
+        public void Sync_Can_send_large_binary_payload() {
+            Send_large_binary_payload(ServerBuilder
+                .CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+                .WithDefaultHandler((request) => {
+                    Assert.AreEqual(LargeBin.Length, request.Data.Length);
+                    Assert.AreEqual(LargeBin, request.Data);
+                    return Response.Create("OK");
+                })
+                .Build());
+        }
+
+        private void Send_large_binary_payload(ArpyseeServer server) {
+            using(server) {
+                Console.WriteLine("created server");
+                using(var client = new ArpyseeClient("127.0.0.1", _port)) {
+                    Console.WriteLine("created client");
+                    var response = client.Exec(new Client.Request("BIN").WithData(LargeBin));
+                    Console.WriteLine("got response");
+                    Assert.AreEqual("OK", response.Status);
+                }
+            }
+        }
+
+        [Test]
+        public void Async_Can_receive_large_binary_payload() {
+            Receive_large_binary_payload(ServerBuilder
+                .CreateAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+                .WithDefaultHandler((request, response) =>
+                    response(Response.Create("OK").WithData(LargeBin))
+                )
+                .Build());
+        }
+
+        [Test]
+        public void Sync_Can_receive_large_binary_payload() {
+            Receive_large_binary_payload(ServerBuilder
+                .CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+                .WithDefaultHandler((request) => 
+                    Response.Create("OK").WithData(LargeBin)
+                )
+                .Build());
+        }
+
+        private void Receive_large_binary_payload(ArpyseeServer server) {
+            using(server) {
+                Console.WriteLine("created server");
+                using(var client = new ArpyseeClient("127.0.0.1", _port)) {
+                    Console.WriteLine("created client");
+                    var response = client.Exec(new Client.Request("BIN").ExpectData("OK"));
+                    Console.WriteLine("got response");
+                    Assert.AreEqual("OK", response.Status);
+                    Assert.AreEqual(LargeBin.Length, response.Data.Length);
+                    Assert.AreEqual(LargeBin, response.Data);
+                }
+            }
+        }
+
+        private byte[] LargeBin {
+            get {
+                if(_largeBin == null) {
+                    _largeBin = new byte[33 * 1024];
+                    byte b = 33;
+                    for(var i = 0; i < _largeBin.Length; i++) {
+                        _largeBin[i] = b;
+                        b++;
+                        if(b > 126) {
+                            b = 33;
+                        }
+                    }
+                }
+                return _largeBin;
             }
         }
     }

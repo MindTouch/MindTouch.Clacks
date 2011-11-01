@@ -26,7 +26,8 @@ namespace MindTouch.Arpysee.Server.Sync {
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
         private readonly Dictionary<string, ISyncCommandRegistration> _commands = new Dictionary<string, ISyncCommandRegistration>();
-        private Func<IRequest, Exception, IResponse> _errorHandler;
+        private Func<IRequest, Exception, IResponse> _errorHandler
+            = (r, e) => Response.Create("ERROR").WithArgument(e.GetType()).WithArgument(e.Message);
         private SyncSingleCommandRegistration _defaultCommandRegistration = new SyncSingleCommandRegistration(r => Response.Create("UNKNOWN"));
         private Func<IRequest, IResponse> _disconnectHandler = r => Response.Create("BYE");
         private string _disconnectCommand = "BYE";

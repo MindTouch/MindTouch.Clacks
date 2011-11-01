@@ -1,7 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
+﻿/*
+ * MindTouch.Arpysee
+ * 
+ * Copyright (C) 2011 Arne F. Claassen
+ * geekblog [at] claassen [dot] net
+ * http://github.com/sdether/MindTouch.Arpysee
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+using System;
 using System.Text;
 using MindTouch.Arpysee.Client.Net;
 using MindTouch.Arpysee.Server;
@@ -39,6 +55,7 @@ namespace MindTouch.Arpysee.Client {
             _statusBuffer.Length = 0;
             _bufferPosition = 0;
             _bufferDataLength = 0;
+            _responseDataPosition = 0;
         }
 
         private Read Receive() {
@@ -85,6 +102,7 @@ namespace MindTouch.Arpysee.Client {
                     _currentResponse = new Response(status);
                     _responseExpectedBytes = _requestInfo.ExpectedBytes(_currentResponse);
                     if(_responseExpectedBytes >= 0) {
+                        _responseDataPosition = 0;
                         _responseData = new byte[_responseExpectedBytes];
                         ProcessPayloadData(_bufferPosition != 0 ? new Read(_bufferPosition, _bufferDataLength) : Receive());
                     }
@@ -107,6 +125,7 @@ namespace MindTouch.Arpysee.Client {
             if(_responseExpectedBytes > 0) {
                 var dataLength = Math.Min(read.Length, _responseExpectedBytes);
                 Array.Copy(_buffer, read.Position, _responseData, _responseDataPosition, dataLength);
+                _responseDataPosition += dataLength;
                 _responseExpectedBytes -= dataLength;
                 read = new Read(read.Position + dataLength, read.Length - dataLength);
             }
@@ -138,6 +157,4 @@ namespace MindTouch.Arpysee.Client {
             ProcessPayloadData(Receive());
         }
     }
-
-    public class IncompleteCommandTerminator : Exception { }
 }
