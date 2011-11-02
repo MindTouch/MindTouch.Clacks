@@ -22,6 +22,8 @@ using System;
 namespace MindTouch.Arpysee.Server.Async {
     public interface IAsyncServerBuilder {
         ArpyseeServer Build();
+        IAsyncServerBuilder WithDefaultHandler(Func<IRequest, IResponse> handler);
+        IAsyncServerBuilder WithErrorHandler(Func<IRequest, Exception, IResponse> handler);
         IAsyncServerBuilder WithDefaultHandler(Action<IRequest, Action<IResponse>> handler);
         IAsyncServerBuilder WithErrorHandler(Action<IRequest, Exception, Action<IResponse>> handler);
         IAsyncFluentCommandRegistration WithCommand(string command);

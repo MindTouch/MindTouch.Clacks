@@ -23,6 +23,8 @@ using System.Collections.Generic;
 namespace MindTouch.Arpysee.Server.Async {
     public interface IAsyncFluentCommandRegistration {
         IAsyncFluentCommandRegistration IsDisconnect();
+        IAsyncFluentCommandRegistration HandledBy(Func<IRequest, IResponse> handler);
+        IAsyncFluentCommandRegistration HandledBy(Func<IRequest, IEnumerable<IResponse>> handler);
         IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse>> handler);
         IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse, Action>> handler);
         IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IEnumerable<IResponse>>> handler);

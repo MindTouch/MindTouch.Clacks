@@ -19,6 +19,7 @@
  */
 using System;
 using System.Collections.Generic;
+using MindTouch.Arpysee.Server.Sync;
 
 namespace MindTouch.Arpysee.Server.Async {
     public class AsyncFluentCommandRegistration : IAsyncFluentCommandRegistration {
@@ -39,6 +40,16 @@ namespace MindTouch.Arpysee.Server.Async {
 
         public IAsyncFluentCommandRegistration IsDisconnect() {
             _isDisconnect = true;
+            return this;
+        }
+
+        public IAsyncFluentCommandRegistration HandledBy(Func<IRequest, IResponse> handler) {
+            _singleResponseHandler = (request, responseCallback) => responseCallback(handler(request));
+            return this;
+        }
+
+        public IAsyncFluentCommandRegistration HandledBy(Func<IRequest, IEnumerable<IResponse>> handler) {
+            _multiSyncResponseHandler = (request, responseCallback) => responseCallback(handler(request));
             return this;
         }
 

@@ -49,6 +49,16 @@ namespace MindTouch.Arpysee.Server {
             return new ArpyseeServer(_endPoint, _clientHandlerFactory);
         }
 
+        public IAsyncServerBuilder WithDefaultHandler(Func<IRequest, IResponse> handler) {
+            _asyncRepository.Default((request,responseCallback) => responseCallback(handler(request)));
+            return this;
+        }
+
+        public IAsyncServerBuilder WithErrorHandler(Func<IRequest, Exception, IResponse> handler) {
+            _asyncRepository.Error((request, error, responseCallback) => responseCallback(handler(request, error)));
+            return this;
+        }
+
         IAsyncServerBuilder IAsyncServerBuilder.WithDefaultHandler(Action<IRequest, Action<IResponse>> handler) {
             _asyncRepository.Default(handler);
             return this;
