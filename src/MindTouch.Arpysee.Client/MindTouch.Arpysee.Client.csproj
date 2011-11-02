@@ -48,6 +48,7 @@
     <Compile Include="ARequest.cs" />
     <Compile Include="ArpyseeClient.cs" />
     <Compile Include="ArpyseeClientException.cs" />
+    <Compile Include="DataTerminatorMissingException.cs" />
     <Compile Include="IMultiRequestInfo.cs" />
     <Compile Include="IncompleteCommandTerminator.cs" />
     <Compile Include="InvalidRequestException.cs" />
@@ -66,12 +67,6 @@
     <Compile Include="Request.cs" />
     <Compile Include="Response.cs" />
     <Compile Include="ResponseExpectation.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\MindTouch.Arpysee.Server\MindTouch.Arpysee.Server.csproj">
-      <Project>{07E3829C-6A07-462C-8A1C-9FC5F227AAA5}</Project>
-      <Name>MindTouch.Arpysee.Server</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

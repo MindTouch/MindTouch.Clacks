@@ -20,7 +20,6 @@
 using System;
 using System.Text;
 using MindTouch.Arpysee.Client.Net;
-using MindTouch.Arpysee.Server;
 
 namespace MindTouch.Arpysee.Client {
     public class ResponseReceiver {

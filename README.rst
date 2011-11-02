@@ -89,7 +89,6 @@ Calling the server to echo some arguments
       Console.Writeline("Server echoed: {0}", string.join(" ", response.Arguments);
     }
 
-
 Contributors
 ============
 - Arne F. Claassen (sdether)
