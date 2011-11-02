@@ -20,23 +20,20 @@
 using System.Collections.Generic;
 
 namespace MindTouch.Arpysee.Client {
-    public class MultiRequest : ARequest {
-
-        private const string TERMINATOR = "\r\n";
-
+    public class MultiRequest : ARequest, IMultiRequestInfo {
         private string _terminatedBy;
         private readonly HashSet<string> _expectedResponses = new HashSet<string>();
+
         public static MultiRequest Create(string command) {
             return new MultiRequest(command);
         }
 
         public MultiRequest(string command) : base(command) { }
 
-        public override bool IsMultiRequest { get { return true; } }
-        public override bool IsValid { get { return !string.IsNullOrEmpty(_terminatedBy); } }
-        public string TerminationStatus { get { return _terminatedBy; } }
+        bool IMultiRequestInfo.IsValid { get { return !string.IsNullOrEmpty(_terminatedBy); } }
+        string IMultiRequestInfo.TerminationStatus { get { return _terminatedBy; } }
 
-        public bool IsExpected(string status) {
+        bool IMultiRequestInfo.IsExpected(string status) {
             return _expectedResponses.Contains(status);
         }
 
@@ -62,6 +59,14 @@ namespace MindTouch.Arpysee.Client {
             _expectedResponses.Add(status);
             _terminatedBy = status;
             return this;
+        }
+
+        int IRequestInfo.ExpectedBytes(Response response) {
+            return InternalExpectedBytes(response);
+        }
+
+        byte[] IRequestInfo.AsBytes() {
+            return GetBytes();
         }
     }
 }

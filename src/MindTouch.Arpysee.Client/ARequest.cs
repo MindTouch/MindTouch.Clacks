@@ -23,7 +23,7 @@ using System.Linq;
 using System.Text;
 
 namespace MindTouch.Arpysee.Client {
-    public abstract class ARequest : IRequestInfo {
+    public abstract class ARequest {
 
         protected const string TERMINATOR = "\r\n";
         private readonly string _command;
@@ -36,8 +36,6 @@ namespace MindTouch.Arpysee.Client {
         }
 
         public string Command { get { return _command; } }
-        public abstract bool IsMultiRequest { get; }
-        public abstract bool IsValid { get; }
 
         protected void InternalWithArgument<T>(T arg) {
             _arguments.Add(arg.ToString());
@@ -51,14 +49,14 @@ namespace MindTouch.Arpysee.Client {
             _expectsData.Add(status);
         }
 
-        int IRequestInfo.ExpectedBytes(Response response) {
+        protected int InternalExpectedBytes(Response response) {
             if(!_expectsData.Contains(response.Status)) {
                 return -1;
             }
             return int.Parse(response.Arguments[response.Arguments.Length - 1]);
         }
 
-        public byte[] AsBytes() {
+        protected byte[] GetBytes() {
             var sb = new StringBuilder();
             sb.Append(_command);
             if(_arguments.Any()) {

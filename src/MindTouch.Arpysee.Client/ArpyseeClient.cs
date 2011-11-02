@@ -71,9 +71,6 @@ namespace MindTouch.Arpysee.Client {
         }
 
         public Response Exec(Request request) {
-            if(!request.IsValid) {
-                throw new InvalidRequestException();
-            }
             ThrowIfDisposed();
             _socket.SendRequest(request);
             _receiver.Reset(request);
@@ -82,7 +79,8 @@ namespace MindTouch.Arpysee.Client {
         }
 
         public IEnumerable<Response> Exec(MultiRequest request) {
-            if(!request.IsValid) {
+            var requestInfo = request as IMultiRequestInfo;
+            if(!requestInfo.IsValid) {
                 throw new InvalidRequestException();
             }
             ThrowIfDisposed();
@@ -91,11 +89,11 @@ namespace MindTouch.Arpysee.Client {
             var responses = new List<Response>();
             while(true) {
                 var response = _receiver.GetResponse();
-                if(!request.IsExpected(response.Status)) {
+                if(!requestInfo.IsExpected(response.Status)) {
                     return new[] { response };
                 }
                 responses.Add(response);
-                if(response.Status == request.TerminationStatus) {
+                if(response.Status == requestInfo.TerminationStatus) {
                     return responses;
                 }
             }

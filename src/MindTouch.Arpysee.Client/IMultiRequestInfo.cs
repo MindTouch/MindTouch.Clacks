@@ -17,28 +17,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System.IO;
-using MindTouch.Arpysee.Client.Net;
-
 namespace MindTouch.Arpysee.Client {
-    public static class Extensions {
-
-        public static void Write(this Stream stream, byte[] buffer) {
-            stream.Write(buffer, 0, buffer.Length);
-        }
-
-        public static void SendRequest(this ISocket socket, IRequestInfo request) {
-            var bytes = request.AsBytes();
-            socket.SendBuffer(bytes, bytes.Length);
-        }
-
-        private static void SendBuffer(this ISocket socket, byte[] buffer, int count) {
-            var offset = 0;
-            while(count > 0) {
-                var sent = socket.Send(buffer, offset, count);
-                offset += sent;
-                count -= sent;
-            }
-        }
+    public interface IMultiRequestInfo: IRequestInfo {
+        bool IsValid { get; }
+        bool IsExpected(string status);
+        string TerminationStatus { get; }
     }
 }

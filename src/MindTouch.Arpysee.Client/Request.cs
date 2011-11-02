@@ -19,16 +19,13 @@
  */
 
 namespace MindTouch.Arpysee.Client {
-    public class Request : ARequest {
+    public class Request : ARequest, IRequestInfo {
 
         public static Request Create(string command) {
             return new Request(command);
         }
 
         public Request(string command) : base(command) { }
-
-        public override bool IsMultiRequest { get { return false; } }
-        public override bool IsValid { get { return true; } }
 
         public Request WithArgument<T>(T arg) {
             InternalWithArgument(arg);
@@ -45,5 +42,12 @@ namespace MindTouch.Arpysee.Client {
             return this;
         }
 
+        int IRequestInfo.ExpectedBytes(Response response) {
+            return InternalExpectedBytes(response);
+        }
+
+        byte[] IRequestInfo.AsBytes() {
+            return GetBytes();
+        }
     }
 }
