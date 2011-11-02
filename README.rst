@@ -1,4 +1,4 @@
-MindToch.Arpysee 0.1
+MindToch.Arpysee 0.2
 ====================
 A library for quickly building smtp/memcache protocol style clients and servers
 
@@ -46,11 +46,17 @@ a status code.
 
 Status
 ======
-Early WIP, mostly experimenation
+MindTouch.Arpysee is fully functional providing both a synchronous and asynchronous server. It's
+currently undergoing real world testing before we lock down the API and write documentation.
+
+TODO
+====
+- Need timeouts and error propagation in async handlers (consider Task dependency?)
+- Need way to register other than last argument as bytecount
+- Would be nice to add an Async Client (again, Task dependency?)
 
 Usage
 =====
-
 Both client and server libraries are meant for containment, i.e. the plumbing for your own abstraction of the
 protocol rather than raw usage, although there is nothing about the code that enforces such a design decision
 
@@ -82,6 +88,7 @@ Calling the server to echo some arguments
       );
       Console.Writeline("Server echoed: {0}", string.join(" ", response.Arguments);
     }
+
 
 Contributors
 ============

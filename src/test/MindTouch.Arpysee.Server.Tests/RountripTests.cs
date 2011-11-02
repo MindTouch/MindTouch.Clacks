@@ -18,16 +18,12 @@
  * limitations under the License.
  */
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
 using log4net;
 using MindTouch.Arpysee.Client;
-using MindTouch.Arpysee.Client.Net.Helper;
-using MindTouch.Arpysee.Server.Async;
 using NUnit.Framework;
 
 namespace MindTouch.Arpysee.Server.Tests {
