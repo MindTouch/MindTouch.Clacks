@@ -49,6 +49,7 @@
     <Compile Include="AClientRequestHandler.cs" />
     <Compile Include="Async\AsyncMultiCommandHandler.cs" />
     <Compile Include="Async\AsyncCommandRegistration.cs" />
+    <Compile Include="Async\CommandHandlerBuilder.cs" />
     <Compile Include="Async\SyncMultiCommandHandler.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Async\IAsyncCommandRegistration.cs" />
@@ -56,12 +57,13 @@
     <Compile Include="Async\IAsyncCommandDispatcher.cs" />
     <Compile Include="Async\IAsyncServerBuilder.cs" />
     <Compile Include="Async\IAsyncFluentCommandRegistration.cs" />
+    <Compile Include="Sync\CommandHandlerBuilder.cs" />
+    <Compile Include="Sync\SyncCommandRegistration.cs" />
     <Compile Include="Sync\SyncMultiCommandHandler.cs" />
     <Compile Include="Sync\ISyncCommandHandler.cs" />
     <Compile Include="Async\AsyncFluentCommandRegistration.cs" />
     <Compile Include="Sync\ISyncCommandRegistration.cs" />
     <Compile Include="Sync\ASyncCommandRegistration.cs" />
-    <Compile Include="Async\AAsyncCommandRegistration.cs" />
     <Compile Include="Sync\SyncCommandRepository.cs" />
     <Compile Include="Async\IAsyncCommandHandler.cs" />
     <Compile Include="Sync\SyncSingleCommandHandler.cs" />
@@ -91,7 +93,6 @@
     <Compile Include="Response.cs" />
     <Compile Include="Async\AsyncSingleCommandHandler.cs" />
     <Compile Include="Sync\SyncMultiCommandRegistration.cs" />
-    <Compile Include="Sync\SyncSingleCommandRegistration.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

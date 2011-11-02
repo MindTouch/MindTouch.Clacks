@@ -50,5 +50,5 @@ namespace MindTouch.Arpysee.Server.Async {
         }
     }
 
-    public delegate IAsyncCommandHandler CommandHandlerBuilder(string command, int dataLength, string[] arguments, Action<IRequest, Exception, Action<IResponse>> errorHandler);
+
 }

@@ -20,17 +20,16 @@
 using System;
 
 namespace MindTouch.Arpysee.Server.Sync {
-    public abstract class ASyncCommandRegistration<THandler> : ISyncCommandRegistration {
+    public class SyncCommandRegistration : ISyncCommandRegistration {
         protected readonly DataExpectation _dataExpectation;
-        protected readonly THandler _handler;
+        private readonly CommandHandlerBuilder _builder;
 
-        protected ASyncCommandRegistration(THandler handler, DataExpectation dataExpectation) {
-            _handler = handler;
+        public SyncCommandRegistration(DataExpectation dataExpectation, CommandHandlerBuilder builder) {
             _dataExpectation = dataExpectation;
+            _builder = builder;
         }
 
         public DataExpectation DataExpectation { get { return _dataExpectation; } }
-        public THandler Handler { get { return _handler; } }
 
         public ISyncCommandHandler GetHandler(string[] commandArgs, Func<IRequest, Exception, IResponse> errorHandler) {
             var command = commandArgs[0];
@@ -51,9 +50,7 @@ namespace MindTouch.Arpysee.Server.Sync {
             if(arguments.Length > 0) {
                 Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
             }
-            return BuildHandler(command, dataLength, arguments, errorHandler);
+            return _builder(command, dataLength, arguments, errorHandler);
         }
-
-        protected abstract ISyncCommandHandler BuildHandler(string command, int dataLength, string[] arguments, Func<IRequest, Exception, IResponse> errorHandler);
     }
 }

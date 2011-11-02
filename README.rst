@@ -8,7 +8,7 @@ Apache 2.0
 
 What's this for?
 ================
-If you want to build an RPC server that uses a simple ASCII/Binary protocol with persistent
+If you want to build a fast RPC server that uses a simple ASCII/Binary protocol with persistent
 connections like those used by memcache, smtp, beanstalkd, this is your toolkit. It handles
 all the network issues and lets you just define commands and responses you support and expose them
 in a client that supports connection pooling.

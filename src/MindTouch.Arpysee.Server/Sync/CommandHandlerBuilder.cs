@@ -20,13 +20,5 @@
 using System;
 
 namespace MindTouch.Arpysee.Server.Sync {
-    public class SyncSingleCommandRegistration : ASyncCommandRegistration<Func<IRequest, IResponse>> {
-
-        public SyncSingleCommandRegistration(Func<IRequest, IResponse> handler) : base(handler, DataExpectation.Auto) { }
-        public SyncSingleCommandRegistration(Func<IRequest, IResponse> handler, DataExpectation dataExpectation) : base(handler, dataExpectation) { }
-
-        protected override ISyncCommandHandler BuildHandler(string command, int dataLength, string[] arguments, Func<IRequest, Exception, IResponse> errorHandler) {
-            return new SyncSingleCommandHandler(command, arguments, dataLength, _handler, errorHandler);
-        }
-    }
+    public delegate ISyncCommandHandler CommandHandlerBuilder(string command, int dataLength, string[] arguments, Func<IRequest, Exception, IResponse> errorHandler);
 }
