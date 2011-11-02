@@ -17,8 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System;
-
-namespace MindTouch.Arpysee.Server.Sync {
-    public delegate ISyncCommandHandler CommandHandlerBuilder(string command, int dataLength, string[] arguments, Func<IRequest, Exception, IResponse> errorHandler);
+namespace MindTouch.Arpysee.Server {
+    public delegate THandler CommandHandlerBuilder<THandler, TError>(string command, int dataLength, string[] arguments, TError errorHandler);
 }

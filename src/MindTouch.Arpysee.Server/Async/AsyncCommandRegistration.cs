@@ -20,34 +20,8 @@
 using System;
 
 namespace MindTouch.Arpysee.Server.Async {
-    public class AsyncCommandRegistration : IAsyncCommandRegistration {
-        protected readonly DataExpectation _dataExpectation;
-        protected readonly CommandHandlerBuilder _builder;
-        public AsyncCommandRegistration(DataExpectation dataExpectation, CommandHandlerBuilder builder) {
-            _dataExpectation = dataExpectation;
-            _builder = builder;
-        }
-
-        public IAsyncCommandHandler GetHandler(string[] commandArgs, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
-            var dataLength = 0;
-            switch(_dataExpectation) {
-            case DataExpectation.Auto:
-                if(commandArgs.Length > 1) {
-                    int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength);
-                }
-                break;
-            case DataExpectation.Always:
-                if(commandArgs.Length == 1 || !int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength)) {
-                    throw new InvalidCommandException();
-                }
-                break;
-            }
-            var arguments = new string[commandArgs.Length - 1];
-            if(arguments.Length > 0) {
-                Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
-            }
-            return _builder(commandArgs[0], dataLength, arguments, errorHandler);
-        }
+    public class AsyncCommandRegistration : CommandRegistration<IAsyncCommandHandler,Action<IRequest, Exception, Action<IResponse>>>,IAsyncCommandRegistration {
+        public AsyncCommandRegistration(DataExpectation dataExpectation, CommandHandlerBuilder<IAsyncCommandHandler, Action<IRequest, Exception, Action<IResponse>>> builder) : base(dataExpectation, builder) {}
     }
 
 

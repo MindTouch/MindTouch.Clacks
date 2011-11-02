@@ -62,6 +62,4 @@ namespace MindTouch.Arpysee.Server.Async {
             }
         }
     }
-
-    public class NoResponseException : Exception { }
 }

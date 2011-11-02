@@ -20,37 +20,7 @@
 using System;
 
 namespace MindTouch.Arpysee.Server.Sync {
-    public class SyncCommandRegistration : ISyncCommandRegistration {
-        protected readonly DataExpectation _dataExpectation;
-        private readonly CommandHandlerBuilder _builder;
-
-        public SyncCommandRegistration(DataExpectation dataExpectation, CommandHandlerBuilder builder) {
-            _dataExpectation = dataExpectation;
-            _builder = builder;
-        }
-
-        public DataExpectation DataExpectation { get { return _dataExpectation; } }
-
-        public ISyncCommandHandler GetHandler(string[] commandArgs, Func<IRequest, Exception, IResponse> errorHandler) {
-            var command = commandArgs[0];
-            var dataLength = 0;
-            switch(_dataExpectation) {
-            case DataExpectation.Auto:
-                if(commandArgs.Length > 1) {
-                    int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength);
-                }
-                break;
-            case DataExpectation.Always:
-                if(commandArgs.Length == 1 || !int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength)) {
-                    throw new InvalidCommandException();
-                }
-                break;
-            }
-            var arguments = new string[commandArgs.Length - 1];
-            if(arguments.Length > 0) {
-                Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
-            }
-            return _builder(command, dataLength, arguments, errorHandler);
-        }
+    public class SyncCommandRegistration : CommandRegistration<ISyncCommandHandler,Func<IRequest, Exception, IResponse>>, ISyncCommandRegistration {
+        public SyncCommandRegistration(DataExpectation dataExpectation, CommandHandlerBuilder<ISyncCommandHandler, Func<IRequest, Exception, IResponse>> builder) : base(dataExpectation, builder) {}
     }
 }
