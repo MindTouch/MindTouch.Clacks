@@ -26,15 +26,9 @@ namespace MindTouch.Arpysee.Server.Async {
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
         private readonly Dictionary<string, IAsyncCommandRegistration> _commands = new Dictionary<string, IAsyncCommandRegistration>();
-        private Action<IRequest, Exception, Action<IResponse>> _errorHandler
-            = (r, e, c) => c(Response.Create("ERROR").WithArgument(e.GetType()).WithArgument(e.Message));
-        private IAsyncCommandRegistration _defaultCommandRegistration 
-            = new AsyncCommandRegistration(
-                DataExpectation.Auto,
-                (command, dataLength, arguments, errorHandler) =>
-                    new AsyncSingleCommandHandler(command, arguments, dataLength, (r, c) => c(Response.Create("UNKNOWN")), errorHandler)
-            );
-        private Action<IRequest, Action<IResponse>> _disconnectHandler = (r, c) => c(Response.Create("BYE"));
+        private Action<IRequest, Exception, Action<IResponse>> _errorHandler = DefaultHandlers.ErrorHandler;
+        private IAsyncCommandRegistration _defaultCommandRegistration = DefaultHandlers.AsyncCommandRegistration;
+        private Action<IRequest, Action<IResponse>> _disconnectHandler = DefaultHandlers.DisconnectHandler;
         private string _disconnectCommand = "BYE";
 
         public IAsyncCommandHandler GetHandler(string[] commandArgs) {

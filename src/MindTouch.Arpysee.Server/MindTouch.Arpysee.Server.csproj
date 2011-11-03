@@ -50,6 +50,7 @@
     <Compile Include="Async\AsyncMultiCommandHandler.cs" />
     <Compile Include="Async\AsyncCommandRegistration.cs" />
     <Compile Include="Async\SyncMultiCommandHandler.cs" />
+    <Compile Include="DefaultHandlers.cs" />
     <Compile Include="Extensions.cs" />
     <Compile Include="Async\IAsyncCommandRegistration.cs" />
     <Compile Include="CommandConfigurationException.cs" />
