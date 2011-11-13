@@ -12,6 +12,8 @@
     <AssemblyName>MindTouch.Arpysee.Server</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>mindtouch.arpysee.snk</AssemblyOriginatorKeyFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -92,6 +94,9 @@
     <Compile Include="Async\AsyncResponseHandler.cs" />
     <Compile Include="Response.cs" />
     <Compile Include="Async\AsyncSingleCommandHandler.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="mindtouch.arpysee.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
