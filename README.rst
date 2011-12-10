@@ -1,4 +1,4 @@
-MindToch.Arpysee 0.2
+MindToch.Clacks 0.2
 ====================
 A library for quickly building smtp/memcache protocol style clients and servers
 
@@ -46,7 +46,7 @@ a status code.
 
 Status
 ======
-MindTouch.Arpysee is fully functional providing both a synchronous and asynchronous server. It's
+MindTouch.Clacks is fully functional providing both a synchronous and asynchronous server. It's
 currently undergoing real world testing before we lock down the API and write documentation.
 
 TODO
@@ -80,7 +80,7 @@ Creating a server that can echo arguments
 Calling the server to echo some arguments
 ::
     // create a client (uses default connection pool
-    using(var client = new ArpyseeClient("127.0.0.1, 12345)) {
+    using(var client = new ClacksClient("127.0.0.1, 12345)) {
       var response = client.Exec(
         Request.Create("ECHO")
           .WithArgument("hi")
