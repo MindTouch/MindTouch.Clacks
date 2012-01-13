@@ -67,7 +67,7 @@ Creating a server that can echo arguments
       .CreateAsync(new IPEndPoint("127.0.0.1", 12345))
       .WithCommand("ECHO")
         .HandledBy((request, response) =>
-          response(Response.Create("ECHO").WithArguments(request.Arguments)
+          response(Response.Create("ECHO").WithArguments(request.Arguments))
         )
         .Register();
       .Build();
