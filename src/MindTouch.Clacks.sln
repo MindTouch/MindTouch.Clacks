@@ -1,10 +1,6 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 10.00
-# Visual Studio 2008
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MindTouch.Clacks.Server", "MindTouch.Clacks.Server\MindTouch.Clacks.Server.csproj", "{07E3829C-6A07-462C-8A1C-9FC5F227AAA5}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MindTouch.Clacks.Client", "MindTouch.Clacks.Client\MindTouch.Clacks.Client.csproj", "{8D5353C8-E5C9-4DC2-BB15-DC4CC52B17AB}"
-EndProject
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{78CEEC87-07A8-4F5A-9752-E201E0B854C5}"
 	ProjectSection(SolutionItems) = preProject
 		..\README.rst = ..\README.rst
@@ -13,6 +9,10 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "example", "example", "{9365CDD6-7246-4A08-86FE-483B6702705A}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{97B8C75A-D419-43A3-9987-464674D1879B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MindTouch.Clacks.Server", "MindTouch.Clacks.Server\MindTouch.Clacks.Server.csproj", "{07E3829C-6A07-462C-8A1C-9FC5F227AAA5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MindTouch.Clacks.Client", "MindTouch.Clacks.Client\MindTouch.Clacks.Client.csproj", "{8D5353C8-E5C9-4DC2-BB15-DC4CC52B17AB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MindTouch.Clacks.Server.Tests", "test\MindTouch.Clacks.Server.Tests\MindTouch.Clacks.Server.Tests.csproj", "{6D80CD5C-4704-43DA-83D3-E6650228B1C4}"
 EndProject
