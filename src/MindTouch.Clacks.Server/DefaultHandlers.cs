@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using MindTouch.Clacks.Server.Async;
 using MindTouch.Clacks.Server.Sync;
 
@@ -8,7 +9,7 @@ namespace MindTouch.Clacks.Server {
 
         public static IResponse ErrorHandler(IRequest request, Exception e) {
             _log.Warn(string.Format("Request [{0}] threw an exception of type {1}: {2}", request.Command, e.GetType(), e.Message), e);
-            return Response.Create("ERROR").WithArgument(e.GetType()).WithArgument(e.Message);
+            return Response.Create("ERROR").WithArgument(e.GetType()).WithData(Encoding.UTF8.GetBytes(e.Message));
         }
 
         public static ISyncCommandRegistration SyncCommandRegistration {

@@ -28,9 +28,11 @@ namespace MindTouch.Clacks.Client.Net.Helper {
         public static ISocket Open(string host, int port, TimeSpan connectTimeout) {
             var timeout = new ManualResetEvent(false);
             Exception connectFailure = null;
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            var attemptingEndConnect = false;
             var ar = socket.BeginConnect(host, port, r => {
                 try {
+                    attemptingEndConnect = true;
                     socket.EndConnect(r);
                 } catch(Exception e) {
                     connectFailure = e;
@@ -40,8 +42,12 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             }, null);
 
             if(!timeout.WaitOne(connectTimeout)) {
-                socket.EndConnect(ar);
-                throw new TimeoutException();
+                if(!attemptingEndConnect) {
+                    try {
+                        socket.EndConnect(ar);
+                    } catch { }
+                    throw new TimeoutException();
+                }
             }
             if(connectFailure != null) {
                 throw new ConnectException(connectFailure);
@@ -52,9 +58,11 @@ namespace MindTouch.Clacks.Client.Net.Helper {
         public static ISocket Open(IPEndPoint endPoint, TimeSpan connectTimeout) {
             var timeout = new ManualResetEvent(false);
             Exception connectFailure = null;
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            var attemptingEndConnect = false;
             var ar = socket.BeginConnect(endPoint, r => {
                 try {
+                    attemptingEndConnect = true;
                     socket.EndConnect(r);
                 } catch(Exception e) {
                     connectFailure = e;
@@ -64,8 +72,12 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             }, null);
 
             if(!timeout.WaitOne(connectTimeout)) {
-                socket.EndConnect(ar);
-                throw new TimeoutException();
+                if(!attemptingEndConnect) {
+                    try {
+                        socket.EndConnect(ar);
+                    } catch { }
+                    throw new TimeoutException();
+                }
             }
             if(connectFailure != null) {
                 throw new ConnectException(connectFailure);
@@ -92,7 +104,7 @@ namespace MindTouch.Clacks.Client.Net.Helper {
                     var part1 = _socket.Poll(100, SelectMode.SelectRead);
                     var part2 = (_socket.Available == 0);
                     return !(part1 && part2);
-                }catch {
+                } catch {
                     return false;
                 }
             }

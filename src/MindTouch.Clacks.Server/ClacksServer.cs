@@ -37,6 +37,7 @@ namespace MindTouch.Clacks.Server {
             _listenEndpoint = listenEndpoint;
             _clientHandlerFactory = clientHandlerFactory;
             _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            _listenSocket.NoDelay = true;
             _listenSocket.Bind(_listenEndpoint);
             _listenSocket.Listen(10);
             _log.InfoFormat("Created server on {0} with handler {1}", listenEndpoint, clientHandlerFactory);
