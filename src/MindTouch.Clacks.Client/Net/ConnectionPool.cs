@@ -91,6 +91,7 @@ namespace MindTouch.Clacks.Client.Net {
         public ConnectionPool(Func<ISocket> socketFactory) {
             ConnectTimeout = DefaultConnectTimeout;
             MaxConnections = DefaultMaxConnections;
+            IdleTimeout = DefaultIdleTimeout;
             _socketFactory = socketFactory;
             _socketCleanupTimer = new Timer(ReapSockets, null, _cleanupInterval, _cleanupInterval);
         }
@@ -209,6 +210,7 @@ namespace MindTouch.Clacks.Client.Net {
             if(_disposed) {
                 return;
             }
+            _disposed = true;
             if(suppressFinalizer) {
                 GC.SuppressFinalize(this);
             }

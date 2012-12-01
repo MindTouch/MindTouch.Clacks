@@ -116,9 +116,7 @@ namespace MindTouch.Clacks.Client {
             if(suppressFinalizer) {
                 GC.SuppressFinalize(this);
             }
-            if(_socket != null) {
-                _socket.Dispose();
-            }
+            _socket.Dispose();
             _disposed = true;
         }
 

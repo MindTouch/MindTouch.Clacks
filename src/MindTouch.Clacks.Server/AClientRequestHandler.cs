@@ -38,6 +38,7 @@ namespace MindTouch.Clacks.Server {
 
         private ulong _commandCounter;
         private bool _isDisposed;
+        private bool _inCommand = false;
 
         protected int _bufferPosition;
         protected int _bufferDataLength;
@@ -88,7 +89,6 @@ namespace MindTouch.Clacks.Server {
         // 1.
         private void StartCommandRequest() {
             _commandCounter++;
-            _requestTimer.Start();
             if(_bufferPosition != 0) {
                 ProcessCommandData(_bufferPosition, _bufferDataLength);
                 return;
@@ -105,6 +105,7 @@ namespace MindTouch.Clacks.Server {
                 _requestTimer.Elapsed.TotalMilliseconds
             );
             _requestTimer.Reset();
+            _inCommand = false;
             if(Handler.DisconnectOnCompletion) {
                 Dispose();
             } else {
@@ -114,7 +115,10 @@ namespace MindTouch.Clacks.Server {
 
         // 4.
         protected void ProcessCommandData(int position, int length) {
-
+            if(!_inCommand ) {
+                _inCommand = true;
+                _requestTimer.Start();
+            }
             // look for \r\n
             for(var i = 0; i < length; i++) {
                 var idx = position + i;
