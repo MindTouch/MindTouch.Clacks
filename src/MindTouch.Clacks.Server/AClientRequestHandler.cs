@@ -84,7 +84,7 @@ namespace MindTouch.Clacks.Server {
 
         // 2&3, 9&10, Receive buffer trail
         protected abstract void Receive(Action<int, int> continuation);
-        protected abstract void InitializeHandler(string[] command);
+        protected abstract string InitializeHandler(string[] command);
 
         // 1.
         private void StartCommandRequest() {
@@ -115,7 +115,7 @@ namespace MindTouch.Clacks.Server {
 
         // 4.
         protected void ProcessCommandData(int position, int length) {
-            if(!_inCommand ) {
+            if(!_inCommand) {
                 _inCommand = true;
                 _requestTimer.Start();
             }
@@ -131,12 +131,12 @@ namespace MindTouch.Clacks.Server {
                     _commandBuffer.Append(Encoding.ASCII.GetString(_buffer, position, idx - 1));
 
                     // 6.
-                    var command = _commandBuffer.ToString().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
+                    var commandArgs = _commandBuffer.ToString().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
                     _commandBuffer.Length = 0;
-                    InitializeHandler(command);
+                    var command = InitializeHandler(commandArgs);
                     _log.DebugFormat("[{0}] Received command [{1}] in {2:0.00}ms, expect data: {3} ",
                         _commandCounter,
-                        command[0],
+                        command,
                         _requestTimer.Elapsed.TotalMilliseconds,
                         Handler.ExpectsData
                     );

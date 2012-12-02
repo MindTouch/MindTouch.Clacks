@@ -19,6 +19,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MindTouch.Clacks.Server.Sync {
     public class SyncCommandRepository : ISyncCommandDispatcher {
@@ -32,7 +33,7 @@ namespace MindTouch.Clacks.Server.Sync {
         private string _disconnectCommand = "BYE";
 
         public ISyncCommandHandler GetHandler(string[] commandArgs) {
-            var command = commandArgs[0];
+            var command = commandArgs.FirstOrDefault() ?? string.Empty;
             if(command == _disconnectCommand) {
                 return BuildDisconnectHandler();
             }

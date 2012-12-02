@@ -68,8 +68,9 @@ namespace MindTouch.Clacks.Server.Async {
             }
         }
 
-        protected override void InitializeHandler(string[] command) {
+        protected override string InitializeHandler(string[] command) {
             _commandHandler = _dispatcher.GetHandler(command);
+            return _commandHandler.Command;
         }
 
         // 13/14.

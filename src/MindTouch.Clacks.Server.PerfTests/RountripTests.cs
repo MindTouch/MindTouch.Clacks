@@ -99,6 +99,41 @@ namespace MindTouch.Clacks.Server.Tests {
             }
         }
 
+        [Test]
+        public void Sync_Roundtrip_many_binary_payloads() {
+            var payloadstring = "";
+            using(ServerBuilder.CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+               .WithCommand("BIN")
+                   .HandledBy(request => Response.Create("OK").WithData(request.Data))
+                   .Register()
+               .Build()
+           ) {
+                Console.WriteLine("created server");
+                EchoServer();
+            }
+        }
+
+        private void EchoServer() {
+            using(var client = new ClacksClient("127.0.0.1", _port)) {
+                var n = 30000;
+                var t = Stopwatch.StartNew();
+                for(var i = 0; i < n; i++) {
+                    var payload = new StringBuilder();
+                    for(var j = 0; j < 10; j++) {
+                        payload.Append(Guid.NewGuid().ToString());
+                    }
+                    var bytes = Encoding.ASCII.GetBytes(payload.ToString());
+                    var response = client.Exec(new Client.Request("BIN").WithData(bytes).ExpectData("OK"));
+                    Assert.AreEqual("OK", response.Status);
+                    Assert.AreEqual(1, response.Arguments.Length);
+                    Assert.AreEqual(bytes, response.Data);
+                }
+                t.Stop();
+                var rate = n / t.Elapsed.TotalSeconds;
+                Console.WriteLine("Executed {0} commands at {1:0}commands/second", n, rate);
+            }
+        }
+
         //[Test]
         //public void Async_Can_receive_many_binary_payload_with_sockets_from_pool_per_request() {
         //    Receive_many_binary_payload_with_sockets_from_pool_per_request(true);

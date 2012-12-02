@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 using System;
+using System.Linq;
 
 namespace MindTouch.Clacks.Server {
     public abstract class CommandRegistration<THandler,TError> {
@@ -32,23 +33,28 @@ namespace MindTouch.Clacks.Server {
         public DataExpectation DataExpectation { get { return _dataExpectation; } }
 
         public THandler GetHandler(string[] commandArgs, TError errorHandler) {
-            var command = commandArgs[0];
+            var command = commandArgs.FirstOrDefault() ?? string.Empty;
             var dataLength = 0;
-            switch(_dataExpectation) {
-            case DataExpectation.Auto:
-                if(commandArgs.Length > 1) {
-                    int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength);
+            string[] arguments;
+            if(commandArgs.Length > 1) {
+                switch (_dataExpectation) {
+                    case DataExpectation.Auto:
+                        if(commandArgs.Length > 1) {
+                            int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength);
+                        }
+                        break;
+                    case DataExpectation.Always:
+                        if(commandArgs.Length == 1 || !int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength)) {
+                            throw new InvalidCommandException();
+                        }
+                        break;
                 }
-                break;
-            case DataExpectation.Always:
-                if(commandArgs.Length == 1 || !int.TryParse(commandArgs[commandArgs.Length - 1], out dataLength)) {
-                    throw new InvalidCommandException();
+                arguments = new string[commandArgs.Length - 1];
+                if(arguments.Length > 0) {
+                    Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
                 }
-                break;
-            }
-            var arguments = new string[commandArgs.Length - 1];
-            if(arguments.Length > 0) {
-                Array.Copy(commandArgs, 1, arguments, 0, arguments.Length);
+            } else {
+                arguments = new string[0];
             }
             return _builder(command, dataLength, arguments, errorHandler);
         }

@@ -60,8 +60,9 @@ namespace MindTouch.Clacks.Server.Sync {
             continuation(0, received);
         }
 
-        protected override void InitializeHandler(string[] command) {
+        protected override string InitializeHandler(string[] command) {
             _commandHandler = _dispatcher.GetHandler(command);
+            return _commandHandler.Command;
         }
 
         protected override void ProcessResponse() {

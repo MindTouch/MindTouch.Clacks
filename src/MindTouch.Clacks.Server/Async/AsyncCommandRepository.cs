@@ -19,21 +19,22 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MindTouch.Clacks.Server.Async {
     public class AsyncCommandRepository : IAsyncCommandDispatcher {
 
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
-        private readonly Dictionary<string, IAsyncCommandRegistration> _commands = new Dictionary<string, IAsyncCommandRegistration>();
+        private readonly Dictionary<string, IAsyncCommandRegistration> _commands = new Dictionary<string, IAsyncCommandRegistration>(StringComparer.InvariantCultureIgnoreCase);
         private Action<IRequest, Exception, Action<IResponse>> _errorHandler = DefaultHandlers.ErrorHandler;
         private IAsyncCommandRegistration _defaultCommandRegistration = DefaultHandlers.AsyncCommandRegistration;
         private Action<IRequest, Action<IResponse>> _disconnectHandler = DefaultHandlers.DisconnectHandler;
         private string _disconnectCommand = "BYE";
 
         public IAsyncCommandHandler GetHandler(string[] commandArgs) {
-            var command = commandArgs[0];
-            if(command == _disconnectCommand) {
+            var command = commandArgs.FirstOrDefault() ?? string.Empty;
+            if(command.Equals(_disconnectCommand, StringComparison.InvariantCultureIgnoreCase)) {
                 return BuildDisconnectHandler();
             }
             IAsyncCommandRegistration registration;
@@ -48,7 +49,7 @@ namespace MindTouch.Clacks.Server.Async {
                 try {
                     _disconnectHandler(request, response);
                 } catch(Exception handlerException) {
-                    _log.Warn("disconnect handler threw an exception, continuating with disconnect", handlerException);
+                    _log.Warn("disconnect handler threw an exception, continuing with disconnect", handlerException);
                     response(Response.Create("BYE"));
                 }
             });

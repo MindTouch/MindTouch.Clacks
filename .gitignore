@@ -1,0 +1,10 @@
+[Dd]ebug/
+[Rr]elease/
+obj/
+*.ncb
+*.suo
+_ReSharper.*/
+*.pdb
+*.snk
+*.user
+*resharper.user
