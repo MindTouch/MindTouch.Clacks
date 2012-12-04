@@ -28,8 +28,8 @@ namespace MindTouch.Clacks.Server.Async {
             _dispatcher = dispatcher;
         }
 
-        public IClientHandler Create(Socket socket,  Action<IClientHandler> removeCallback) {
-            return new AsyncClientHandler(socket, _dispatcher, removeCallback);
+        public IClientHandler Create(Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeCallback) {
+            return new AsyncClientHandler(socket, _dispatcher, statsCollector, removeCallback);
         }
     }
 }

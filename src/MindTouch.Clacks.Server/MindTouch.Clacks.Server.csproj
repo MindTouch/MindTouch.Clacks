@@ -78,6 +78,9 @@
     <Compile Include="Async\IAsyncFluentCommandRegistration.cs" />
     <Compile Include="CommandHandlerBuilder.cs" />
     <Compile Include="CommandRegistration.cs" />
+    <Compile Include="IStatsCollector.cs" />
+    <Compile Include="NullStatsCollector.cs" />
+    <Compile Include="StatsCommandInfo.cs" />
     <Compile Include="Sync\SyncCommandRegistration.cs" />
     <Compile Include="Sync\SyncMultiCommandHandler.cs" />
     <Compile Include="Sync\ISyncCommandHandler.cs" />

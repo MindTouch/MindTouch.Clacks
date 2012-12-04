@@ -29,12 +29,12 @@ namespace MindTouch.Clacks.Server {
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
         private readonly Action<IClientHandler> _removeCallback;
-        private readonly EndPoint _remote;
 
         protected readonly Socket _socket;
+        private readonly Stopwatch _requestTimer = new Stopwatch();
+        private readonly IStatsCollector _statsCollector;
         protected readonly StringBuilder _commandBuffer = new StringBuilder();
         protected readonly byte[] _buffer = new byte[16 * 1024];
-        private readonly Stopwatch _requestTimer = new Stopwatch();
 
         private ulong _commandCounter;
         private bool _isDisposed;
@@ -45,13 +45,16 @@ namespace MindTouch.Clacks.Server {
         protected bool _carriageReturn;
 
 
-        protected AClientRequestHandler(Socket socket, Action<IClientHandler> removeCallback) {
+        protected AClientRequestHandler(Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeCallback) {
             _socket = socket;
-            _remote = _socket.RemoteEndPoint;
+            _statsCollector = statsCollector;
             _removeCallback = removeCallback;
+            _statsCollector.ClientConnected(EndPoint);
         }
 
         protected abstract ICommandHandler Handler { get; }
+
+        public IPEndPoint EndPoint { get { return _socket.RemoteEndPoint as IPEndPoint; } }
 
         public void ProcessRequests() {
             try {
@@ -104,6 +107,7 @@ namespace MindTouch.Clacks.Server {
                 status,
                 _requestTimer.Elapsed.TotalMilliseconds
             );
+            _statsCollector.CommandCompleted(EndPoint, new StatsCommandInfo(_commandCounter, _requestTimer.Elapsed, Handler.Command, status));
             _requestTimer.Reset();
             _inCommand = false;
             if(Handler.DisconnectOnCompletion) {
@@ -117,7 +121,7 @@ namespace MindTouch.Clacks.Server {
         protected void ProcessCommandData(int position, int length) {
             if(!_inCommand) {
                 _inCommand = true;
-                _requestTimer.Start();
+                _statsCollector.CommandStarted(EndPoint, _commandCounter);
             }
             // look for \r\n
             for(var i = 0; i < length; i++) {
@@ -203,7 +207,8 @@ namespace MindTouch.Clacks.Server {
             if(_isDisposed) {
                 return;
             }
-            _log.DebugFormat("Disposing client from {0}", _remote);
+            _log.DebugFormat("Disposing client from {0}", EndPoint);
+            _statsCollector.ClientDisconnected(EndPoint);
             try {
                 _socket.Close();
             } catch { }

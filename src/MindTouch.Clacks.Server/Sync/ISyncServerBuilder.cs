@@ -22,6 +22,7 @@ using System;
 namespace MindTouch.Clacks.Server.Sync {
     public interface ISyncServerBuilder {
         ClacksServer Build();
+        ClacksServer Build(IStatsCollector statsCollector);
         ISyncServerBuilder WithDefaultHandler(Func<IRequest, IResponse> handler);
         ISyncServerBuilder WithErrorHandler(Func<IRequest, Exception, IResponse> handler);
         ISyncFluentCommandRegistration WithCommand(string command);

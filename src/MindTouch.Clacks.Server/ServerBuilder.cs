@@ -46,11 +46,15 @@ namespace MindTouch.Clacks.Server {
         }
 
         public ClacksServer Build() {
-            return new ClacksServer(_endPoint, _clientHandlerFactory);
+            return Build(null);
+        }
+
+        public ClacksServer Build(IStatsCollector statsCollector) {
+            return new ClacksServer(_endPoint, statsCollector ?? NullStatsCollector.Instance, _clientHandlerFactory);
         }
 
         public IAsyncServerBuilder WithDefaultHandler(Func<IRequest, IResponse> handler) {
-            _asyncRepository.Default((request,responseCallback) => responseCallback(handler(request)));
+            _asyncRepository.Default((request, responseCallback) => responseCallback(handler(request)));
             return this;
         }
 
@@ -70,7 +74,7 @@ namespace MindTouch.Clacks.Server {
         }
 
         IAsyncFluentCommandRegistration IAsyncServerBuilder.WithCommand(string command) {
-           return new AsyncFluentCommandRegistration(this,_asyncRepository,command);
+            return new AsyncFluentCommandRegistration(this, _asyncRepository, command);
         }
 
         ISyncServerBuilder ISyncServerBuilder.WithDefaultHandler(Func<IRequest, IResponse> handler) {

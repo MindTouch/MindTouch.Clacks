@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace MindTouch.Clacks.Server {
     public class ClacksServer : IDisposable {
@@ -29,15 +30,16 @@ namespace MindTouch.Clacks.Server {
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
         private readonly IPEndPoint _listenEndpoint;
+        private readonly IStatsCollector _statsCollector;
         private readonly IClientHandlerFactory _clientHandlerFactory;
         private readonly Socket _listenSocket;
         private readonly HashSet<IClientHandler> _openConnections = new HashSet<IClientHandler>();
 
-        public ClacksServer(IPEndPoint listenEndpoint, IClientHandlerFactory clientHandlerFactory) {
+        public ClacksServer(IPEndPoint listenEndpoint, IStatsCollector statsCollector, IClientHandlerFactory clientHandlerFactory) {
             _listenEndpoint = listenEndpoint;
+            _statsCollector = statsCollector;
             _clientHandlerFactory = clientHandlerFactory;
-            _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            _listenSocket.NoDelay = true;
+            _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
             _listenSocket.Bind(_listenEndpoint);
             _listenSocket.Listen(10);
             _log.InfoFormat("Created server on {0} with handler {1}", listenEndpoint, clientHandlerFactory);
@@ -69,7 +71,7 @@ namespace MindTouch.Clacks.Server {
                 _log.Debug("Server already disposed, abort listen");
                 return;
             }
-            var handler = _clientHandlerFactory.Create(socket, RemoveHandler);
+            var handler = _clientHandlerFactory.Create(socket, _statsCollector, RemoveHandler);
             lock(_openConnections) {
                 _openConnections.Add(handler);
             }
