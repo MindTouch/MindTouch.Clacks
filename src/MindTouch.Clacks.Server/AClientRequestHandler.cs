@@ -92,7 +92,7 @@ namespace MindTouch.Clacks.Server {
         // 1.
         private void StartCommandRequest() {
             _commandCounter++;
-            if(_bufferPosition != 0) {
+            if(_bufferDataLength != 0) {
                 ProcessCommandData(_bufferPosition, _bufferDataLength);
                 return;
             }
@@ -121,8 +121,10 @@ namespace MindTouch.Clacks.Server {
         protected void ProcessCommandData(int position, int length) {
             if(!_inCommand) {
                 _inCommand = true;
+                _requestTimer.Start();
                 _statsCollector.CommandStarted(EndPoint, _commandCounter);
             }
+
             // look for \r\n
             for(var i = 0; i < length; i++) {
                 var idx = position + i;
