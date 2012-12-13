@@ -26,61 +26,25 @@ namespace MindTouch.Clacks.Client.Net.Helper {
     public class SocketAdapter : ISocket {
 
         public static ISocket Open(string host, int port, TimeSpan connectTimeout) {
-            var timeout = new ManualResetEvent(false);
-            Exception connectFailure = null;
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-            var attemptingEndConnect = false;
-            var ar = socket.BeginConnect(host, port, r => {
-                try {
-                    attemptingEndConnect = true;
-                    socket.EndConnect(r);
-                } catch(Exception e) {
-                    connectFailure = e;
-                } finally {
-                    timeout.Set();
-                }
-            }, null);
-
-            if(!timeout.WaitOne(connectTimeout)) {
-                if(!attemptingEndConnect) {
-                    try {
-                        socket.EndConnect(ar);
-                    } catch { }
-                    throw new TimeoutException();
-                }
-            }
-            if(connectFailure != null) {
-                throw new ConnectException(connectFailure);
+            var ar = socket.BeginConnect(host, port, null, null);
+            if(ar.AsyncWaitHandle.WaitOne(connectTimeout)) {
+                socket.EndConnect(ar);
+            } else {
+                socket.Close();
+                throw new TimeoutException();
             }
             return new SocketAdapter(socket);
         }
 
         public static ISocket Open(IPEndPoint endPoint, TimeSpan connectTimeout) {
-            var timeout = new ManualResetEvent(false);
-            Exception connectFailure = null;
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-            var attemptingEndConnect = false;
-            var ar = socket.BeginConnect(endPoint, r => {
-                try {
-                    attemptingEndConnect = true;
-                    socket.EndConnect(r);
-                } catch(Exception e) {
-                    connectFailure = e;
-                } finally {
-                    timeout.Set();
-                }
-            }, null);
-
-            if(!timeout.WaitOne(connectTimeout)) {
-                if(!attemptingEndConnect) {
-                    try {
-                        socket.EndConnect(ar);
-                    } catch { }
-                    throw new TimeoutException();
-                }
-            }
-            if(connectFailure != null) {
-                throw new ConnectException(connectFailure);
+            var ar = socket.BeginConnect(endPoint, null, null);
+            if(ar.AsyncWaitHandle.WaitOne(connectTimeout)) {
+                socket.EndConnect(ar);
+            } else {
+                socket.Close();
+                throw new TimeoutException();
             }
             return new SocketAdapter(socket);
         }
