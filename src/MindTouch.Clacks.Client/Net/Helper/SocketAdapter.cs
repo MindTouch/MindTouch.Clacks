@@ -26,7 +26,11 @@ namespace MindTouch.Clacks.Client.Net.Helper {
     public class SocketAdapter : ISocket {
 
         public static ISocket Open(string host, int port, TimeSpan connectTimeout) {
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            return Open(host, port, (int)connectTimeout.TotalMilliseconds);
+        }
+
+        public static ISocket Open(string host, int port, int connectTimeout = Timeout.Infinite, int receiveTimeout = Timeout.Infinite, int sendTimeout = Timeout.Infinite) {
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true, SendTimeout = sendTimeout, ReceiveTimeout = receiveTimeout};
             var ar = socket.BeginConnect(host, port, null, null);
             if(ar.AsyncWaitHandle.WaitOne(connectTimeout)) {
                 socket.EndConnect(ar);
@@ -38,7 +42,11 @@ namespace MindTouch.Clacks.Client.Net.Helper {
         }
 
         public static ISocket Open(IPEndPoint endPoint, TimeSpan connectTimeout) {
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            return Open(endPoint, (int)connectTimeout.TotalMilliseconds);
+        }
+
+        public static ISocket Open(IPEndPoint endPoint, int connectTimeout = Timeout.Infinite, int receiveTimeout = Timeout.Infinite, int sendTimeout = Timeout.Infinite) {
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true, SendTimeout = sendTimeout, ReceiveTimeout = receiveTimeout };
             var ar = socket.BeginConnect(endPoint, null, null);
             if(ar.AsyncWaitHandle.WaitOne(connectTimeout)) {
                 socket.EndConnect(ar);
