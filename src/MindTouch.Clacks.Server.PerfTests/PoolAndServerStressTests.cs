@@ -46,7 +46,7 @@ namespace MindTouch.Clacks.Server.PerfTests {
         public void Get_many_sockets_from_pool_sequentially() {
             using(ServerBuilder.CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port)).Build()) {
                 var pool = ConnectionPool.Create("127.0.0.1", _port);
-                var n = 10000;
+                var n = 1000;
                 var t = Stopwatch.StartNew();
                 for(var i = 0; i < n; i++) {
                     using(var s = pool.GetSocket()) { }
@@ -74,7 +74,7 @@ namespace MindTouch.Clacks.Server.PerfTests {
                                .Build()
                 ) {
                 Console.WriteLine("created server");
-                var pool = ConnectionPool.Create("127.0.0.1", _port);
+                var pool = ConnectionPool.Create("127.0.0.1", _port, connectionTestingBehavior: ConnectionTestingBehavior.Reconnect);
                 var n = 20000;
                 var t = Stopwatch.StartNew();
                 for(var i = 0; i < n; i++) {

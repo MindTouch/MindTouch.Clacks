@@ -18,18 +18,23 @@
  * limitations under the License.
  */
 using System;
+using System.Net.Sockets;
 
 namespace MindTouch.Clacks.Client.Net.Helper {
     public class PoolSocket : ISocket {
-        private readonly ISocket _socket;
+        private ISocket _socket;
         private readonly Action<ISocket> _reclaim;
+        private readonly Func<PoolSocket, ISocket, ISocket> _reconnect;
         private bool _disposed;
 
-        public PoolSocket(ISocket socket, Action<ISocket> reclaim) {
+        public PoolSocket(ISocket socket, Action<ISocket> reclaim, Func<PoolSocket,ISocket,ISocket> reconnect) {
             _socket = socket;
             _reclaim = reclaim;
+            _reconnect = reconnect;
         }
 
+        public bool Connected { get { return !_disposed && _socket.Connected; } }
+        public bool IsDisposed { get { return _disposed; } }
         public void Dispose() {
             if(_disposed) {
                 return;
@@ -38,21 +43,29 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             _reclaim(_socket);
         }
 
-        public bool Connected { get { return !_disposed && _socket.Connected; } }
 
         public int Send(byte[] buffer, int offset, int size) {
-            ThrowIfDisposed();
-            return _socket.Send(buffer, offset, size);
+            return Try(() => _socket.Send(buffer, offset, size));
         }
 
         public int Receive(byte[] buffer, int offset, int size) {
-            ThrowIfDisposed();
-            return _socket.Receive(buffer, offset, size);
+            return Try(() => _socket.Receive(buffer, offset, size));
         }
 
-        private void ThrowIfDisposed() {
+        private T Try<T>(Func<T> func, bool retry = true) {
             if(_disposed) {
                 throw new ObjectDisposedException("PoolSocket");
+            }
+            try {
+                return func();
+            } catch(SocketException) {
+                if(!retry || (_socket = _reconnect(this, _socket)) == null) {
+                    try {
+                        Dispose();
+                    } catch {}
+                    throw;
+                }
+                return Try<T>(func, false);
             }
         }
     }

@@ -26,6 +26,12 @@ using MindTouch.Clacks.Client.Net.Helper;
 
 namespace MindTouch.Clacks.Client.Net {
 
+    public enum ConnectionTestingBehavior {
+        Poll,
+        Reconnect
+    }
+
+
     // TODO: need to timeout idle pools
     // TODO: need way to configure "BYE" command for automatic socket disposal
     public class ConnectionPool : IConnectionPool, IDisposable {
@@ -42,6 +48,7 @@ namespace MindTouch.Clacks.Client.Net {
 
         public static readonly TimeSpan DefaultConnectTimeout = TimeSpan.FromSeconds(10);
         public static readonly TimeSpan DefaultIdleTimeout = TimeSpan.FromSeconds(30);
+        public static readonly ConnectionTestingBehavior DefaultConnectionTestingBehavior = ConnectionTestingBehavior.Poll;
         public static readonly int DefaultMaxConnections = 100;
         private static readonly Dictionary<string, ConnectionPool> _pools = new Dictionary<string, ConnectionPool>();
 
@@ -50,7 +57,7 @@ namespace MindTouch.Clacks.Client.Net {
                 ConnectionPool pool;
                 var key = string.Format("{0}:{1}", endPoint.Address, endPoint.Port);
                 if(!_pools.TryGetValue(key, out pool)) {
-                    pool = new ConnectionPool(endPoint);
+                    pool = new ConnectionPool(endPoint, DefaultConnectionTestingBehavior);
                     _pools[key] = pool;
                 }
                 return pool;
@@ -62,19 +69,19 @@ namespace MindTouch.Clacks.Client.Net {
                 ConnectionPool pool;
                 var key = string.Format("{0}:{1}", host, port);
                 if(!_pools.TryGetValue(key, out pool)) {
-                    pool = new ConnectionPool(host, port);
+                    pool = new ConnectionPool(host, port, DefaultConnectionTestingBehavior);
                     _pools[key] = pool;
                 }
                 return pool;
             }
         }
 
-        public static ConnectionPool Create(IPEndPoint endpoint) {
-            return new ConnectionPool(endpoint);
+        public static ConnectionPool Create(IPEndPoint endpoint, ConnectionTestingBehavior connectionTestingBehavior = ConnectionTestingBehavior.Poll) {
+            return new ConnectionPool(endpoint, connectionTestingBehavior);
         }
 
-        public static ConnectionPool Create(string host, int port) {
-            return new ConnectionPool(host, port);
+        public static ConnectionPool Create(string host, int port, ConnectionTestingBehavior connectionTestingBehavior = ConnectionTestingBehavior.Poll) {
+            return new ConnectionPool(host, port, connectionTestingBehavior);
         }
 
         private readonly Func<ISocket> _socketFactory;
@@ -84,14 +91,19 @@ namespace MindTouch.Clacks.Client.Net {
         private TimeSpan _cleanupInterval = TimeSpan.FromSeconds(60);
         private bool _disposed;
 
-        private ConnectionPool(IPEndPoint endpoint) : this(() => SocketAdapter.Open(endpoint, DefaultConnectTimeout)) { }
+        private ConnectionPool(IPEndPoint endpoint, ConnectionTestingBehavior connectionTestingBehavior)
+            : this(() => SocketAdapter.Open(endpoint, DefaultConnectTimeout), connectionTestingBehavior) { }
 
-        private ConnectionPool(string host, int port) : this(() => SocketAdapter.Open(host, port, DefaultConnectTimeout)) { }
+        private ConnectionPool(string host, int port, ConnectionTestingBehavior connectionTestingBehavior)
+            : this(() => SocketAdapter.Open(host, port, DefaultConnectTimeout), connectionTestingBehavior) { }
 
-        public ConnectionPool(Func<ISocket> socketFactory) {
+        public ConnectionPool(Func<ISocket> socketFactory) : this(socketFactory, DefaultConnectionTestingBehavior) { }
+
+        public ConnectionPool(Func<ISocket> socketFactory, ConnectionTestingBehavior connectionTestingBehavior) {
             ConnectTimeout = DefaultConnectTimeout;
             MaxConnections = DefaultMaxConnections;
             IdleTimeout = DefaultIdleTimeout;
+            ConnectionTestingBehavior = connectionTestingBehavior;
             _socketFactory = socketFactory;
             _socketCleanupTimer = new Timer(ReapSockets, null, _cleanupInterval, _cleanupInterval);
         }
@@ -110,6 +122,8 @@ namespace MindTouch.Clacks.Client.Net {
                 _socketCleanupTimer.Change(_cleanupInterval, _cleanupInterval);
             }
         }
+
+        public ConnectionTestingBehavior ConnectionTestingBehavior { get; private set; }
 
         public int ActiveConnections {
             get {
@@ -135,7 +149,7 @@ namespace MindTouch.Clacks.Client.Net {
                         break;
                     }
                     var available = _availableSockets.Dequeue();
-                    if(available.Socket.Connected) {
+                    if(ConnectionTestingBehavior == ConnectionTestingBehavior.Reconnect || available.Socket.Connected) {
                         socket = available.Socket;
                         continue;
                     }
@@ -156,7 +170,7 @@ namespace MindTouch.Clacks.Client.Net {
         }
 
         private ISocket WrapSocket(ISocket socket) {
-            var poolsocket = new PoolSocket(socket, Reclaim);
+            var poolsocket = new PoolSocket(socket, Reclaim, Reconnect);
             _busySockets.Add(socket, new WeakReference(poolsocket));
             return poolsocket;
         }
@@ -170,13 +184,31 @@ namespace MindTouch.Clacks.Client.Net {
                 if(!_busySockets.Remove(socket)) {
                     return;
                 }
-                if(!socket.Connected || _availableSockets.Count + _busySockets.Count >= MaxConnections) {
+                if(socket.IsDisposed
+                    || (ConnectionTestingBehavior == ConnectionTestingBehavior.Poll && !socket.Connected)
+                    || _availableSockets.Count + _busySockets.Count >= MaxConnections
+                ) {
 
                     // drop socket
                     socket.Dispose();
                     return;
                 }
                 _availableSockets.Enqueue(new Available(socket));
+            }
+        }
+
+        private ISocket Reconnect(PoolSocket poolSocket, ISocket deadSocket) {
+            if(_disposed || ConnectionTestingBehavior == ConnectionTestingBehavior.Poll) {
+                return null;
+            }
+            lock(_availableSockets) {
+                _busySockets.Remove(deadSocket);
+                try {
+                    deadSocket.Dispose();
+                } catch { }
+                var socket = _socketFactory();
+                _busySockets.Add(socket, new WeakReference(poolSocket));
+                return socket;
             }
         }
 

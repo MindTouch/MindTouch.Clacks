@@ -16,6 +16,8 @@ namespace MindTouch.Clacks.Client.Tests {
             }
 
             public bool Connected { get; set; }
+            public bool IsDisposed { get { return DisposeCalled > 0; } }
+
             public int Send(byte[] buffer, int offset, int size) {
                 throw new System.NotImplementedException();
             }

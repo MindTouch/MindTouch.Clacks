@@ -22,6 +22,7 @@ using System;
 namespace MindTouch.Clacks.Client.Net {
     public interface ISocket : IDisposable {
         bool Connected { get; }
+        bool IsDisposed { get; }
         int Send(byte[] buffer, int offset, int size);
         int Receive(byte[] buffer, int offset, int size);
     }
