@@ -102,19 +102,11 @@ namespace MindTouch.Clacks.Server {
         }
 
         private bool CheckSocket() {
-            var blockingState = _socket.Blocking;
-            try {
-                var tmp = new byte[1];
-
-                _socket.Blocking = false;
-                _socket.Receive(tmp, 0, 0);
-                return true;
-            } catch(SocketException e) {
-                // 10035 == WSAEWOULDBLOCK 
-                return e.NativeErrorCode.Equals(10035);
-            } finally {
-                _socket.Blocking = blockingState;
+            if(!_socket.Connected) {
+                return false;
             }
+            return !(_socket.Poll(10, SelectMode.SelectRead) && _socket.Available == 0);
+
         }
 
         protected void EndCommandRequest(string status) {

@@ -16,9 +16,12 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- */using System;
+ */
+using System;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Sockets;
+using MindTouch.Clacks.Client.Net;
 using MindTouch.Clacks.Client.Net.Helper;
 using NUnit.Framework;
 using log4net;
@@ -28,6 +31,16 @@ namespace MindTouch.Clacks.Client.Tests {
     [TestFixture]
     public class SocketAdapterTests {
         private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private int _port;
+        private Socket _connectedSocket;
+        private Socket _listenSocket;
+
+        [SetUp]
+        public void Setup() {
+            _log.Debug("priming logger");
+            _port = new Random().Next(1000, 30000);
+        }
+
 
         [Test]
         public void Connect_timeout_with_hostport_is_respected() {
@@ -53,6 +66,34 @@ namespace MindTouch.Clacks.Client.Tests {
                 t.Stop();
                 Assert.GreaterOrEqual(1200, t.ElapsedMilliseconds);
             }
+        }
+
+        [Test]
+        public void Connected_detects_server_closing_socket() {
+            ISocket socket = null;
+            try {
+                var endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port);
+                _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) {NoDelay = true};
+                _listenSocket.Bind(endpoint);
+                _listenSocket.Listen(10);
+                _listenSocket.BeginAccept(OnAccept, _listenSocket);
+                socket = SocketAdapter.Open(endpoint);
+                Assert.IsTrue(socket.Connected);
+                _connectedSocket.Shutdown(SocketShutdown.Both);
+                _connectedSocket.Close();
+                Assert.IsFalse(socket.Connected);
+            } finally {
+                if(_listenSocket != null) {
+                    _listenSocket.Dispose();
+                }
+                if(socket != null) {
+                    socket.Dispose();
+                }
+            }
+        }
+
+        private void OnAccept(IAsyncResult ar) {
+            _connectedSocket = _listenSocket.EndAccept(ar);
         }
     }
 }

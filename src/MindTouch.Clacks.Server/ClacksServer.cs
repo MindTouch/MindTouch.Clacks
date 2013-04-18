@@ -22,7 +22,6 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace MindTouch.Clacks.Server {
     public class ClacksServer : IDisposable {

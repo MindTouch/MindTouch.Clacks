@@ -35,9 +35,11 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             if(ar.AsyncWaitHandle.WaitOne(connectTimeout)) {
                 socket.EndConnect(ar);
             } else {
-                socket.Shutdown(SocketShutdown.Both);
-                socket.Close();
-                socket.Dispose();
+                try {
+                    socket.Shutdown(SocketShutdown.Both);
+                    socket.Close();
+                    socket.Dispose();
+                } catch { }
                 throw new TimeoutException();
             }
             return new SocketAdapter(socket);
@@ -53,9 +55,11 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             if(ar.AsyncWaitHandle.WaitOne(connectTimeout)) {
                 socket.EndConnect(ar);
             } else {
-                socket.Shutdown(SocketShutdown.Both);
-                socket.Close();
-                socket.Dispose();
+                try {
+                    socket.Shutdown(SocketShutdown.Both);
+                    socket.Close();
+                    socket.Dispose();
+                } catch { }
                 throw new TimeoutException();
             }
             return new SocketAdapter(socket);
@@ -80,23 +84,7 @@ namespace MindTouch.Clacks.Client.Net.Helper {
                 if(!_socket.Connected) {
                     return false;
                 }
-                var blockingState = _socket.Blocking;
-                try {
-                    var tmp = new byte[1];
-
-                    _socket.Blocking = false;
-                    _socket.Send(tmp, 0, 0);
-                    return true;
-                } catch(SocketException e) {
-                    // 10035 == WSAEWOULDBLOCK 
-                    if(e.NativeErrorCode.Equals(10035)) {
-                        return true;
-                    } else {
-                        return false;
-                    }
-                } finally {
-                    _socket.Blocking = blockingState;
-                }
+                return !(_socket.Poll(10, SelectMode.SelectRead) && _socket.Available == 0);
             }
         }
 
