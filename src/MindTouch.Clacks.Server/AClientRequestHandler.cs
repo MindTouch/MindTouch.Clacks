@@ -31,6 +31,7 @@ namespace MindTouch.Clacks.Server {
         private readonly Action<IClientHandler> _removeCallback;
 
         protected readonly Socket _socket;
+        private readonly IPEndPoint _endPoint;
         private readonly Stopwatch _requestTimer = new Stopwatch();
         private readonly IStatsCollector _statsCollector;
         protected readonly StringBuilder _commandBuffer = new StringBuilder();
@@ -47,6 +48,7 @@ namespace MindTouch.Clacks.Server {
 
         protected AClientRequestHandler(Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeCallback) {
             _socket = socket;
+            _endPoint = _socket.RemoteEndPoint as IPEndPoint;
             _statsCollector = statsCollector;
             _removeCallback = removeCallback;
             _statsCollector.ClientConnected(EndPoint);
@@ -54,15 +56,8 @@ namespace MindTouch.Clacks.Server {
 
         protected abstract ICommandHandler Handler { get; }
 
-        public IPEndPoint EndPoint { get { return _socket.RemoteEndPoint as IPEndPoint; } }
-
-        public void ProcessRequests() {
-            try {
-                StartCommandRequest();
-            } catch(Exception e) {
-                _log.Warn("starting request processing failed", e);
-            }
-        }
+        public IPEndPoint EndPoint { get { return _endPoint; } }
+        protected bool IsDisposed { get { return _isDisposed; } }
 
         /* WorkFlow
           * 1. If data in buffer go to 4.
@@ -89,14 +84,37 @@ namespace MindTouch.Clacks.Server {
         protected abstract void Receive(Action<int, int> continuation);
         protected abstract string InitializeHandler(string[] command);
 
+        public abstract void ProcessRequests();
+        protected abstract void CompleteRequest();
+
         // 1.
-        private void StartCommandRequest() {
+        protected void StartCommandRequest() {
             _commandCounter++;
             if(_bufferDataLength != 0) {
                 ProcessCommandData(_bufferPosition, _bufferDataLength);
                 return;
             }
+            if(!CheckSocket()) {
+                Dispose();
+                return;
+            }
             Receive(ProcessCommandData);
+        }
+
+        private bool CheckSocket() {
+            var blockingState = _socket.Blocking;
+            try {
+                var tmp = new byte[1];
+
+                _socket.Blocking = false;
+                _socket.Receive(tmp, 0, 0);
+                return true;
+            } catch(SocketException e) {
+                // 10035 == WSAEWOULDBLOCK 
+                return e.NativeErrorCode.Equals(10035);
+            } finally {
+                _socket.Blocking = blockingState;
+            }
         }
 
         protected void EndCommandRequest(string status) {
@@ -110,11 +128,7 @@ namespace MindTouch.Clacks.Server {
             _statsCollector.CommandCompleted(EndPoint, new StatsCommandInfo(_commandCounter, _requestTimer.Elapsed, Handler.Command, status));
             _requestTimer.Reset();
             _inCommand = false;
-            if(Handler.DisconnectOnCompletion) {
-                Dispose();
-            } else {
-                StartCommandRequest();
-            }
+            CompleteRequest();
         }
 
         // 4.
@@ -209,9 +223,11 @@ namespace MindTouch.Clacks.Server {
             if(_isDisposed) {
                 return;
             }
+            _isDisposed = true;
             _log.DebugFormat("Disposing client from {0}", EndPoint);
             _statsCollector.ClientDisconnected(EndPoint);
             try {
+                _socket.Shutdown(SocketShutdown.Both);
                 _socket.Close();
             } catch { }
             _removeCallback(this);

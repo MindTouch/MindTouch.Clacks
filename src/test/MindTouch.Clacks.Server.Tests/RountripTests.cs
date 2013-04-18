@@ -61,9 +61,15 @@ namespace MindTouch.Clacks.Server.Tests {
                     var response = client.Exec(new Client.Request("BYE"));
                     Console.WriteLine("got response");
                     Assert.AreEqual("BYE", response.Status);
-                    Thread.Sleep(100);
                     Console.WriteLine("checking disposed");
-                    Assert.IsTrue(client.Disposed);
+                    var c = 0;
+                    while(!client.Disposed) {
+                        c++;
+                        if(c > 100) {
+                            Assert.Fail("client was not disposed");
+                        }
+                        Thread.Sleep(100);
+                    }
                 }
             }
         }

@@ -33,6 +33,14 @@ namespace MindTouch.Clacks.Server.Async {
             _dispatcher = dispatcher;
         }
 
+        public override void ProcessRequests() {
+            try {
+                StartCommandRequest();
+            } catch(Exception e) {
+                _log.Warn("starting request processing failed", e);
+            }
+        }
+
         // 2.
         protected override ICommandHandler Handler {
             get { return _commandHandler; }
@@ -85,6 +93,14 @@ namespace MindTouch.Clacks.Server.Async {
                 }
             );
             _commandHandler.GetResponse(responseHandler.SendResponse);
+        }
+
+        protected override void CompleteRequest() {
+            if(Handler.DisconnectOnCompletion) {
+                Dispose();
+            } else {
+                StartCommandRequest();
+            }
         }
     }
 }

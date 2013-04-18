@@ -5,12 +5,12 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("MindTouch.Clacks.Server.PerfTests")]
+[assembly: AssemblyTitle("MindTouch.Clacks.Client.Tests")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("MindTouch.Clacks.Server.PerfTests")]
-[assembly: AssemblyCopyright("Copyright ©  2011")]
+[assembly: AssemblyProduct("MindTouch.Clacks.Client.Tests")]
+[assembly: AssemblyCopyright("Copyright ©  2013")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("771a2510-42fd-4ba4-9048-d9c33e7a219f")]
+[assembly: Guid("50dedea8-cdd2-4262-8c22-a465ea566411")]
 
 // Version information for an assembly consists of the following four values:
 //

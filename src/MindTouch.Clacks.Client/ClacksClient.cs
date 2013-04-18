@@ -30,7 +30,6 @@ namespace MindTouch.Clacks.Client {
     public class ClacksClient : IDisposable {
         public const string DEFAULT_TUBE = "default";
         private readonly ISocket _socket;
-        private readonly byte[] _buffer = new byte[16 * 1024];
         private readonly ResponseReceiver _receiver;
         private bool _disposed;
 

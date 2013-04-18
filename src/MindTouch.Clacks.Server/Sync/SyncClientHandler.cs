@@ -19,7 +19,6 @@
  */
 using System;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 
 namespace MindTouch.Clacks.Server.Sync {
@@ -29,9 +28,15 @@ namespace MindTouch.Clacks.Server.Sync {
 
         private readonly ISyncCommandDispatcher _dispatcher;
         private ISyncCommandHandler _commandHandler;
-       
+
         public SyncClientHandler(Socket socket, ISyncCommandDispatcher dispatcher, IStatsCollector statsCollector, Action<IClientHandler> removeCallback) : base(socket, statsCollector, removeCallback) {
             _dispatcher = dispatcher;
+        }
+
+        public override void ProcessRequests() {
+            while(!IsDisposed) {
+                StartCommandRequest();
+            }
         }
 
         protected override ICommandHandler Handler {
@@ -80,7 +85,13 @@ namespace MindTouch.Clacks.Server.Sync {
                     return;
                 }
             }
-            ThreadPool.QueueUserWorkItem(o => EndCommandRequest(finalStatus));
+            EndCommandRequest(finalStatus);
+        }
+
+        protected override void CompleteRequest() {
+            if(Handler.DisconnectOnCompletion) {
+                Dispose();
+            }
         }
     }
 }

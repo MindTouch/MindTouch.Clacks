@@ -73,6 +73,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ParallelRequestTests.cs" />
+    <Compile Include="PoolAndServerStressTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RountripTests.cs" />
     <Compile Include="TestExtensions.cs" />
@@ -103,6 +105,9 @@
       <Project>{07E3829C-6A07-462C-8A1C-9FC5F227AAA5}</Project>
       <Name>MindTouch.Clacks.Server</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

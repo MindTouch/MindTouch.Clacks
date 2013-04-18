@@ -30,12 +30,14 @@ namespace MindTouch.Clacks.Client.Net.Helper {
         }
 
         public static ISocket Open(string host, int port, int connectTimeout = Timeout.Infinite, int receiveTimeout = Timeout.Infinite, int sendTimeout = Timeout.Infinite) {
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true, SendTimeout = sendTimeout, ReceiveTimeout = receiveTimeout};
+            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true, SendTimeout = sendTimeout, ReceiveTimeout = receiveTimeout };
             var ar = socket.BeginConnect(host, port, null, null);
             if(ar.AsyncWaitHandle.WaitOne(connectTimeout)) {
                 socket.EndConnect(ar);
             } else {
+                socket.Shutdown(SocketShutdown.Both);
                 socket.Close();
+                socket.Dispose();
                 throw new TimeoutException();
             }
             return new SocketAdapter(socket);
@@ -51,7 +53,9 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             if(ar.AsyncWaitHandle.WaitOne(connectTimeout)) {
                 socket.EndConnect(ar);
             } else {
+                socket.Shutdown(SocketShutdown.Both);
                 socket.Close();
+                socket.Dispose();
                 throw new TimeoutException();
             }
             return new SocketAdapter(socket);
@@ -64,20 +68,34 @@ namespace MindTouch.Clacks.Client.Net.Helper {
         }
 
         public void Dispose() {
-            _socket.Close();
+            try {
+                _socket.Shutdown(SocketShutdown.Both);
+                _socket.Close();
+                _socket.Dispose();
+            } catch { }
         }
 
         public bool Connected {
             get {
+                if(!_socket.Connected) {
+                    return false;
+                }
+                var blockingState = _socket.Blocking;
                 try {
-                    if(!_socket.Connected) {
+                    var tmp = new byte[1];
+
+                    _socket.Blocking = false;
+                    _socket.Send(tmp, 0, 0);
+                    return true;
+                } catch(SocketException e) {
+                    // 10035 == WSAEWOULDBLOCK 
+                    if(e.NativeErrorCode.Equals(10035)) {
+                        return true;
+                    } else {
                         return false;
                     }
-                    var part1 = _socket.Poll(100, SelectMode.SelectRead);
-                    var part2 = (_socket.Available == 0);
-                    return !(part1 && part2);
-                } catch {
-                    return false;
+                } finally {
+                    _socket.Blocking = blockingState;
                 }
             }
         }
