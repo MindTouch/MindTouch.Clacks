@@ -21,13 +21,15 @@ using System;
 using System.Net.Sockets;
 
 namespace MindTouch.Clacks.Client.Net.Helper {
+
     public class PoolSocket : ISocket {
+
         private ISocket _socket;
         private readonly Action<ISocket> _reclaim;
         private readonly Func<PoolSocket, ISocket, ISocket> _reconnect;
         private bool _disposed;
 
-        public PoolSocket(ISocket socket, Action<ISocket> reclaim, Func<PoolSocket,ISocket,ISocket> reconnect) {
+        public PoolSocket(ISocket socket, Action<ISocket> reclaim, Func<PoolSocket, ISocket, ISocket> reconnect) {
             _socket = socket;
             _reclaim = reclaim;
             _reconnect = reconnect;
@@ -59,13 +61,18 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             try {
                 return func();
             } catch(SocketException) {
-                if(!retry || (_socket = _reconnect(this, _socket)) == null) {
+                try {
+                    _socket.Dispose();
+                } catch { }
+                ISocket reconnectSocket;
+                if(!retry || (reconnectSocket = _reconnect(this, _socket)) == null) {
                     try {
                         Dispose();
-                    } catch {}
+                    } catch { }
                     throw;
                 }
-                return Try<T>(func, false);
+                _socket = reconnectSocket;
+                return Try(func, false);
             }
         }
     }

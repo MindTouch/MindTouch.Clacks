@@ -18,10 +18,13 @@
  * limitations under the License.
  */
 
+using System.Linq;
+using System.Net.Sockets;
 using MindTouch.Clacks.Client.Net;
 using NUnit.Framework;
 
 namespace MindTouch.Clacks.Client.Tests {
+
     [TestFixture]
     public class ConnectionPoolTests {
         private FakeSocketFactory _factory;
@@ -102,5 +105,130 @@ namespace MindTouch.Clacks.Client.Tests {
             // Assert
             Assert.AreSame(p1, p2);
         }
+
+        [Test]
+        public void Pool_in_reconnect_mode_will_not_call_Connected_on_socket() {
+
+            // Arrange
+            var p = new ConnectionPool(_factory.Create, ConnectionTestingBehavior.Reconnect);
+            var s = p.GetSocket();
+            var f = _factory.Sockets.First();
+
+            // Act
+            s.Dispose();
+            s = p.GetSocket();
+
+            // Assert
+            Assert.AreEqual(1, _factory.Sockets.Count, "created more than one socket in pool");
+            Assert.AreEqual(0, f.ConnectedCalled, "connected was called");
+        }
+
+        [Test]
+        public void Pool_in_reconnect_mode_will_reconnect_once_per_send_failure() {
+
+            // Arrange
+            _factory.Builder = () => new FakeSocket { SendCallback = () => { throw new SocketException(); } };
+            var pool = new ConnectionPool(_factory.Create, ConnectionTestingBehavior.Reconnect);
+            var socket = pool.GetSocket();
+
+            // Act
+            try {
+                socket.Send(new byte[0], 0, 0);
+                Assert.Fail("didn't throw");
+            } catch(SocketException) { }
+
+            // Assert
+            Assert.AreEqual(2, _factory.Sockets.Count);
+            var f1 = _factory.Sockets.ElementAt(0);
+            Assert.IsTrue(f1.IsDisposed, "first failed socket did not get disposed");
+            Assert.AreEqual(1, f1.SendCalled, "send called wrong number of times on first socket");
+            var f2 = _factory.Sockets.ElementAt(1);
+            Assert.IsTrue(f2.IsDisposed, "second failed socket did not get disposed");
+            Assert.AreEqual(1, f2.SendCalled, "send called wrong number of times on second socket");
+        }
+
+        [Test]
+        public void Pool_in_reconnect_mode_will_reconnect_once_per_receive_failure() {
+
+            // Arrange
+            _factory.Builder = () => new FakeSocket { ReceiveCallback = () => { throw new SocketException(); } };
+            var pool = new ConnectionPool(_factory.Create, ConnectionTestingBehavior.Reconnect);
+            var socket = pool.GetSocket();
+
+            // Act
+            try {
+                socket.Receive(new byte[0], 0, 0);
+                Assert.Fail("didn't throw");
+            } catch(SocketException) { }
+
+            // Assert
+            Assert.AreEqual(2, _factory.Sockets.Count);
+            var f1 = _factory.Sockets.ElementAt(0);
+            Assert.IsTrue(f1.IsDisposed, "first failed socket did not get disposed");
+            Assert.AreEqual(1, f1.ReceiveCalled, "receive called wrong number of times on first socket");
+            var f2 = _factory.Sockets.ElementAt(1);
+            Assert.IsTrue(f2.IsDisposed, "second failed socket did not get disposed");
+            Assert.AreEqual(1, f2.ReceiveCalled, "receive called wrong number of times on second socket");
+        }
+
+        [Test]
+        public void Pool_in_poll_mode_will_call_Connected_on_socket() {
+
+            // Arrange
+            var p = new ConnectionPool(_factory.Create, ConnectionTestingBehavior.Poll);
+            var s = p.GetSocket();
+            var f = _factory.Sockets.First();
+
+            // Act
+            s.Dispose();
+            s = p.GetSocket();
+
+            // Assert
+            Assert.AreEqual(1, _factory.Sockets.Count, "created more than one socket in pool");
+            Assert.AreEqual(2, f.ConnectedCalled, "connected was called");
+        }
+
+        [Test]
+        public void Pool_in_poll_mode_will_not_reconnect_on_send_failure() {
+
+            // Arrange
+            _factory.Builder = () => new FakeSocket { SendCallback = () => { throw new SocketException(); } };
+            var pool = new ConnectionPool(_factory.Create, ConnectionTestingBehavior.Poll);
+            var socket = pool.GetSocket();
+
+            // Act
+            try {
+                socket.Send(new byte[0], 0, 0);
+                Assert.Fail("didn't throw");
+            } catch(SocketException) { }
+
+            // Assert
+            Assert.AreEqual(1, _factory.Sockets.Count);
+            var f1 = _factory.Sockets.First();
+            Assert.IsTrue(f1.IsDisposed, "first failed socket did not get disposed");
+            Assert.AreEqual(1, f1.SendCalled, "send called wrong number of times on first socket");
+        }
+
+        [Test]
+        public void Pool_in_poll_mode_will_not_reconnect_on_receive_failure() {
+
+            // Arrange
+            _factory.Builder = () => new FakeSocket { ReceiveCallback = () => { throw new SocketException(); } };
+            var pool = new ConnectionPool(_factory.Create, ConnectionTestingBehavior.Poll);
+            var socket = pool.GetSocket();
+
+            // Act
+            try {
+                socket.Receive(new byte[0], 0, 0);
+                Assert.Fail("didn't throw");
+            } catch(SocketException) { }
+
+            // Assert
+            Assert.AreEqual(1, _factory.Sockets.Count);
+            var f1 = _factory.Sockets.First();
+            Assert.IsTrue(f1.IsDisposed, "first failed socket did not get disposed");
+            Assert.AreEqual(1, f1.ReceiveCalled, "receive called wrong number of times on first socket");
+        }
+
     }
 }

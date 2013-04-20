@@ -1,36 +1,34 @@
-﻿using System.Collections.Generic;
+﻿/*
+ * MindTouch.Clacks
+ * 
+ * Copyright (C) 2011-2013 Arne F. Claassen
+ * geekblog [at] claassen [dot] net
+ * http://github.com/sdether/MindTouch.Clacks
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+using System;
+using System.Collections.Generic;
 using MindTouch.Clacks.Client.Net;
 
 namespace MindTouch.Clacks.Client.Tests {
     public class FakeSocketFactory {
-        public class FakeSocket : ISocket {
-            public int DisposeCalled;
-
-            public FakeSocket() {
-                Connected = true;
-            }
-
-            public void Dispose() {
-                DisposeCalled++;
-                Connected = false;
-            }
-
-            public bool Connected { get; set; }
-            public bool IsDisposed { get { return DisposeCalled > 0; } }
-
-            public int Send(byte[] buffer, int offset, int size) {
-                throw new System.NotImplementedException();
-            }
-
-            public int Receive(byte[] buffer, int offset, int size) {
-                throw new System.NotImplementedException();
-            }
-        }
-
         public readonly List<FakeSocket> Sockets = new List<FakeSocket>();
 
+        public Func<FakeSocket> Builder = () => new FakeSocket();
         public ISocket Create() {
-            var socket = new FakeSocket();
+            var socket = Builder();
             lock(Sockets) {
                 Sockets.Add(socket);
             }
