@@ -51,18 +51,6 @@ namespace MindTouch.Clacks.Server.PerfTests {
             dispatcher.AddCommand("BIN", request => Response.Create("OK").WithData(request.Data), DataExpectation.Auto);
             var clientHandlerFactory = new FaultingSyncClientHandlerFactory(dispatcher);
             using(new ClacksServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port), statsCollector, clientHandlerFactory)) {
-                // using(ServerBuilder.CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
-                //    .WithCommand("BIN")
-                //        .HandledBy(request => {
-                //                       var fault = Interlocked.Decrement(ref requestsTilFault);
-                //            if(fault == 0) {
-                //                throw new ex
-                //            }
-                //                       return Response.Create("OK").WithData(request.Data);
-                //                   })
-                //        .Register()
-                //    .Build(statsCollector)
-                //) {
                 Console.WriteLine("created server");
                 var r = new Random();
                 var n = 50;
