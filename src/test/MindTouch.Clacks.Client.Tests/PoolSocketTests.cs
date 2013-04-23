@@ -18,7 +18,11 @@
  * limitations under the License.
  */
 
+using System;
+using System.Net;
 using System.Net.Sockets;
+using System.Threading;
+using MindTouch.Clacks.Client.Net;
 using MindTouch.Clacks.Client.Net.Helper;
 using NUnit.Framework;
 
@@ -26,6 +30,16 @@ namespace MindTouch.Clacks.Client.Tests {
 
     [TestFixture]
     public class PoolSocketTests {
+
+        private int _port;
+        private Socket _connectedSocket;
+        private Socket _listenSocket;
+
+        [SetUp]
+        public void Setup() {
+            _port = new Random().Next(1000, 30000);
+        }
+
         [Test]
         public void On_Send_failure_will_call_reconnect_callback_and_retry() {
 
@@ -65,6 +79,50 @@ namespace MindTouch.Clacks.Client.Tests {
             Assert.AreEqual(1, callbacks.ReconnectCalled, "reconnect called wrong number of times");
             Assert.AreSame(fakesocket, callbacks.FailedSocket);
         }
+
+        [Test]
+        public void Server_closing_socket_during_receive_is_reconnectable_fault() {
+            ISocket socket = null;
+            try {
+                var endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port);
+                _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+                _listenSocket.Bind(endpoint);
+                _listenSocket.Listen(10);
+                _listenSocket.BeginAccept(OnAccept, _listenSocket);
+                Console.WriteLine("connecting");
+                socket = SocketAdapter.Open(endpoint);
+                Console.WriteLine("connected");
+                var callbacks = new PoolSocketCallbacks { ReconnectCallback = (p, f) => f };
+                var poolsocket = new PoolSocket(socket, callbacks.Reclaim, callbacks.Reconnect);
+                try {
+                    Console.WriteLine("writing to pool socket");
+                    poolsocket.Send(new byte[]{1,2,3,4,5}, 0, 5);
+                    poolsocket.Receive(new byte[5], 0, 5);
+                } catch(Exception) {
+                    Assert.AreEqual(1, callbacks.ReconnectCalled, "reconnect called wrong number of times");
+                    return;
+                }
+                Assert.Fail("didn't throw");
+            } finally {
+                if(_listenSocket != null) {
+                    _listenSocket.Dispose();
+                }
+                if(socket != null) {
+                    socket.Dispose();
+                }
+            }
+        }
+
+        private void OnAccept(IAsyncResult ar) {
+            Console.WriteLine("socket connected");
+            _connectedSocket = _listenSocket.EndAccept(ar);
+            Console.WriteLine("waiting for data");
+            _connectedSocket.Receive(new byte[10], 0, 1, SocketFlags.None);
+            Console.WriteLine("received some, closing socket");
+            _connectedSocket.Close(0);
+            _listenSocket.BeginAccept(OnAccept, _listenSocket);
+        }
+
 
         [Test]
         public void On_Receive_failure_will_call_reconnect_callback_and_retry() {

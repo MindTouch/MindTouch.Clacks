@@ -60,7 +60,17 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             }
             try {
                 return func();
-            } catch(SocketException) {
+            } catch(ObjectDisposedException e) {
+                ISocket reconnectSocket;
+                if(!retry || (reconnectSocket = _reconnect(this, _socket)) == null) {
+                    try {
+                        Dispose();
+                    } catch { }
+                    throw;
+                }
+                _socket = reconnectSocket;
+                return Try(func, false);
+            } catch(SocketException e) {
                 try {
                     _socket.Dispose();
                 } catch { }
