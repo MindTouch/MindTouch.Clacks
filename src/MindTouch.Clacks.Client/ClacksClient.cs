@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Sockets;
 using MindTouch.Clacks.Client.Net;
 
 namespace MindTouch.Clacks.Client {
@@ -29,9 +30,10 @@ namespace MindTouch.Clacks.Client {
     // in a threadsafe manner
     public class ClacksClient : IDisposable {
         public const string DEFAULT_TUBE = "default";
-        private readonly ISocket _socket;
-        private readonly ResponseReceiver _receiver;
+        private readonly IConnectionPool _pool;
+        private ResponseReceiver _receiver;
         private bool _disposed;
+        private ISocket _socket;
 
         public ClacksClient(IPEndPoint endPoint)
             : this(ConnectionPool.GetPool(endPoint)) {
@@ -41,8 +43,8 @@ namespace MindTouch.Clacks.Client {
             : this(ConnectionPool.GetPool(host, port)) {
         }
 
-        public ClacksClient(IConnectionPool pool)
-            : this(pool.GetSocket()) {
+        public ClacksClient(IConnectionPool pool) {
+            _pool = pool;
         }
 
         public ClacksClient(ISocket socket) {
@@ -51,10 +53,15 @@ namespace MindTouch.Clacks.Client {
             }
             _socket = socket;
             _receiver = new ResponseReceiver(_socket);
-            InitSocket();
         }
 
-        protected virtual void InitSocket() { }
+        protected virtual void InitSocket() {
+            if(_socket != null && !_socket.IsDisposed) {
+                return;
+            }
+            _socket = _pool.GetSocket();
+            _receiver = new ResponseReceiver(_socket);
+        }
 
         public bool Disposed {
             get {
@@ -71,10 +78,25 @@ namespace MindTouch.Clacks.Client {
 
         public Response Exec(Request request) {
             ThrowIfDisposed();
-            _socket.SendRequest(request);
-            _receiver.Reset(request);
-            var response = _receiver.GetResponse();
-            return response;
+            var reconnect = false;
+            while(true) {
+                InitSocket();
+                try {
+                    _socket.SendRequest(request);
+                    _receiver.Reset(request);
+                    return _receiver.GetResponse();
+                } catch(SocketException) {
+                    if(reconnect) {
+                        throw;
+                    }
+                } catch(ObjectDisposedException) {
+                    if(reconnect) {
+                        throw;
+                    }
+                }
+                reconnect = true;
+                _socket = null;
+            }
         }
 
         public IEnumerable<Response> Exec(MultiRequest request) {
@@ -83,18 +105,34 @@ namespace MindTouch.Clacks.Client {
                 throw new InvalidRequestException();
             }
             ThrowIfDisposed();
-            _socket.SendRequest(request);
-            _receiver.Reset(request);
-            var responses = new List<Response>();
+            var reconnect = false;
             while(true) {
-                var response = _receiver.GetResponse();
-                if(!requestInfo.IsExpected(response.Status)) {
-                    return new[] { response };
+                InitSocket();
+                try {
+                    _socket.SendRequest(request);
+                    _receiver.Reset(request);
+                    var responses = new List<Response>();
+                    while(true) {
+                        var response = _receiver.GetResponse();
+                        if(!requestInfo.IsExpected(response.Status)) {
+                            return new[] { response };
+                        }
+                        responses.Add(response);
+                        if(response.Status == requestInfo.TerminationStatus) {
+                            return responses;
+                        }
+                    }
+                } catch(SocketException) {
+                    if(reconnect) {
+                        throw;
+                    }
+                } catch(ObjectDisposedException) {
+                    if(reconnect) {
+                        throw;
+                    }
                 }
-                responses.Add(response);
-                if(response.Status == requestInfo.TerminationStatus) {
-                    return responses;
-                }
+                reconnect = true;
+                _socket = null;
             }
         }
 

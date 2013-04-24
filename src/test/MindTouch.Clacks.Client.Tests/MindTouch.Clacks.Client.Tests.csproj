@@ -48,7 +48,10 @@
   <ItemGroup>
     <Compile Include="ClacksClientTests.cs" />
     <Compile Include="ConnectionPoolTests.cs" />
+    <Compile Include="FakeSocket.cs" />
     <Compile Include="FakeSocketFactory.cs" />
+    <Compile Include="PoolSocketCallbacks.cs" />
+    <Compile Include="PoolSocketTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SocketAdapterTests.cs" />
   </ItemGroup>

@@ -78,7 +78,7 @@ namespace MindTouch.Clacks.Client.Net {
         }
 
         private readonly Func<ISocket> _socketFactory;
-        private readonly Queue<Available> _availableSockets = new Queue<Available>();
+        private readonly List<Available> _availableSockets = new List<Available>();
         private readonly Dictionary<ISocket, WeakReference> _busySockets = new Dictionary<ISocket, WeakReference>();
         private readonly Timer _socketCleanupTimer;
         private TimeSpan _cleanupInterval = TimeSpan.FromSeconds(60);
@@ -134,8 +134,13 @@ namespace MindTouch.Clacks.Client.Net {
                     if(_availableSockets.Count <= 0) {
                         break;
                     }
-                    var available = _availableSockets.Dequeue();
-                    if(available.Socket.Connected) {
+
+                    // take available from end of list
+                    var available = _availableSockets[_availableSockets.Count - 1];
+                    _availableSockets.RemoveAt(_availableSockets.Count - 1);
+
+                    // check Socket connection if it's been idle for more than 10 seconds
+                    if(available.Queued.AddSeconds(10) > DateTime.UtcNow || available.Socket.Connected) {
                         socket = available.Socket;
                         continue;
                     }
@@ -170,33 +175,33 @@ namespace MindTouch.Clacks.Client.Net {
                 if(!_busySockets.Remove(socket)) {
                     return;
                 }
-                if(!socket.Connected || _availableSockets.Count + _busySockets.Count >= MaxConnections) {
+                if(socket.IsDisposed || (_availableSockets.Count + _busySockets.Count >= MaxConnections)) {
 
                     // drop socket
                     socket.Dispose();
                     return;
                 }
-                _availableSockets.Enqueue(new Available(socket));
+
+                // Add reclaimed socket to end of available list
+                _availableSockets.Add(new Available(socket));
             }
         }
 
         private void ReapSockets(object state) {
             lock(_availableSockets) {
-                var dead = (from busy in _busySockets where !busy.Key.Connected || !busy.Value.IsAlive select busy.Key).ToArray();
-                foreach(var socket in dead) {
+                var disposed = (from busy in _busySockets where busy.Key.IsDisposed select busy.Key).ToArray();
+                foreach(var socket in disposed) {
                     _busySockets.Remove(socket);
-                    if(socket.Connected) {
-                        _availableSockets.Enqueue(new Available(socket));
-                    } else {
-                        socket.Dispose();
-                    }
                 }
                 var staleTime = DateTime.UtcNow.Subtract(IdleTimeout);
                 while(true) {
-                    if(!_availableSockets.Any() || _availableSockets.Peek().Queued > staleTime) {
+
+                    // check oldest (first in available list) for staleness
+                    if(!_availableSockets.Any() || _availableSockets[0].Queued > staleTime) {
                         break;
                     }
-                    var idle = _availableSockets.Dequeue();
+                    var idle = _availableSockets[0];
+                    _availableSockets.RemoveAt(0);
                     idle.Socket.Dispose();
                 }
             }

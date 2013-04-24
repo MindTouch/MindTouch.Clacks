@@ -17,13 +17,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System;
 
-namespace MindTouch.Clacks.Client.Net {
-    public interface ISocket : IDisposable {
-        bool Connected { get; }
-        bool IsDisposed { get; }
-        int Send(byte[] buffer, int offset, int size);
-        int Receive(byte[] buffer, int offset, int size);
+using MindTouch.Clacks.Client.Net;
+
+namespace MindTouch.Clacks.Client.Tests {
+    public class PoolSocketCallbacks {
+
+        public ISocket ReclaimedSocket;
+        public int ReclaimCalled;
+
+        public void Reclaim(ISocket socket) {
+            ReclaimedSocket = socket;
+            ReclaimCalled++;
+        }
     }
 }
