@@ -159,6 +159,7 @@ namespace MindTouch.Clacks.Client {
                     // at this point there may only be \r\n 
                     throw new DataTerminatorMissingException();
                 }
+                Receive();
             }
         }
     }

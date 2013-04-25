@@ -34,10 +34,11 @@ namespace MindTouch.Clacks.Client.Tests {
 
             // Arrange
             var data = "blahblahblah";
-            var fakeSocket = new FakeSocket();
-            fakeSocket.ReceiveCallback = Responses(
-                string.Format("OK FOO {0}\r\n{1}\r\n", data.Length, data)
-            );
+            var fakeSocket = new FakeSocket {
+                ReceiveCallback = Responses(
+                    string.Format("OK FOO {0}\r\n{1}\r\n", data.Length, data)
+                )
+            };
 
             // Act
             var receiver = new ResponseReceiver(fakeSocket);
@@ -55,11 +56,12 @@ namespace MindTouch.Clacks.Client.Tests {
 
             // Arrange
             var data = "blahblahblah";
-            var fakeSocket = new FakeSocket();
-            fakeSocket.ReceiveCallback = Responses(
-                string.Format("OK FOO {0}\r\n", data.Length),
-                string.Format("{0}\r\n", data)
-            );
+            var fakeSocket = new FakeSocket {
+                ReceiveCallback = Responses(
+                    string.Format("OK FOO {0}\r\n", data.Length),
+                    string.Format("{0}\r\n", data)
+                )
+            };
 
             // Act
             var receiver = new ResponseReceiver(fakeSocket);
@@ -77,12 +79,39 @@ namespace MindTouch.Clacks.Client.Tests {
 
             // Arrange
             var data = "blahblahblah";
-            var fakeSocket = new FakeSocket();
-            fakeSocket.ReceiveCallback = Responses(
-                string.Format("OK FOO {0}\r", data.Length),
-                string.Format("\n{0}\r", data),
-                "\n"
-            );
+            var fakeSocket = new FakeSocket {
+                ReceiveCallback = Responses(
+                    string.Format("OK FOO {0}\r", data.Length),
+                    string.Format("\n{0}\r", data),
+                    "\n"
+                )
+            };
+
+            // Act
+            var receiver = new ResponseReceiver(fakeSocket);
+            receiver.Reset(new Request("OK").ExpectData("OK"));
+            var response = receiver.GetResponse();
+            Assert.AreEqual("OK", response.Status);
+
+            // Assert
+            Assert.AreEqual(new[] { "FOO", data.Length.ToString() }, response.Arguments);
+            Assert.AreEqual(data, Encoding.ASCII.GetString(response.Data));
+        }
+
+        [Test]
+        public void Can_read_single_response_with_many_data_chunks() {
+
+            // Arrange
+            var dataChunks = Enumerable.Repeat("a123456789", 15).ToArray();
+            var data = string.Concat(dataChunks);
+            dataChunks[dataChunks.Length - 1] = dataChunks[dataChunks.Length - 1] + "\r\n";
+            var fakeSocket = new FakeSocket {
+                ReceiveCallback = Responses(
+                    new[] {string.Format("OK FOO {0}\r\n", data.Length)}
+                        .Concat(dataChunks)
+                        .ToArray()
+                )
+            };
 
             // Act
             var receiver = new ResponseReceiver(fakeSocket);
