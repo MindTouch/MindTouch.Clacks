@@ -68,6 +68,9 @@ namespace MindTouch.Clacks.Client {
                 if(_disposed) {
                     return true;
                 }
+                if(_socket == null) {
+                    return _disposed;
+                }
                 if(!_socket.Connected) {
                     _socket.Dispose();
                     _disposed = true;
@@ -153,7 +156,9 @@ namespace MindTouch.Clacks.Client {
             if(suppressFinalizer) {
                 GC.SuppressFinalize(this);
             }
-            _socket.Dispose();
+            if(_socket != null) {
+                _socket.Dispose();
+            }
             _disposed = true;
         }
 

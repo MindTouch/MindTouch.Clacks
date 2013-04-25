@@ -45,7 +45,7 @@ namespace MindTouch.Clacks.Client.Tests {
 
         public Action SendCallback = () => { };
         public int SendCalled;
-        public Action ReceiveCallback = () => { };
+        public Func<byte[], int, int, int> ReceiveCallback = (buffer, offset, size) => 0;
         public int ReceiveCalled;
 
         public int Send(byte[] buffer, int offset, int size) {
@@ -56,8 +56,7 @@ namespace MindTouch.Clacks.Client.Tests {
 
         public int Receive(byte[] buffer, int offset, int size) {
             ReceiveCalled++;
-            ReceiveCallback();
-            return 0;
+            return ReceiveCallback(buffer, offset, size);
         }
     }
 }

@@ -35,7 +35,7 @@ namespace MindTouch.Clacks.Client.Tests {
         public void On_failure_PoolSocket_and_underlying_socket_are_disposed_and_reclaimed() {
 
             // Arrange
-            var fakesocket = new FakeSocket { ReceiveCallback = () => { throw new SocketException(); } };
+            var fakesocket = new FakeSocket { ReceiveCallback = (buffer, offset, length) => { throw new SocketException(); } };
             var callbacks = new PoolSocketCallbacks();
             var poolsocket = new PoolSocket(fakesocket, callbacks.Reclaim);
 

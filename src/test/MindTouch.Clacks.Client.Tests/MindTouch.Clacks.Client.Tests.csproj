@@ -53,6 +53,7 @@
     <Compile Include="PoolSocketCallbacks.cs" />
     <Compile Include="PoolSocketTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ResponseReceiverTests.cs" />
     <Compile Include="SocketAdapterTests.cs" />
   </ItemGroup>
   <ItemGroup>

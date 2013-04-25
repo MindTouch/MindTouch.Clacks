@@ -39,15 +39,6 @@ namespace MindTouch.Clacks.Client {
             _socket = socket;
         }
 
-        private class Read {
-            public readonly int Position;
-            public readonly int Length;
-            public Read(int position, int length) {
-                Position = position;
-                Length = length;
-            }
-        }
-
         public void Reset(IRequestInfo requestInfo) {
             _requestInfo = requestInfo;
             _carriageReturn = false;
@@ -55,12 +46,12 @@ namespace MindTouch.Clacks.Client {
             _bufferPosition = 0;
             _bufferDataLength = 0;
             _responseDataPosition = 0;
+            _currentResponse = new Response(new[] { "ERROR", "INCOMPLETE" });
         }
 
-        private Read Receive() {
+        private void Receive() {
             _bufferPosition = 0;
-            var received = _socket.Receive(_buffer, 0, _buffer.Length);
-            return received == 0 ? null : new Read(0, received);
+            _bufferDataLength = _socket.Receive(_buffer, 0, _buffer.Length);
         }
 
         protected void InitializeHandler(string[] command) {
@@ -68,92 +59,107 @@ namespace MindTouch.Clacks.Client {
         }
 
         public Response GetResponse() {
-            ProcessCommandData(_bufferPosition != 0 ? new Read(_bufferPosition, _bufferDataLength) : Receive());
+            if(_bufferDataLength == 0) {
+                Receive();
+            }
+            ProcessCommandData();
             return _currentResponse;
         }
 
-        private void ProcessCommandData(Read read) {
+        private void ProcessCommandData() {
+            while(true) {
 
-            // look for \r\n
-            for(var i = 0; i < read.Length; i++) {
-                var idx = read.Position + i;
-                if(_buffer[idx] == '\r') {
-                    _carriageReturn = true;
-                } else if(_carriageReturn) {
-                    if(_buffer[idx] != '\n') {
-
-                        // it wasn't a \r followed by an \n
-                        throw new IncompleteCommandTerminator();
-                    }
-                    _carriageReturn = false;
-                    _bufferPosition = idx + 1;
-                    _bufferDataLength = read.Length - i - 1;
-                    var consumeLength = i - 1;
-                    if(consumeLength > 0) {
-
-                        // it is possible that this buffer pass is only the terminator or part of the terminator, so only
-                        // read from it if there are non-terminator characters
-                        _statusBuffer.Append(Encoding.ASCII.GetString(_buffer, read.Position, consumeLength));
-                    }
-                    // 6.
-                    var status = _statusBuffer.ToString().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
-                    _statusBuffer.Length = 0;
-                    _currentResponse = new Response(status);
-                    _responseExpectedBytes = _requestInfo.ExpectedBytes(_currentResponse);
-                    if(_responseExpectedBytes >= 0) {
-                        _responseDataPosition = 0;
-                        _responseData = new byte[_responseExpectedBytes];
-                        ProcessPayloadData(_bufferPosition != 0 ? new Read(_bufferPosition, _bufferDataLength) : Receive());
-                    }
-
-                    // at this point _currentResponse should be fully populated
-                    return;
-                }
-            }
-            var length = read.Length;
-            if(_carriageReturn) {
-
-                // we've found the \r, but the \n wasn't part of the buffer, so consume all but the last char from buffer
-                length--;
-            }
-            _statusBuffer.Append(Encoding.ASCII.GetString(_buffer, read.Position, length));
-            ProcessCommandData(Receive());
-        }
-
-        private void ProcessPayloadData(Read read) {
-            if(_responseExpectedBytes > 0) {
-                var dataLength = Math.Min(read.Length, _responseExpectedBytes);
-                Array.Copy(_buffer, read.Position, _responseData, _responseDataPosition, dataLength);
-                _responseDataPosition += dataLength;
-                _responseExpectedBytes -= dataLength;
-                read = new Read(read.Position + dataLength, read.Length - dataLength);
-            }
-
-            // check for trailing \r\n
-            if(_responseExpectedBytes <= 0) {
-                var responseCompleted = false;
-                for(var i = 0; i < read.Length; i++) {
-                    var idx = read.Position + i;
+                // look for \r\n
+                for(var i = 0; i < _bufferDataLength; i++) {
+                    var idx = _bufferPosition + i;
                     if(_buffer[idx] == '\r') {
                         _carriageReturn = true;
-                    } else if(_carriageReturn && _buffer[idx] == '\n') {
+                    } else if(_carriageReturn) {
+                        if(_buffer[idx] != '\n') {
+
+                            // it wasn't a \r followed by an \n
+                            throw new IncompleteCommandTerminator();
+                        }
                         _carriageReturn = false;
-                        _bufferPosition = idx + 1;
-                        _bufferDataLength = read.Length - i - 1;
-                        responseCompleted = true;
-                        break;
-                    }
-                    _responseExpectedBytes++;
-                    if(_responseExpectedBytes < -2) {
-                        throw new DataTerminatorMissingException();
+                        var consumeLength = i - 1;
+                        if(consumeLength > 0) {
+
+                            // it is possible that this buffer pass is only the terminator or part of the terminator, so only
+                            // read from it if there are non-terminator characters
+                            _statusBuffer.Append(Encoding.ASCII.GetString(_buffer, _bufferPosition, consumeLength));
+                        }
+                        var status = _statusBuffer.ToString().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
+                        _statusBuffer.Length = 0;
+                        _currentResponse = new Response(status);
+                        _responseExpectedBytes = _requestInfo.ExpectedBytes(_currentResponse);
+                        _bufferPosition += (i + 1);
+                        _bufferDataLength -= (i + 1);
+                        if(_responseExpectedBytes >= 0) {
+                            if(_bufferDataLength == 0) {
+                                Receive();
+                            }
+                            _responseDataPosition = 0;
+                            _responseData = new byte[_responseExpectedBytes];
+                            ProcessPayloadData();
+                        }
+
+                        // at this point _currentResponse should be fully populated
+                        return;
                     }
                 }
-                if(responseCompleted) {
-                    _currentResponse.Data = _responseData;
+                var length = _bufferDataLength;
+                if(_carriageReturn) {
+
+                    // we've found the \r, but the \n wasn't part of the buffer, so consume all but the last char from buffer
+                    // since we never want to read the terminator into the status buffer
+                    length--;
+                    if(length < 0) {
+                        return;
+                    }
+                }
+                _statusBuffer.Append(Encoding.ASCII.GetString(_buffer, _bufferPosition, length));
+                Receive();
+            }
+        }
+
+        private void ProcessPayloadData() {
+            while(true) {
+                var dataLength = Math.Min(_bufferDataLength, _responseExpectedBytes);
+                Array.Copy(_buffer, _bufferPosition, _responseData, _responseDataPosition, dataLength);
+                _responseDataPosition += dataLength;
+                _responseExpectedBytes -= dataLength;
+                _bufferPosition += dataLength;
+                _bufferDataLength -= dataLength;
+                if(_responseExpectedBytes == 0) {
+                    ProcessPayloadTermination();
                     return;
                 }
+                Receive();
             }
-            ProcessPayloadData(Receive());
+        }
+
+        private void ProcessPayloadTermination() {
+
+            // check for trailing \r\n
+            while(true) {
+                for(var i = 0; i < _bufferDataLength; i++) {
+                    var idx = _bufferPosition + i;
+                    if(!_carriageReturn && _buffer[idx] == '\r') {
+                        _carriageReturn = true;
+                        continue;
+                    }
+                    if(_carriageReturn && _buffer[idx] == '\n') {
+                        _carriageReturn = false;
+                        _bufferPosition += (i + 1);
+                        _bufferDataLength -= (i + 1);
+                        _currentResponse.Data = _responseData;
+                        return;
+                    }
+
+                    // at this point there may only be \r\n 
+                    throw new DataTerminatorMissingException();
+                }
+            }
         }
     }
 }
