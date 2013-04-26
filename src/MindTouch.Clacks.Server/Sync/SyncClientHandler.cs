@@ -18,6 +18,8 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Sockets;
 using System.Threading;
 
@@ -28,8 +30,10 @@ namespace MindTouch.Clacks.Server.Sync {
 
         private readonly ISyncCommandDispatcher _dispatcher;
         private ISyncCommandHandler _commandHandler;
+        private IEnumerable<IResponse> _responses;
 
-        public SyncClientHandler(Socket socket, ISyncCommandDispatcher dispatcher, IStatsCollector statsCollector, Action<IClientHandler> removeCallback) : base(socket, statsCollector, removeCallback) {
+        public SyncClientHandler(Guid clientId, Socket socket, ISyncCommandDispatcher dispatcher, IStatsCollector statsCollector, Action<IClientHandler> removeCallback)
+            : base(clientId, socket, statsCollector, removeCallback) {
             _dispatcher = dispatcher;
         }
 
@@ -69,7 +73,13 @@ namespace MindTouch.Clacks.Server.Sync {
         }
 
         // 13/14.
-        protected override void ProcessResponse() {
+        protected override void ProcessCommand() {
+            _responses = _commandHandler.GetResponse();
+            var status = _responses.First().Status;
+            PrepareResponse(status);
+        }
+
+        protected override void SendResponse() {
             string finalStatus = null;
             foreach(var response in _commandHandler.GetResponse()) {
                 finalStatus = response.Status;

@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -32,34 +33,60 @@ using MindTouch.Clacks.Server.Sync;
 using Response = MindTouch.Clacks.Server.Response;
 
 namespace MindTouch.Clacks.Tester {
+
+    public enum WorkerStatus {
+        PreClient,
+        PreRequest,
+        PostRequest,
+        Sleeping,
+        CheckingPool,
+        GeneratingPayload,
+        MakingRequest,
+        CheckingResponse
+    }
     class Program {
         static void Main(string[] args) {
+            var workerCount = 50;
+            var faultInterval = 100000;
+            var sleepInterval = 50;
+            if(args != null && args.Length > 0) {
+                workerCount = int.Parse(args[0]);
+                if(args.Length > 1) {
+                    sleepInterval = int.Parse(args[1]);
+                }
+                if(args.Length > 2) {
+                    faultInterval = int.Parse(args[2]);
+                }
+            }
             var port = new Random().Next(1000, 30000);
             var statsCollector = new StatsCollector();
             var dispatcher = new SyncCommandRepository();
             dispatcher.AddCommand("BIN", request => Response.Create("OK").WithData(request.Data), DataExpectation.Auto);
-            var clientHandlerFactory = new FaultingSyncClientHandlerFactory(dispatcher);
+            var clientHandlerFactory = new FaultingSyncClientHandlerFactory(dispatcher, faultInterval);
+            var workerStatus = new WorkerStatus[workerCount];
+            var statsLock = new object();
             using(new ClacksServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), statsCollector, clientHandlerFactory)) {
                 Console.WriteLine("created server");
-                var r = new Random();
-                var n = 50;
+                Console.WriteLine("Starting {0} workers with a {1}ms sleep interval", workerCount, sleepInterval);
                 var startSignal = new ManualResetEvent(false);
                 var readySignals = new List<WaitHandle>();
                 var workers = new List<Task>();
-                var workerRequests = new int[n];
+                var workerRequests = new int[workerCount];
                 var pool = ConnectionPool.Create("127.0.0.1", port);
                 var poolUseCount = 0;
-                for(var i = 0; i < n; i++) {
+                for(var i = 0; i < workerCount; i++) {
                     var ready = new ManualResetEvent(false);
                     readySignals.Add(ready);
                     var myPool = pool;
                     var workerId = i;
                     workers.Add(Task.Factory.StartNew(() => {
+                        var r = new Random();
                         ready.Set();
                         startSignal.WaitOne();
                         var localUseCount = 0;
                         var maxPoolUse = r.Next(50, 150);
                         while(true) {
+                            workerStatus[workerId] = WorkerStatus.CheckingPool;
                             localUseCount++;
                             var globalUseCount = Interlocked.Increment(ref poolUseCount);
                             if(globalUseCount > r.Next(200, 300)) {
@@ -74,6 +101,7 @@ namespace MindTouch.Clacks.Tester {
                             }
                             using(var client = new ClacksClient(myPool)) {
                                 for(var k = 0; k < 1000; k++) {
+                                    workerStatus[workerId] = WorkerStatus.GeneratingPayload;
                                     var payload = new StringBuilder();
                                     payload.AppendFormat("id:{0},data:", workerId);
                                     var size = r.Next(2, 100);
@@ -82,7 +110,9 @@ namespace MindTouch.Clacks.Tester {
                                     }
                                     var data = payload.ToString();
                                     var bytes = Encoding.ASCII.GetBytes(data);
+                                    workerStatus[workerId] = WorkerStatus.MakingRequest;
                                     var response = client.Exec(new Client.Request("BIN").WithData(bytes).ExpectData("OK"));
+                                    workerStatus[workerId] = WorkerStatus.CheckingResponse;
                                     if(response.Status != "OK") {
                                         throw new Exception("wrong status: " + response.Status);
                                     }
@@ -98,7 +128,8 @@ namespace MindTouch.Clacks.Tester {
                                         }
                                     }
                                     workerRequests[workerId]++;
-                                    Thread.Sleep(50);
+                                    workerStatus[workerId] = WorkerStatus.Sleeping;
+                                    Thread.Sleep(sleepInterval);
                                 }
                             }
                         }
@@ -108,26 +139,37 @@ namespace MindTouch.Clacks.Tester {
                 WaitHandle.WaitAll(readySignals.ToArray());
                 startSignal.Set();
                 Console.WriteLine("starting work");
+                var t = Stopwatch.StartNew();
                 Task.Factory.StartNew(() => {
-                    var lastRequests = new int[n];
+                    var lastRequests = new int[workerCount];
                     Thread.Sleep(TimeSpan.FromMinutes(2));
                     while(true) {
-                        var currentRequests = new int[n];
-                        workerRequests.CopyTo(currentRequests, 0);
-                        for(var i = 0; i < n; i++) {
-                            if(currentRequests[i] == lastRequests[i]) {
-                                Console.WriteLine("worker {0} has not made new requests: {1} == {2}", i, currentRequests[i], lastRequests[i]);
-            }
-        }
-                        lastRequests = currentRequests;
-                        Console.WriteLine("{0} Processed {1} requests with {2} faults via {3}/{4} total/active connections at {5,6:0} requests/second",
-                                        DateTime.Now,
-                                        statsCollector.Requests,
-                                        clientHandlerFactory.Faults,
-                                        statsCollector.Connected,
-                                        statsCollector.Connected - statsCollector.Disconnected,
-                                        statsCollector.Requests / TimeSpan.FromTicks(statsCollector.RequestTicks).TotalSeconds
-                            );
+                        lock(statsCollector) {
+                            var currentRequests = new int[workerCount];
+                            workerRequests.CopyTo(currentRequests, 0);
+                            lastRequests = currentRequests;
+                            Console.WriteLine("{0} Processed {1} requests with {2} faults via {3}/{4} total/active connections at {5,6:0} requests/second and {6:0.000}ms/request",
+                                DateTime.Now,
+                                statsCollector.Requests,
+                                clientHandlerFactory.Faults,
+                                statsCollector.Connected,
+                                statsCollector.Connections.Count,
+                                statsCollector.Requests / t.Elapsed.TotalSeconds,
+                                TimeSpan.FromTicks(statsCollector.RequestTicks).TotalMilliseconds / statsCollector.Requests
+                                );
+                            for(var i = 0; i < workerCount; i++) {
+                                if(currentRequests[i] == lastRequests[i]) {
+                                    var connectionStatus = statsCollector.Connections.Values.Where(x => x.Id == i).Select(x => x.Status).FirstOrDefault();
+                                    Console.WriteLine("worker {0} has not made a new request ({2} == {3}) and is stuck at '{1}'/'{4}'", 
+                                        i, 
+                                        workerStatus[i], 
+                                        currentRequests[i], 
+                                        lastRequests[i],
+                                        connectionStatus
+                                    );
+                                }
+                            }
+                        }
                         Thread.Sleep(TimeSpan.FromMinutes(1));
                     }
                 });
@@ -138,42 +180,45 @@ namespace MindTouch.Clacks.Tester {
                             Console.WriteLine(exception);
                     }
                 }
+                t.Stop();
             }
         }
-        public class FaultingSyncClientHandlerFactory : IClientHandlerFactory {
-            private const int FAULT_INTERVAL = 100000;
-            private readonly ISyncCommandDispatcher _dispatcher;
-            private int _requestsTilFault = FAULT_INTERVAL;
-            private int _faults = 0;
 
-            public FaultingSyncClientHandlerFactory(ISyncCommandDispatcher dispatcher) {
+        public class FaultingSyncClientHandlerFactory : IClientHandlerFactory {
+            private readonly ISyncCommandDispatcher _dispatcher;
+            private readonly int _faultInterval;
+            private int _requestsTilFault;
+            private int _faults;
+
+            public FaultingSyncClientHandlerFactory(ISyncCommandDispatcher dispatcher, int faultInterval) {
                 _dispatcher = dispatcher;
+                _requestsTilFault = _faultInterval = faultInterval;
             }
 
             public int Faults { get { return _faults; } }
 
-            public IClientHandler Create(Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeHandler) {
-                return new FaultingSyncClientHandler(socket, _dispatcher, statsCollector, removeHandler, CheckForFault);
+            public IClientHandler Create(Guid clientId, Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeHandler) {
+                return new FaultingSyncClientHandler(clientId, socket, _dispatcher, statsCollector, removeHandler, CheckForFault);
             }
 
             private bool CheckForFault() {
                 var fault = Interlocked.Decrement(ref _requestsTilFault);
                 if(fault == 0) {
                     Interlocked.Increment(ref _faults);
-                    Interlocked.Exchange(ref _requestsTilFault, FAULT_INTERVAL);
+                    Interlocked.Exchange(ref _requestsTilFault, _faultInterval);
                     return true;
                 }
                 return false;
-                }
             }
+        }
 
         public class FaultingSyncClientHandler : SyncClientHandler {
             private readonly Func<bool> _checkForFault;
 
-            public FaultingSyncClientHandler(Socket socket, ISyncCommandDispatcher dispatcher, IStatsCollector statsCollector, Action<IClientHandler> removeCallback, Func<bool> checkForFault)
-                : base(socket, dispatcher, statsCollector, removeCallback) {
+            public FaultingSyncClientHandler(Guid clientId, Socket socket, ISyncCommandDispatcher dispatcher, IStatsCollector statsCollector, Action<IClientHandler> removeCallback, Func<bool> checkForFault)
+                : base(clientId, socket, dispatcher, statsCollector, removeCallback) {
                 _checkForFault = checkForFault;
-        }
+            }
 
             protected override void Receive(Action<int, int> continuation) {
                 if(_checkForFault()) {
@@ -184,28 +229,78 @@ namespace MindTouch.Clacks.Tester {
                 }
                 base.Receive(continuation);
             }
-                        }
+        }
+
+        public enum ConnectionStatus {
+            Unknown,
+            AwaitCommand,
+            Connected,
+            CommandCompleted,
+            ProcessedCommand,
+            ReceivedCommand,
+            ReceivedCommandPayload
+        }
+
+        public class ConnectionInfo {
+            public ConnectionStatus Status;
+            public int Id;
+        }
 
         private class StatsCollector : IStatsCollector {
+            public Dictionary<Guid, ConnectionInfo> Connections = new Dictionary<Guid, ConnectionInfo>();
             public int Connected;
-            public int Disconnected;
             public int Requests;
             public long RequestTicks;
 
-            public void ClientConnected(IPEndPoint remoteEndPoint) {
-                Interlocked.Increment(ref Connected);
-                        }
 
-            public void ClientDisconnected(IPEndPoint endPoint) {
-                Interlocked.Increment(ref Disconnected);
+            public void ClientConnected(Guid clientId, IPEndPoint remoteEndPoint) {
+                Interlocked.Increment(ref Connected);
+                CaptureState(clientId, ConnectionStatus.Connected);
             }
 
-            public void CommandCompleted(IPEndPoint endPoint, StatsCommandInfo info) {
+            private void CaptureState(Guid clientId, ConnectionStatus status) {
+                lock(Connections) {
+                    ConnectionInfo info;
+                    if(!Connections.TryGetValue(clientId, out info)) {
+                        Connections[clientId] = info = new ConnectionInfo();
+                    }
+                    info.Status = status;
+                }
+            }
+
+            public void ClientDisconnected(Guid clientId) {
+                lock(Connections) {
+                    Connections.Remove(clientId);
+                }
+            }
+
+            public void CommandCompleted(StatsCommandInfo info) {
+                CaptureState(info, ConnectionStatus.CommandCompleted);
                 Interlocked.Increment(ref Requests);
                 Interlocked.Add(ref RequestTicks, info.Elapsed.Ticks);
-        }
+            }
 
-            public void CommandStarted(IPEndPoint endPoint, ulong id) {
+            private void CaptureState(StatsCommandInfo info, ConnectionStatus status) {
+                var id = int.Parse(info.Args[1]);
+                lock(Connections) {
+                    var connection = Connections[info.ClientId];
+                    connection.Status = status;
+                    connection.Id = id;
+                }
+            }
+
+            public void AwaitingCommand(Guid clientId, ulong requestId) {
+                CaptureState(clientId, ConnectionStatus.Connected);
+            }
+            public void ProcessedCommand(StatsCommandInfo statsCommandInfo) {
+                CaptureState(statsCommandInfo, ConnectionStatus.ProcessedCommand);
+            }
+
+            public void ReceivedCommand(StatsCommandInfo statsCommandInfo) {
+                CaptureState(statsCommandInfo, ConnectionStatus.ReceivedCommand);
+            }
+            public void ReceivedCommandPayload(StatsCommandInfo statsCommandInfo) {
+                CaptureState(statsCommandInfo, ConnectionStatus.ReceivedCommandPayload);
             }
         }
     }

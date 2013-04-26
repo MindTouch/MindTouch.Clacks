@@ -30,6 +30,7 @@ namespace MindTouch.Clacks.Server {
 
         private readonly Action<IClientHandler> _removeCallback;
 
+        private readonly Guid _clientId;
         protected readonly Socket _socket;
         private readonly IPEndPoint _endPoint;
         private readonly Stopwatch _requestTimer = new Stopwatch();
@@ -38,6 +39,7 @@ namespace MindTouch.Clacks.Server {
         protected readonly byte[] _buffer = new byte[16 * 1024];
 
         private ulong _commandCounter;
+        private string[] _commandArgs;
         private bool _isDisposed;
         private bool _inCommand = false;
 
@@ -45,18 +47,19 @@ namespace MindTouch.Clacks.Server {
         protected int _bufferDataLength;
         protected bool _carriageReturn;
 
-
-        protected AClientRequestHandler(Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeCallback) {
+        protected AClientRequestHandler(Guid clientId, Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeCallback) {
+            _clientId = clientId;
             _socket = socket;
             _endPoint = _socket.RemoteEndPoint as IPEndPoint;
             _statsCollector = statsCollector;
             _removeCallback = removeCallback;
-            _statsCollector.ClientConnected(EndPoint);
+            _statsCollector.ClientConnected(_clientId, _endPoint);
         }
 
-        protected abstract ICommandHandler Handler { get; }
-
+        public Guid Id { get { return _clientId; } }
         public IPEndPoint EndPoint { get { return _endPoint; } }
+
+        protected abstract ICommandHandler Handler { get; }
         protected bool IsDisposed { get { return _isDisposed; } }
 
         /* WorkFlow
@@ -109,26 +112,12 @@ namespace MindTouch.Clacks.Server {
 
         }
 
-        protected void EndCommandRequest(string status) {
-            _requestTimer.Stop();
-            _log.DebugFormat("[{0}] [{1}] excecuted with status [{2}] in {3:0.00}ms",
-                _commandCounter,
-                Handler.Command,
-                status,
-                _requestTimer.Elapsed.TotalMilliseconds
-            );
-            _statsCollector.CommandCompleted(EndPoint, new StatsCommandInfo(_commandCounter, _requestTimer.Elapsed, Handler.Command, status));
-            _requestTimer.Reset();
-            _inCommand = false;
-            CompleteRequest();
-        }
-
         // 4.
         protected void ProcessCommandData(int position, int length) {
             if(!_inCommand) {
                 _inCommand = true;
                 _requestTimer.Start();
-                _statsCollector.CommandStarted(EndPoint, _commandCounter);
+                _statsCollector.AwaitingCommand(Id, _commandCounter);
             }
 
             // look for \r\n
@@ -143,15 +132,16 @@ namespace MindTouch.Clacks.Server {
                     _commandBuffer.Append(Encoding.ASCII.GetString(_buffer, position, idx - 1));
 
                     // 6.
-                    var commandArgs = _commandBuffer.ToString().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
+                    _commandArgs = _commandBuffer.ToString().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
                     _commandBuffer.Length = 0;
-                    var command = InitializeHandler(commandArgs);
+                    var command = InitializeHandler(_commandArgs);
                     _log.DebugFormat("[{0}] Received command [{1}] in {2:0.00}ms, expect data: {3} ",
                         _commandCounter,
                         command,
                         _requestTimer.Elapsed.TotalMilliseconds,
                         Handler.ExpectsData
                     );
+                    _statsCollector.ReceivedCommand(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
                     if(Handler.ExpectsData) {
 
                         // 8.
@@ -163,7 +153,8 @@ namespace MindTouch.Clacks.Server {
                     } else {
 
                         // 7.
-                        ProcessResponse();
+                        _statsCollector.ReceivedCommandPayload(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
+                        ProcessCommand();
                     }
                     return;
                 }
@@ -203,13 +194,35 @@ namespace MindTouch.Clacks.Server {
             }
             _bufferDataLength = length - 2;
             _bufferPosition = _bufferDataLength == 0 ? 0 : position + 2;
-            ProcessResponse();
+            _statsCollector.ReceivedCommandPayload(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
+            ProcessCommand();
         }
 
         /// <summary>
         /// 13/14. -> Calls StartCommandRequest
         /// </summary>
-        protected abstract void ProcessResponse();
+        protected abstract void ProcessCommand();
+
+        protected void PrepareResponse(string status) {
+            _statsCollector.ProcessedCommand(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, status));
+            SendResponse();
+        }
+
+        protected abstract void SendResponse();
+
+        protected void EndCommandRequest(string status) {
+            _requestTimer.Stop();
+            _log.DebugFormat("[{0}] [{1}] excecuted with status [{2}] in {3:0.00}ms",
+                _commandCounter,
+                Handler.Command,
+                status,
+                _requestTimer.Elapsed.TotalMilliseconds
+            );
+            _statsCollector.CommandCompleted(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, status));
+            _requestTimer.Reset();
+            _inCommand = false;
+            CompleteRequest();
+        }
 
         public void Dispose() {
             if(_isDisposed) {
@@ -217,7 +230,7 @@ namespace MindTouch.Clacks.Server {
             }
             _isDisposed = true;
             _log.DebugFormat("Disposing client from {0}", EndPoint);
-            _statsCollector.ClientDisconnected(EndPoint);
+            _statsCollector.ClientDisconnected(Id);
             try {
                 _socket.Shutdown(SocketShutdown.Both);
                 _socket.Close();

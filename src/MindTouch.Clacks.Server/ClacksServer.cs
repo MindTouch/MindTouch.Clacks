@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Linq;
+using System.Threading;
 
 namespace MindTouch.Clacks.Server {
     public class ClacksServer : IDisposable {
@@ -32,7 +33,7 @@ namespace MindTouch.Clacks.Server {
         private readonly IStatsCollector _statsCollector;
         private readonly IClientHandlerFactory _clientHandlerFactory;
         private readonly Socket _listenSocket;
-        private readonly HashSet<IClientHandler> _openConnections = new HashSet<IClientHandler>();
+        private readonly Dictionary<Guid, IClientHandler> _openConnections = new Dictionary<Guid, IClientHandler>();
 
         public ClacksServer(IPEndPoint listenEndpoint, IStatsCollector statsCollector, IClientHandlerFactory clientHandlerFactory) {
             _listenEndpoint = listenEndpoint;
@@ -70,26 +71,27 @@ namespace MindTouch.Clacks.Server {
                 _log.Debug("Server already disposed, abort listen");
                 return;
             }
-            var handler = _clientHandlerFactory.Create(socket, _statsCollector, RemoveHandler);
+            var id = Guid.NewGuid();
+            var handler = _clientHandlerFactory.Create(id, socket, _statsCollector, RemoveHandler);
             lock(_openConnections) {
-                _openConnections.Add(handler);
+                _openConnections.Add(id, handler);
             }
             handler.ProcessRequests();
         }
 
         private void RemoveHandler(IClientHandler handler) {
             lock(_openConnections) {
-                _openConnections.Remove(handler);
+                _openConnections.Remove(handler.Id);
             }
         }
 
         public void Dispose() {
             _listenSocket.Close();
             lock(_openConnections) {
-                var connections = _openConnections.ToArray();
-                foreach(var connection in connections) {
+                foreach(var connection in _openConnections.Values) {
                     connection.Dispose();
                 }
+                _openConnections.Clear();
             }
             _log.Debug("Disposed server socket");
         }

@@ -2,15 +2,17 @@ using System;
 
 namespace MindTouch.Clacks.Server {
     public class StatsCommandInfo {
-        public readonly ulong Id;
+        public readonly Guid ClientId;
+        public readonly ulong RequestId;
         public readonly TimeSpan Elapsed;
-        public readonly string Cmd;
+        public readonly string[] Args;
         public readonly string Status;
 
-        public StatsCommandInfo(ulong id, TimeSpan elapsed, string cmd, string status) {
-            Id = id;
+        public StatsCommandInfo(Guid clientId, ulong requestId, TimeSpan elapsed, string[] args, string status) {
+            ClientId = clientId;
+            RequestId = requestId;
             Elapsed = elapsed;
-            Cmd = cmd;
+            Args = args;
             Status = status;
         }
     }

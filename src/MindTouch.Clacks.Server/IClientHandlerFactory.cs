@@ -24,7 +24,7 @@ using System.Net.Sockets;
 namespace MindTouch.Clacks.Server {
 
     public interface IClientHandlerFactory {
-        IClientHandler Create(Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeHandler);
+        IClientHandler Create(Guid clientId, Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeHandler);
     }
 
 }

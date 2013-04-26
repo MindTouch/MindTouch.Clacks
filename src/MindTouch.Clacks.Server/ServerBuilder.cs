@@ -50,7 +50,7 @@ namespace MindTouch.Clacks.Server {
         }
 
         public ClacksServer Build(IStatsCollector statsCollector) {
-            return new ClacksServer(_endPoint, statsCollector ?? NullStatsCollector.Instance, _clientHandlerFactory);
+            return new ClacksServer(_endPoint, statsCollector ?? BaseStatsCollector.Instance, _clientHandlerFactory);
         }
 
         public IAsyncServerBuilder WithDefaultHandler(Func<IRequest, IResponse> handler) {

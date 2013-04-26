@@ -92,7 +92,13 @@ namespace MindTouch.Clacks.Server.PerfTests {
                                     }
                                     var data = payload.ToString();
                                     var bytes = Encoding.ASCII.GetBytes(data);
-                                    var response = client.Exec(new Client.Request("BIN").WithData(bytes).ExpectData("OK"));
+                                    Client.Response response;
+                                    try {
+                                        response = client.Exec(new Client.Request("BIN").WithData(bytes).ExpectData("OK"));
+                                    } catch(Exception) {
+                                        Console.WriteLine("request failed with data:\r\n{0}", payload);
+                                        throw;
+                                    }
                                     Assert.AreEqual("OK", response.Status);
                                     Assert.AreEqual(1, response.Arguments.Length);
                                     var responseData = Encoding.ASCII.GetString(response.Data);
@@ -114,6 +120,7 @@ namespace MindTouch.Clacks.Server.PerfTests {
                 WaitHandle.WaitAll(readySignals.ToArray());
                 startSignal.Set();
                 Console.WriteLine("starting work");
+                var t = Stopwatch.StartNew();
                 Task.Factory.StartNew(() => {
                     var lastRequests = new int[n];
                     Thread.Sleep(TimeSpan.FromMinutes(2));
@@ -126,13 +133,14 @@ namespace MindTouch.Clacks.Server.PerfTests {
                             }
                         }
                         lastRequests = currentRequests;
-                        Console.WriteLine("{0} Processed {1} requests with {2} faults via {3}/{4} total/active connections at {5,6:0} requests/second",
+                        Console.WriteLine("{0} Processed {1} requests with {2} faults via {3}/{4} total/active connections at {5,6:0} requests/second and {6:0.000}ms/request",
                                         DateTime.Now,
                                         statsCollector.Requests,
                                         clientHandlerFactory.Faults,
                                         statsCollector.Connected,
                                         statsCollector.Connected - statsCollector.Disconnected,
-                                        statsCollector.Requests / TimeSpan.FromTicks(statsCollector.RequestTicks).TotalSeconds
+                                        statsCollector.Requests / t.Elapsed.TotalSeconds,
+                                        TimeSpan.FromTicks(statsCollector.RequestTicks).TotalMilliseconds / statsCollector.Requests
                             );
                         Thread.Sleep(TimeSpan.FromMinutes(1));
                     }
@@ -144,6 +152,17 @@ namespace MindTouch.Clacks.Server.PerfTests {
                             Console.WriteLine(exception);
                     }
                 }
+                t.Stop();
+                Console.WriteLine("{0} Processed {1} requests with {2} faults via {3}/{4} total/active connections at {5,6:0} requests/second and {6:0.000}ms/request",
+                                DateTime.Now,
+                                statsCollector.Requests,
+                                clientHandlerFactory.Faults,
+                                statsCollector.Connected,
+                                statsCollector.Connected - statsCollector.Disconnected,
+                                statsCollector.Requests / t.Elapsed.TotalSeconds,
+                                TimeSpan.FromTicks(statsCollector.RequestTicks).TotalMilliseconds / statsCollector.Requests
+                    );
+
             }
         }
 
@@ -222,8 +241,8 @@ namespace MindTouch.Clacks.Server.PerfTests {
 
             public int Faults { get { return _faults; } }
 
-            public IClientHandler Create(Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeHandler) {
-                return new FaultingSyncClientHandler(socket, _dispatcher, statsCollector, removeHandler, CheckForFault);
+            public IClientHandler Create(Guid clientId, Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeHandler) {
+                return new FaultingSyncClientHandler(clientId, socket, _dispatcher, statsCollector, removeHandler, CheckForFault);
             }
 
             private bool CheckForFault() {
@@ -240,8 +259,8 @@ namespace MindTouch.Clacks.Server.PerfTests {
         public class FaultingSyncClientHandler : SyncClientHandler {
             private readonly Func<bool> _checkForFault;
 
-            public FaultingSyncClientHandler(Socket socket, ISyncCommandDispatcher dispatcher, IStatsCollector statsCollector, Action<IClientHandler> removeCallback, Func<bool> checkForFault)
-                : base(socket, dispatcher, statsCollector, removeCallback) {
+            public FaultingSyncClientHandler(Guid clientId, Socket socket, ISyncCommandDispatcher dispatcher, IStatsCollector statsCollector, Action<IClientHandler> removeCallback, Func<bool> checkForFault)
+                : base(clientId, socket, dispatcher, statsCollector, removeCallback) {
                 _checkForFault = checkForFault;
             }
 
@@ -262,21 +281,23 @@ namespace MindTouch.Clacks.Server.PerfTests {
             public int Requests;
             public long RequestTicks;
 
-            public void ClientConnected(IPEndPoint remoteEndPoint) {
+            public void ClientConnected(Guid clientId, IPEndPoint remoteEndPoint) {
                 Interlocked.Increment(ref Connected);
             }
 
-            public void ClientDisconnected(IPEndPoint endPoint) {
+            public void ClientDisconnected(Guid clientId) {
                 Interlocked.Increment(ref Disconnected);
             }
 
-            public void CommandCompleted(IPEndPoint endPoint, StatsCommandInfo info) {
+            public void CommandCompleted(StatsCommandInfo info) {
                 Interlocked.Increment(ref Requests);
                 Interlocked.Add(ref RequestTicks, info.Elapsed.Ticks);
             }
 
-            public void CommandStarted(IPEndPoint endPoint, ulong id) {
-            }
+            public void AwaitingCommand(Guid clientId, ulong requestId) { }
+            public void ProcessedCommand(StatsCommandInfo statsCommandInfo) { }
+            public void ReceivedCommand(StatsCommandInfo statsCommandInfo) { }
+            public void ReceivedCommandPayload(StatsCommandInfo statsCommandInfo) { }
         }
     }
 }

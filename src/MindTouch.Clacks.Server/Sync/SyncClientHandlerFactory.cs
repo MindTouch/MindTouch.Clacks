@@ -28,8 +28,8 @@ namespace MindTouch.Clacks.Server.Sync {
             _dispatcher = dispatcher;
         }
 
-        public IClientHandler Create(Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeHandler) {
-            return new SyncClientHandler(socket, _dispatcher, statsCollector, removeHandler);
+        public IClientHandler Create(Guid clientId, Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeHandler) {
+            return new SyncClientHandler(clientId, socket, _dispatcher, statsCollector, removeHandler);
         }
     }
 }

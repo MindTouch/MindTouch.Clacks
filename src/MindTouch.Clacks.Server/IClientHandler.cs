@@ -18,11 +18,13 @@
  * limitations under the License.
  */
 
+using System;
 using System.Net;
 
 namespace MindTouch.Clacks.Server {
     public interface IClientHandler {
 
+        Guid Id { get; }
         IPEndPoint EndPoint { get; }
 
         void ProcessRequests();
