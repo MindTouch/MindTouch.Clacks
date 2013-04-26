@@ -44,6 +44,7 @@ namespace MindTouch.Clacks.Tester {
         MakingRequest,
         CheckingResponse
     }
+
     class Program {
         static void Main(string[] args) {
             var workerCount = 50;
@@ -64,7 +65,6 @@ namespace MindTouch.Clacks.Tester {
             dispatcher.AddCommand("BIN", request => Response.Create("OK").WithData(request.Data), DataExpectation.Auto);
             var clientHandlerFactory = new FaultingSyncClientHandlerFactory(dispatcher, faultInterval);
             var workerStatus = new WorkerStatus[workerCount];
-            var statsLock = new object();
             using(new ClacksServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), statsCollector, clientHandlerFactory)) {
                 Console.WriteLine("created server");
                 Console.WriteLine("Starting {0} workers with a {1}ms sleep interval", workerCount, sleepInterval);
@@ -111,7 +111,7 @@ namespace MindTouch.Clacks.Tester {
                                     var data = payload.ToString();
                                     var bytes = Encoding.ASCII.GetBytes(data);
                                     workerStatus[workerId] = WorkerStatus.MakingRequest;
-                                    var response = client.Exec(new Client.Request("BIN").WithData(bytes).ExpectData("OK"));
+                                    var response = client.Exec(new Client.Request("BIN").WithArgument(workerId).WithData(bytes).ExpectData("OK"));
                                     workerStatus[workerId] = WorkerStatus.CheckingResponse;
                                     if(response.Status != "OK") {
                                         throw new Exception("wrong status: " + response.Status);
@@ -142,12 +142,9 @@ namespace MindTouch.Clacks.Tester {
                 var t = Stopwatch.StartNew();
                 Task.Factory.StartNew(() => {
                     var lastRequests = new int[workerCount];
-                    Thread.Sleep(TimeSpan.FromMinutes(2));
+                    Thread.Sleep(TimeSpan.FromMinutes(1));
                     while(true) {
                         lock(statsCollector) {
-                            var currentRequests = new int[workerCount];
-                            workerRequests.CopyTo(currentRequests, 0);
-                            lastRequests = currentRequests;
                             Console.WriteLine("{0} Processed {1} requests with {2} faults via {3}/{4} total/active connections at {5,6:0} requests/second and {6:0.000}ms/request",
                                 DateTime.Now,
                                 statsCollector.Requests,
@@ -157,18 +154,20 @@ namespace MindTouch.Clacks.Tester {
                                 statsCollector.Requests / t.Elapsed.TotalSeconds,
                                 TimeSpan.FromTicks(statsCollector.RequestTicks).TotalMilliseconds / statsCollector.Requests
                                 );
+                            var currentRequests = new int[workerCount];
+                            workerRequests.CopyTo(currentRequests, 0);
                             for(var i = 0; i < workerCount; i++) {
                                 if(currentRequests[i] == lastRequests[i]) {
                                     var connectionStatus = statsCollector.Connections.Values.Where(x => x.Id == i).Select(x => x.Status).FirstOrDefault();
-                                    Console.WriteLine("worker {0} has not made a new request ({2} == {3}) and is stuck at '{1}'/'{4}'", 
+                                    Console.WriteLine("worker {0} has not made a new request ({1}) and is stuck at '{2}'/'{3}'", 
                                         i, 
-                                        workerStatus[i], 
-                                        currentRequests[i], 
-                                        lastRequests[i],
+                                        currentRequests[i],
+                                        workerStatus[i],
                                         connectionStatus
                                     );
                                 }
                             }
+                            lastRequests = currentRequests;
                         }
                         Thread.Sleep(TimeSpan.FromMinutes(1));
                     }
@@ -258,16 +257,6 @@ namespace MindTouch.Clacks.Tester {
                 CaptureState(clientId, ConnectionStatus.Connected);
             }
 
-            private void CaptureState(Guid clientId, ConnectionStatus status) {
-                lock(Connections) {
-                    ConnectionInfo info;
-                    if(!Connections.TryGetValue(clientId, out info)) {
-                        Connections[clientId] = info = new ConnectionInfo();
-                    }
-                    info.Status = status;
-                }
-            }
-
             public void ClientDisconnected(Guid clientId) {
                 lock(Connections) {
                     Connections.Remove(clientId);
@@ -278,15 +267,6 @@ namespace MindTouch.Clacks.Tester {
                 CaptureState(info, ConnectionStatus.CommandCompleted);
                 Interlocked.Increment(ref Requests);
                 Interlocked.Add(ref RequestTicks, info.Elapsed.Ticks);
-            }
-
-            private void CaptureState(StatsCommandInfo info, ConnectionStatus status) {
-                var id = int.Parse(info.Args[1]);
-                lock(Connections) {
-                    var connection = Connections[info.ClientId];
-                    connection.Status = status;
-                    connection.Id = id;
-                }
             }
 
             public void AwaitingCommand(Guid clientId, ulong requestId) {
@@ -301,6 +281,25 @@ namespace MindTouch.Clacks.Tester {
             }
             public void ReceivedCommandPayload(StatsCommandInfo statsCommandInfo) {
                 CaptureState(statsCommandInfo, ConnectionStatus.ReceivedCommandPayload);
+            }
+
+            private void CaptureState(Guid clientId, ConnectionStatus status) {
+                lock(Connections) {
+                    ConnectionInfo info;
+                    if(!Connections.TryGetValue(clientId, out info)) {
+                        Connections[clientId] = info = new ConnectionInfo();
+                    }
+                    info.Status = status;
+                }
+            }
+
+            private void CaptureState(StatsCommandInfo info, ConnectionStatus status) {
+                var id = int.Parse(info.Args[1]);
+                lock(Connections) {
+                    var connection = Connections[info.ClientId];
+                    connection.Status = status;
+                    connection.Id = id;
+                }
             }
         }
     }
