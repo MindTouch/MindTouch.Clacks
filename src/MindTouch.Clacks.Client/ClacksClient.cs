@@ -34,6 +34,7 @@ namespace MindTouch.Clacks.Client {
         private ResponseReceiver _receiver;
         private bool _disposed;
         private ISocket _socket;
+        protected bool _attemptReconnect = true;
 
         public ClacksClient(IPEndPoint endPoint)
             : this(ConnectionPool.GetPool(endPoint)) {
@@ -81,7 +82,7 @@ namespace MindTouch.Clacks.Client {
 
         public Response Exec(Request request) {
             ThrowIfDisposed();
-            var reconnect = false;
+            var isReconnect = !_attemptReconnect;
             while(true) {
                 InitSocket();
                 try {
@@ -89,15 +90,15 @@ namespace MindTouch.Clacks.Client {
                     _receiver.Reset(request);
                     return _receiver.GetResponse();
                 } catch(SocketException) {
-                    if(reconnect) {
+                    if(isReconnect) {
                         throw;
                     }
                 } catch(ObjectDisposedException) {
-                    if(reconnect) {
+                    if(isReconnect) {
                         throw;
                     }
                 }
-                reconnect = true;
+                isReconnect = true;
                 _socket = null;
             }
         }
@@ -108,7 +109,7 @@ namespace MindTouch.Clacks.Client {
                 throw new InvalidRequestException();
             }
             ThrowIfDisposed();
-            var reconnect = false;
+            var isReconnect = !_attemptReconnect;
             while(true) {
                 InitSocket();
                 try {
@@ -126,15 +127,15 @@ namespace MindTouch.Clacks.Client {
                         }
                     }
                 } catch(SocketException) {
-                    if(reconnect) {
+                    if(isReconnect) {
                         throw;
                     }
                 } catch(ObjectDisposedException) {
-                    if(reconnect) {
+                    if(isReconnect) {
                         throw;
                     }
                 }
-                reconnect = true;
+                isReconnect = true;
                 _socket = null;
             }
         }
