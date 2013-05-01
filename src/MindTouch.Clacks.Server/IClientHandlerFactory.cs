@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -24,7 +24,7 @@ using System.Net.Sockets;
 namespace MindTouch.Clacks.Server {
 
     public interface IClientHandlerFactory {
-        IClientHandler Create(Guid clientId, Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeHandler);
+        IClientHandler Create(Guid clientId, Socket socket, IClacksInstrumentation instrumentation, Action<IClientHandler> removeHandler);
     }
 
 }

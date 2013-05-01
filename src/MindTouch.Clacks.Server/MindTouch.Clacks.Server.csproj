@@ -78,8 +78,8 @@
     <Compile Include="Async\IAsyncFluentCommandRegistration.cs" />
     <Compile Include="CommandHandlerBuilder.cs" />
     <Compile Include="CommandRegistration.cs" />
-    <Compile Include="IStatsCollector.cs" />
-    <Compile Include="BaseStatsCollector.cs" />
+    <Compile Include="IClacksInstrumentation.cs" />
+    <Compile Include="BaseClacksInstrumentation.cs" />
     <Compile Include="StatsCommandInfo.cs" />
     <Compile Include="Sync\SyncCommandRegistration.cs" />
     <Compile Include="Sync\SyncMultiCommandHandler.cs" />
@@ -111,7 +111,6 @@
     <Compile Include="ICommandHandler.cs" />
     <Compile Include="IResponse.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Async\AsyncResponseHandler.cs" />
     <Compile Include="Response.cs" />
     <Compile Include="Async\AsyncSingleCommandHandler.cs" />
   </ItemGroup>

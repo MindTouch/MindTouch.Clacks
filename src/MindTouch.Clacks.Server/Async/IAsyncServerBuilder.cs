@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -22,7 +22,7 @@ using System;
 namespace MindTouch.Clacks.Server.Async {
     public interface IAsyncServerBuilder {
         ClacksServer Build();
-        ClacksServer Build(IStatsCollector statsCollector);
+        ClacksServer Build(IClacksInstrumentation instrumentation);
         IAsyncServerBuilder WithDefaultHandler(Func<IRequest, IResponse> handler);
         IAsyncServerBuilder WithErrorHandler(Func<IRequest, Exception, IResponse> handler);
         IAsyncServerBuilder WithDefaultHandler(Action<IRequest, Action<IResponse>> handler);

@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -29,7 +29,7 @@ namespace MindTouch.Clacks.Client {
     // Note: ClacksClient is not threadsafe. It's assumed that whatever code incorporates manages access to it
     // in a threadsafe manner
     public class ClacksClient : IDisposable {
-        public const string DEFAULT_TUBE = "default";
+
         private readonly IConnectionPool _pool;
         private ResponseReceiver _receiver;
         private bool _disposed;

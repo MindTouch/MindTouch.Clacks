@@ -97,11 +97,11 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\MindTouch.Clacks.Client\MindTouch.Clacks.Client.csproj">
+    <ProjectReference Include="..\..\MindTouch.Clacks.Client\MindTouch.Clacks.Client.csproj">
       <Project>{8D5353C8-E5C9-4DC2-BB15-DC4CC52B17AB}</Project>
       <Name>MindTouch.Clacks.Client</Name>
     </ProjectReference>
-    <ProjectReference Include="..\MindTouch.Clacks.Server\MindTouch.Clacks.Server.csproj">
+    <ProjectReference Include="..\..\MindTouch.Clacks.Server\MindTouch.Clacks.Server.csproj">
       <Project>{07E3829C-6A07-462C-8A1C-9FC5F227AAA5}</Project>
       <Name>MindTouch.Clacks.Server</Name>
     </ProjectReference>

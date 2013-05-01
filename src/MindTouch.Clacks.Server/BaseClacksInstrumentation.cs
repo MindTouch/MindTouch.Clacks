@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MindTouch.Clacks
  * 
  * Copyright (C) 2011-2013 Arne F. Claassen
@@ -17,17 +17,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 using System;
 using System.Net;
 
 namespace MindTouch.Clacks.Server {
-    public interface IClientHandler {
+    public class BaseClacksInstrumentation : IClacksInstrumentation {
 
-        Guid Id { get; }
-        IPEndPoint EndPoint { get; }
-
-        void ProcessRequests();
-        void Dispose();
+        public static readonly IClacksInstrumentation Instance = new BaseClacksInstrumentation();
+        
+        private BaseClacksInstrumentation() { }
+        
+        public virtual void ClientConnected(Guid clientId, IPEndPoint remoteEndPoint) { }
+        public virtual void ClientDisconnected(Guid clientId) { }
+        public virtual void CommandCompleted(StatsCommandInfo info) { }
+        public virtual void AwaitingCommand(Guid clientId, ulong requestId) { }
+        public virtual void ProcessedCommand(StatsCommandInfo statsCommandInfo) { }
+        public virtual void ReceivedCommand(StatsCommandInfo statsCommandInfo) { }
+        public virtual void ReceivedCommandPayload(StatsCommandInfo statsCommandInfo) { }
     }
 }

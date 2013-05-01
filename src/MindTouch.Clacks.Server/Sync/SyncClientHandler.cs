@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -21,7 +21,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
-using System.Threading;
 
 namespace MindTouch.Clacks.Server.Sync {
     public class SyncClientHandler : AClientRequestHandler {
@@ -32,8 +31,8 @@ namespace MindTouch.Clacks.Server.Sync {
         private ISyncCommandHandler _commandHandler;
         private IEnumerable<IResponse> _responses;
 
-        public SyncClientHandler(Guid clientId, Socket socket, ISyncCommandDispatcher dispatcher, IStatsCollector statsCollector, Action<IClientHandler> removeCallback)
-            : base(clientId, socket, statsCollector, removeCallback) {
+        public SyncClientHandler(Guid clientId, Socket socket, ISyncCommandDispatcher dispatcher, IClacksInstrumentation instrumentation, Action<IClientHandler> removeCallback)
+            : base(clientId, socket, instrumentation, removeCallback) {
             _dispatcher = dispatcher;
         }
 

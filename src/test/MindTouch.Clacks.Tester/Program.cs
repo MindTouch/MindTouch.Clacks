@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -60,7 +60,7 @@ namespace MindTouch.Clacks.Tester {
                 }
             }
             var port = new Random().Next(1000, 30000);
-            var statsCollector = new StatsCollector();
+            var statsCollector = new ClacksInstrumentation();
             var dispatcher = new SyncCommandRepository();
             dispatcher.AddCommand("BIN", request => Response.Create("OK").WithData(request.Data), DataExpectation.Auto);
             var clientHandlerFactory = new FaultingSyncClientHandlerFactory(dispatcher, faultInterval);
@@ -196,8 +196,8 @@ namespace MindTouch.Clacks.Tester {
 
             public int Faults { get { return _faults; } }
 
-            public IClientHandler Create(Guid clientId, Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeHandler) {
-                return new FaultingSyncClientHandler(clientId, socket, _dispatcher, statsCollector, removeHandler, CheckForFault);
+            public IClientHandler Create(Guid clientId, Socket socket, IClacksInstrumentation instrumentation, Action<IClientHandler> removeHandler) {
+                return new FaultingSyncClientHandler(clientId, socket, _dispatcher, instrumentation, removeHandler, CheckForFault);
             }
 
             private bool CheckForFault() {
@@ -214,8 +214,8 @@ namespace MindTouch.Clacks.Tester {
         public class FaultingSyncClientHandler : SyncClientHandler {
             private readonly Func<bool> _checkForFault;
 
-            public FaultingSyncClientHandler(Guid clientId, Socket socket, ISyncCommandDispatcher dispatcher, IStatsCollector statsCollector, Action<IClientHandler> removeCallback, Func<bool> checkForFault)
-                : base(clientId, socket, dispatcher, statsCollector, removeCallback) {
+            public FaultingSyncClientHandler(Guid clientId, Socket socket, ISyncCommandDispatcher dispatcher, IClacksInstrumentation instrumentation, Action<IClientHandler> removeCallback, Func<bool> checkForFault)
+                : base(clientId, socket, dispatcher, instrumentation, removeCallback) {
                 _checkForFault = checkForFault;
             }
 
@@ -245,7 +245,7 @@ namespace MindTouch.Clacks.Tester {
             public int Id;
         }
 
-        private class StatsCollector : IStatsCollector {
+        private class ClacksInstrumentation : IClacksInstrumentation {
             public Dictionary<Guid, ConnectionInfo> Connections = new Dictionary<Guid, ConnectionInfo>();
             public int Connected;
             public int Requests;

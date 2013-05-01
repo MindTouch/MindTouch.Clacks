@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -27,13 +27,12 @@ namespace MindTouch.Clacks.Server.Async {
 
         private readonly IAsyncCommandDispatcher _dispatcher;
         private IAsyncCommandHandler _commandHandler;
-        private AsyncResponseHandler _responseHandler;
         private IResponse _response;
         private Action _nextResponseCallback;
         private string _lastStatus;
 
-        public AsyncClientHandler(Guid clientId, Socket socket, IAsyncCommandDispatcher dispatcher, IStatsCollector statsCollector, Action<IClientHandler> removeCallback)
-            : base(clientId, socket, statsCollector, removeCallback) {
+        public AsyncClientHandler(Guid clientId, Socket socket, IAsyncCommandDispatcher dispatcher, IClacksInstrumentation instrumentation, Action<IClientHandler> removeCallback)
+            : base(clientId, socket, instrumentation, removeCallback) {
             _dispatcher = dispatcher;
         }
 
@@ -87,15 +86,6 @@ namespace MindTouch.Clacks.Server.Async {
 
         // 13/14.
         protected override void ProcessCommand() {
-            //_responseHandler = new AsyncResponseHandler(
-            //    _socket,
-            //    EndCommandRequest,
-            //    error => {
-            //        _log.Warn("Send failed", error);
-            //        Dispose();
-
-            //    }
-            //);
             _commandHandler.GetResponse(ProcessResponse);
         }
 

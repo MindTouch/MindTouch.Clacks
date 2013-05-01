@@ -1,7 +1,7 @@
 /*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -21,8 +21,6 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Linq;
-using System.Threading;
 
 namespace MindTouch.Clacks.Server {
     public class ClacksServer : IDisposable {
@@ -30,14 +28,14 @@ namespace MindTouch.Clacks.Server {
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
         private readonly IPEndPoint _listenEndpoint;
-        private readonly IStatsCollector _statsCollector;
+        private readonly IClacksInstrumentation _instrumentation;
         private readonly IClientHandlerFactory _clientHandlerFactory;
         private readonly Socket _listenSocket;
         private readonly Dictionary<Guid, IClientHandler> _openConnections = new Dictionary<Guid, IClientHandler>();
 
-        public ClacksServer(IPEndPoint listenEndpoint, IStatsCollector statsCollector, IClientHandlerFactory clientHandlerFactory) {
+        public ClacksServer(IPEndPoint listenEndpoint, IClacksInstrumentation instrumentation, IClientHandlerFactory clientHandlerFactory) {
             _listenEndpoint = listenEndpoint;
-            _statsCollector = statsCollector;
+            _instrumentation = instrumentation;
             _clientHandlerFactory = clientHandlerFactory;
             _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
             _listenSocket.Bind(_listenEndpoint);
@@ -72,7 +70,7 @@ namespace MindTouch.Clacks.Server {
                 return;
             }
             var id = Guid.NewGuid();
-            var handler = _clientHandlerFactory.Create(id, socket, _statsCollector, RemoveHandler);
+            var handler = _clientHandlerFactory.Create(id, socket, _instrumentation, RemoveHandler);
             lock(_openConnections) {
                 _openConnections.Add(id, handler);
             }
