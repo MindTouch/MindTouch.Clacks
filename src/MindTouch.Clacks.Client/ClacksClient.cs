@@ -147,24 +147,13 @@ namespace MindTouch.Clacks.Client {
         }
 
         public void Dispose() {
-            Dispose(true);
-        }
-
-        protected virtual void Dispose(bool suppressFinalizer) {
             if(_disposed) {
                 return;
             }
-            if(suppressFinalizer) {
-                GC.SuppressFinalize(this);
-            }
+            _disposed = true;
             if(_socket != null) {
                 _socket.Dispose();
             }
-            _disposed = true;
-        }
-
-        ~ClacksClient() {
-            Dispose(false);
         }
     }
 }

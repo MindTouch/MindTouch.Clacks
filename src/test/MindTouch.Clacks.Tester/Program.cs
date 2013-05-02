@@ -45,74 +45,84 @@ namespace MindTouch.Clacks.Tester {
         CheckingResponse
     }
 
+    public class WorkerInfo {
+        public string Id;
+        public WorkerStatus Status;
+        public int Requests;
+        public Task Task;
+    }
+
     class Program {
         static void Main(string[] args) {
             var workerCount = 50;
+            var workerPrefix = "w";
             var faultInterval = 100000;
             var sleepInterval = 50;
-            if(args != null && args.Length > 0) {
-                workerCount = int.Parse(args[0]);
-                if(args.Length > 1) {
-                    sleepInterval = int.Parse(args[1]);
-                }
-                if(args.Length > 2) {
-                    faultInterval = int.Parse(args[2]);
-                }
-            }
             var port = new Random().Next(1000, 30000);
-            var statsCollector = new ClacksInstrumentation();
-            var dispatcher = new SyncCommandRepository();
-            dispatcher.AddCommand("BIN", request => Response.Create("OK").WithData(request.Data), DataExpectation.Auto);
-            var clientHandlerFactory = new FaultingSyncClientHandlerFactory(dispatcher, faultInterval);
-            var workerStatus = new WorkerStatus[workerCount];
-            using(new ClacksServer(new IPEndPoint(IPAddress.Parse("127.0.0.1"), port), statsCollector, clientHandlerFactory)) {
-                Console.WriteLine("created server");
+            var host = "127.0.0.1";
+            var runServer = true;
+            var options = new Options {
+                {"w=", "Workers (default: 50)", x => workerCount = int.Parse(x)},
+                {"P=", "Worker Prefix (default: w)", x => workerPrefix = x},
+                {"f=", "Fault Interval (default: every 100000)", x => faultInterval = int.Parse(x)},
+                {"s=", "Sleep Interval (default: 50ms)", x => sleepInterval = int.Parse(x)},
+                {"X", "Disable Server (enabled by default)", x => runServer = x != null},
+                {"p=", "Server port (default: random)", x=> port = int.Parse(x)},
+                {"h=", "Server host (default: 127.0.0.1)", x=> host = x}
+            };
+            options.Parse(args).ToArray();
+            var tasks = new List<Task>();
+            if(runServer) {
+                tasks.Add(RunServer(host, port, faultInterval));
+            }
+
+            var workers = new List<WorkerInfo>(workerCount);
+            if(workerCount > 0) {
                 Console.WriteLine("Starting {0} workers with a {1}ms sleep interval", workerCount, sleepInterval);
                 var startSignal = new ManualResetEvent(false);
                 var readySignals = new List<WaitHandle>();
-                var workers = new List<Task>();
-                var workerRequests = new int[workerCount];
-                var pool = ConnectionPool.Create("127.0.0.1", port);
+                var pool = ConnectionPool.Create(host, port);
                 var poolUseCount = 0;
                 for(var i = 0; i < workerCount; i++) {
                     var ready = new ManualResetEvent(false);
                     readySignals.Add(ready);
                     var myPool = pool;
-                    var workerId = i;
-                    workers.Add(Task.Factory.StartNew(() => {
+                    var workerInfo = new WorkerInfo { Id = workerPrefix + i.ToString("000"), Status = WorkerStatus.PreClient };
+                    workers.Add(workerInfo);
+                    workerInfo.Task = Task.Factory.StartNew(() => {
                         var r = new Random();
                         ready.Set();
                         startSignal.WaitOne();
                         var localUseCount = 0;
                         var maxPoolUse = r.Next(50, 150);
                         while(true) {
-                            workerStatus[workerId] = WorkerStatus.CheckingPool;
+                            workerInfo.Status = WorkerStatus.CheckingPool;
                             localUseCount++;
                             var globalUseCount = Interlocked.Increment(ref poolUseCount);
                             if(globalUseCount > r.Next(200, 300)) {
-                                Console.WriteLine("{0}: creating new pool", workerId);
+                                Console.WriteLine("{0}: creating new pool", workerInfo.Id);
                                 Interlocked.Exchange(ref poolUseCount, 0);
                                 pool = ConnectionPool.Create("127.0.0.1", port);
                                 myPool = pool;
                             } else if(myPool != pool && localUseCount > maxPoolUse) {
-                                Console.WriteLine("{0}: picking new pool", workerId);
+                                Console.WriteLine("{0}: picking new pool", workerInfo.Id);
                                 myPool = pool;
                                 localUseCount = 0;
                             }
                             using(var client = new ClacksClient(myPool)) {
                                 for(var k = 0; k < 1000; k++) {
-                                    workerStatus[workerId] = WorkerStatus.GeneratingPayload;
+                                    workerInfo.Status = WorkerStatus.GeneratingPayload;
                                     var payload = new StringBuilder();
-                                    payload.AppendFormat("id:{0},data:", workerId);
+                                    payload.AppendFormat("id:{0},data:", workerInfo.Id);
                                     var size = r.Next(2, 100);
                                     for(var l = 0; l < size; l++) {
                                         payload.Append(Guid.NewGuid().ToString());
                                     }
                                     var data = payload.ToString();
                                     var bytes = Encoding.ASCII.GetBytes(data);
-                                    workerStatus[workerId] = WorkerStatus.MakingRequest;
-                                    var response = client.Exec(new Client.Request("BIN").WithArgument(workerId).WithData(bytes).ExpectData("OK"));
-                                    workerStatus[workerId] = WorkerStatus.CheckingResponse;
+                                    workerInfo.Status = WorkerStatus.MakingRequest;
+                                    var response = client.Exec(new Client.Request("BIN").WithArgument(workerInfo.Id).WithData(bytes).ExpectData("OK"));
+                                    workerInfo.Status = WorkerStatus.CheckingResponse;
                                     if(response.Status != "OK") {
                                         throw new Exception("wrong status: " + response.Status);
                                     }
@@ -122,65 +132,85 @@ namespace MindTouch.Clacks.Tester {
                                     var responseData = Encoding.ASCII.GetString(response.Data);
                                     if(data != responseData) {
                                         lock(workers) {
-                                            Console.WriteLine("bad data response for worker {0}", workerId);
+                                            Console.WriteLine("bad data response for worker {0}", workerInfo.Id);
                                             Console.WriteLine("sent:     {0}", data);
                                             Console.WriteLine("received: {0}", responseData);
                                         }
                                     }
-                                    workerRequests[workerId]++;
-                                    workerStatus[workerId] = WorkerStatus.Sleeping;
+                                    Interlocked.Increment(ref workerInfo.Requests);
+                                    workerInfo.Status = WorkerStatus.Sleeping;
                                     Thread.Sleep(sleepInterval);
                                 }
                             }
                         }
-                    }));
+                    });
+                    tasks.Add(workerInfo.Task);
                 }
                 Console.WriteLine("waiting for workers to get ready");
                 WaitHandle.WaitAll(readySignals.ToArray());
                 startSignal.Set();
                 Console.WriteLine("starting work");
+            }
+            var allTasks = tasks.ToArray();
+            Thread.Sleep(TimeSpan.FromMinutes(1));
+            var lastRequests = workers.ToDictionary(k => k.Id, v => v.Requests);
+            while(true) {
+                foreach(var worker in workers) {
+                    if(worker.Requests == lastRequests[worker.Id]) {
+                        Console.WriteLine("worker {0} has not made a new request ({1}) and is stuck at state '{2}'",
+                            worker.Id,
+                            worker.Requests,
+                            worker.Status
+                        );
+                    }
+                    lastRequests[worker.Id] = worker.Requests;
+                }
+                var faulted = false;
+                foreach(var t in tasks) {
+                    if(t.IsFaulted) {
+                        faulted = true;
+                        foreach(var exception in t.Exception.Flatten().InnerExceptions) {
+                            Console.WriteLine(exception);
+                        }
+                    }
+                }
+                if(faulted) {
+                    return;
+                }
+                Thread.Sleep(TimeSpan.FromMinutes(1));
+            }
+        }
+
+
+        private static Task RunServer(string host, int port, int faultInterval) {
+            return Task.Factory.StartNew(() => {
                 var t = Stopwatch.StartNew();
-                Task.Factory.StartNew(() => {
-                    var lastRequests = new int[workerCount];
+                var instrumentation = new ClacksInstrumentation();
+                var dispatcher = new SyncCommandRepository();
+                dispatcher.AddCommand("BIN", request => Response.Create("OK").WithData(request.Data), DataExpectation.Auto);
+                var clientHandlerFactory = new FaultingSyncClientHandlerFactory(dispatcher, faultInterval);
+                using(new ClacksServer(new IPEndPoint(IPAddress.Parse(host), port), instrumentation, clientHandlerFactory)) {
+                    Console.WriteLine("created server");
                     Thread.Sleep(TimeSpan.FromMinutes(1));
                     while(true) {
-                        lock(statsCollector) {
+                        lock(instrumentation.Connections) {
                             Console.WriteLine("{0} Processed {1} requests with {2} faults via {3}/{4} total/active connections at {5,6:0} requests/second and {6:0.000}ms/request",
                                 DateTime.Now,
-                                statsCollector.Requests,
+                                instrumentation.Requests,
                                 clientHandlerFactory.Faults,
-                                statsCollector.Connected,
-                                statsCollector.Connections.Count,
-                                statsCollector.Requests / t.Elapsed.TotalSeconds,
-                                TimeSpan.FromTicks(statsCollector.RequestTicks).TotalMilliseconds / statsCollector.Requests
+                                instrumentation.Connected,
+                                instrumentation.Connections.Count,
+                                instrumentation.Requests / t.Elapsed.TotalSeconds,
+                                TimeSpan.FromTicks(instrumentation.RequestTicks).TotalMilliseconds / instrumentation.Requests
                                 );
-                            var currentRequests = new int[workerCount];
-                            workerRequests.CopyTo(currentRequests, 0);
-                            for(var i = 0; i < workerCount; i++) {
-                                if(currentRequests[i] == lastRequests[i]) {
-                                    var connectionStatus = statsCollector.Connections.Values.Where(x => x.Id == i).Select(x => x.Status).FirstOrDefault();
-                                    Console.WriteLine("worker {0} has not made a new request ({1}) and is stuck at '{2}'/'{3}'", 
-                                        i, 
-                                        currentRequests[i],
-                                        workerStatus[i],
-                                        connectionStatus
-                                    );
-                                }
+                            foreach(var connection in instrumentation.Connections.OrderBy(x => x.Value.Id)) {
+                                Console.WriteLine("{0}: {1}", connection.Value.Id, connection.Value.Status);
                             }
-                            lastRequests = currentRequests;
                         }
                         Thread.Sleep(TimeSpan.FromMinutes(1));
                     }
-                });
-                Task.WaitAny(workers.ToArray());
-                foreach(var worker in workers) {
-                    if(worker.IsFaulted) {
-                        foreach(var exception in worker.Exception.Flatten().InnerExceptions)
-                            Console.WriteLine(exception);
-                    }
                 }
-                t.Stop();
-            }
+            });
         }
 
         public class FaultingSyncClientHandlerFactory : IClientHandlerFactory {
@@ -242,11 +272,11 @@ namespace MindTouch.Clacks.Tester {
 
         public class ConnectionInfo {
             public ConnectionStatus Status;
-            public int Id;
+            public string Id;
         }
 
         private class ClacksInstrumentation : IClacksInstrumentation {
-            public Dictionary<Guid, ConnectionInfo> Connections = new Dictionary<Guid, ConnectionInfo>();
+            public readonly Dictionary<Guid, ConnectionInfo> Connections = new Dictionary<Guid, ConnectionInfo>();
             public int Connected;
             public int Requests;
             public long RequestTicks;
@@ -289,12 +319,13 @@ namespace MindTouch.Clacks.Tester {
                     if(!Connections.TryGetValue(clientId, out info)) {
                         Connections[clientId] = info = new ConnectionInfo();
                     }
+                    info.Id = "NA";
                     info.Status = status;
                 }
             }
 
             private void CaptureState(StatsCommandInfo info, ConnectionStatus status) {
-                var id = int.Parse(info.Args[1]);
+                var id = info.Args[1];
                 lock(Connections) {
                     var connection = Connections[info.ClientId];
                     connection.Status = status;

@@ -208,27 +208,16 @@ namespace MindTouch.Clacks.Client.Net {
         }
 
         public void Dispose() {
-            Dispose(true);
-        }
-
-        private void Dispose(bool suppressFinalizer) {
             if(_disposed) {
                 return;
             }
             _disposed = true;
-            if(suppressFinalizer) {
-                GC.SuppressFinalize(this);
-            }
             lock(_availableSockets) {
                 foreach(var available in _availableSockets) {
                     available.Socket.Dispose();
                 }
                 _availableSockets.Clear();
             }
-        }
-
-        ~ConnectionPool() {
-            Dispose(false);
         }
     }
 }
