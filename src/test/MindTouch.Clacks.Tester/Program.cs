@@ -66,13 +66,15 @@ namespace MindTouch.Clacks.Tester {
                 {"P=", "Worker Prefix (default: w)", x => workerPrefix = x},
                 {"f=", "Fault Interval (default: every 100000)", x => faultInterval = int.Parse(x)},
                 {"s=", "Sleep Interval (default: 50ms)", x => sleepInterval = int.Parse(x)},
-                {"X", "Disable Server (enabled by default)", x => runServer = x != null},
+                {"X", "Disable Server (enabled by default)", x => runServer = x == null},
                 {"p=", "Server port (default: random)", x=> port = int.Parse(x)},
                 {"h=", "Server host (default: 127.0.0.1)", x=> host = x}
             };
             options.Parse(args).ToArray();
+            Console.WriteLine("Server: {0}:{1}", host, port);
             var tasks = new List<Task>();
             if(runServer) {
+                Console.WriteLine("starting server");
                 tasks.Add(RunServer(host, port, faultInterval));
             }
 
