@@ -71,9 +71,9 @@ namespace MindTouch.Clacks.Tester {
                 {"h=", "Server host (default: 127.0.0.1)", x=> host = x}
             };
             options.Parse(args).ToArray();
-            Console.WriteLine("Server: {0}:{1}", host, port);
             var tasks = new List<Task>();
             if(runServer) {
+                Console.WriteLine("Server: {0}:{1}", host, port);
                 Console.WriteLine("starting server");
                 tasks.Add(RunServer(host, port, faultInterval));
             }
@@ -153,30 +153,47 @@ namespace MindTouch.Clacks.Tester {
                 startSignal.Set();
                 Console.WriteLine("starting work");
             }
-            var allTasks = tasks.ToArray();
+            var t = Stopwatch.StartNew();
             Thread.Sleep(TimeSpan.FromMinutes(1));
             var lastRequests = workers.ToDictionary(k => k.Id, v => v.Requests);
+            var requests = new Queue<Tuple<int, TimeSpan>>();
+            var faultCount = 0;
             while(true) {
-                foreach(var worker in workers) {
-                    if(worker.Requests == lastRequests[worker.Id]) {
-                        Console.WriteLine("worker {0} has not made a new request ({1}) and is stuck at state '{2}'",
-                            worker.Id,
-                            worker.Requests,
-                            worker.Status
+                if(workerCount > 0) {
+                    var total = workers.Sum(x => x.Requests) - lastRequests.Values.Sum();
+                    requests.Enqueue(new Tuple<int, TimeSpan>(total, t.Elapsed));
+                    if(requests.Count > 10) {
+                        requests.Dequeue();
+                    }
+                    var rate = requests.Aggregate((a, b) => new Tuple<int, TimeSpan>(a.Item1 + b.Item1, a.Item2 + b.Item2));
+                    Console.WriteLine("{0} Executing requests at {1:0} requests/second",
+                                      DateTime.Now,
+                                      rate.Item1 / rate.Item2.TotalSeconds
                         );
+                    foreach(var stuckGroup in from worker in workers
+                                              where worker.Requests == lastRequests[worker.Id]
+                                              let x = new { worker.Id, worker.Requests, worker.Status }
+                                              group x by x.Status
+                                                  into xg
+                                                  select new { Status = xg.Key, Workers = xg }) {
+                        Console.WriteLine("  {0} workers stuck in '{1}': {2}",
+                                      stuckGroup.Workers.Count(),
+                                      stuckGroup.Status,
+                                      string.Join(",", from worker in stuckGroup.Workers orderby worker.Id select string.Format("{0} ({1})", worker.Id, worker.Requests))
+                            );
                     }
-                    lastRequests[worker.Id] = worker.Requests;
+                    foreach(var worker in workers) {
+                        lastRequests[worker.Id] = worker.Requests;
+                    }
+                    t.Restart();
                 }
-                var faulted = false;
-                foreach(var t in tasks) {
-                    if(t.IsFaulted) {
-                        faulted = true;
-                        foreach(var exception in t.Exception.Flatten().InnerExceptions) {
-                            Console.WriteLine(exception);
-                        }
+                foreach(var task in tasks.Where(task => task.IsFaulted)) {
+                    faultCount++;
+                    foreach(var exception in task.Exception.Flatten().InnerExceptions) {
+                        Console.WriteLine(exception);
                     }
                 }
-                if(faulted) {
+                if(faultCount > 10) {
                     return;
                 }
                 Thread.Sleep(TimeSpan.FromMinutes(1));
@@ -194,19 +211,33 @@ namespace MindTouch.Clacks.Tester {
                 using(new ClacksServer(new IPEndPoint(IPAddress.Parse(host), port), instrumentation, clientHandlerFactory)) {
                     Console.WriteLine("created server");
                     Thread.Sleep(TimeSpan.FromMinutes(1));
+                    var rates = new Queue<double>();
+                    var requestCount = 0;
                     while(true) {
                         lock(instrumentation.Connections) {
+                            requestCount = instrumentation.Requests - requestCount;
+                            rates.Enqueue(requestCount/t.Elapsed.TotalSeconds);
+                            if(rates.Count > 10) {
+                                rates.Dequeue();
+                            }
+                            t.Restart();
                             Console.WriteLine("{0} Processed {1} requests with {2} faults via {3}/{4} total/active connections at {5,6:0} requests/second and {6:0.000}ms/request",
                                 DateTime.Now,
                                 instrumentation.Requests,
                                 clientHandlerFactory.Faults,
                                 instrumentation.Connected,
                                 instrumentation.Connections.Count,
-                                instrumentation.Requests / t.Elapsed.TotalSeconds,
+                                rates.Average(),
                                 TimeSpan.FromTicks(instrumentation.RequestTicks).TotalMilliseconds / instrumentation.Requests
                                 );
-                            foreach(var connection in instrumentation.Connections.OrderBy(x => x.Value.Id)) {
-                                Console.WriteLine("{0}: {1}", connection.Value.Id, connection.Value.Status);
+                            foreach(var statusGroup in from con in instrumentation.Connections
+                                                       group con by con.Value.Status into grouped
+                                                       select new { Status = grouped.Key, Connections = grouped }) {
+                                Console.WriteLine("  {0} in state '{1}': {2}",
+                                    statusGroup.Connections.Count(),
+                                    statusGroup.Status,
+                                    string.Join(",", from con in statusGroup.Connections orderby con.Value.Id select con.Value.Id)
+                                );
                             }
                         }
                         Thread.Sleep(TimeSpan.FromMinutes(1));
@@ -229,6 +260,7 @@ namespace MindTouch.Clacks.Tester {
             public int Faults { get { return _faults; } }
 
             public IClientHandler Create(Guid clientId, Socket socket, IClacksInstrumentation instrumentation, Action<IClientHandler> removeHandler) {
+                Console.WriteLine("new connection");
                 return new FaultingSyncClientHandler(clientId, socket, _dispatcher, instrumentation, removeHandler, CheckForFault);
             }
 
