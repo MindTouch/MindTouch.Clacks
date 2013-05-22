@@ -61,9 +61,11 @@ namespace MindTouch.Clacks.Tester {
             var port = new Random().Next(1000, 30000);
             var host = "127.0.0.1";
             var runServer = true;
+            var poolSize = ConnectionPool.DefaultMaxConnections;
             var options = new Options {
                 {"w=", "Workers (default: 50)", x => workerCount = int.Parse(x)},
                 {"P=", "Worker Prefix (default: w)", x => workerPrefix = x},
+                {"S=", "Worker Pool Size (default: 100)", x => poolSize = int.Parse(x)},
                 {"f=", "Fault Interval (default: every 100000)", x => faultInterval = int.Parse(x)},
                 {"s=", "Sleep Interval (default: 50ms)", x => sleepInterval = int.Parse(x)},
                 {"X", "Disable Server (enabled by default)", x => runServer = x == null},
@@ -84,6 +86,7 @@ namespace MindTouch.Clacks.Tester {
                 var startSignal = new ManualResetEvent(false);
                 var readySignals = new List<WaitHandle>();
                 var pool = ConnectionPool.Create(host, port);
+                pool.MaxConnections = poolSize;
                 var poolUseCount = 0;
                 for(var i = 0; i < workerCount; i++) {
                     var ready = new ManualResetEvent(false);
@@ -96,15 +99,16 @@ namespace MindTouch.Clacks.Tester {
                         ready.Set();
                         startSignal.WaitOne();
                         var localUseCount = 0;
-                        var maxPoolUse = r.Next(50, 150);
+                        var maxPoolUse = r.Next(500, 750);
                         while(true) {
                             workerInfo.Status = WorkerStatus.CheckingPool;
                             localUseCount++;
                             var globalUseCount = Interlocked.Increment(ref poolUseCount);
-                            if(globalUseCount > r.Next(200, 300)) {
+                            if(globalUseCount > r.Next(2000, 3000)) {
                                 Console.WriteLine("{0}: creating new pool", workerInfo.Id);
                                 Interlocked.Exchange(ref poolUseCount, 0);
-                                pool = ConnectionPool.Create("127.0.0.1", port);
+                                pool = ConnectionPool.Create(host, port);
+                                pool.MaxConnections = poolSize;
                                 myPool = pool;
                             } else if(myPool != pool && localUseCount > maxPoolUse) {
                                 Console.WriteLine("{0}: picking new pool", workerInfo.Id);
@@ -112,7 +116,7 @@ namespace MindTouch.Clacks.Tester {
                                 localUseCount = 0;
                             }
                             using(var client = new ClacksClient(myPool)) {
-                                for(var k = 0; k < 1000; k++) {
+                                for(var k = 0; k < 50; k++) {
                                     workerInfo.Status = WorkerStatus.GeneratingPayload;
                                     var payload = new StringBuilder();
                                     payload.AppendFormat("id:{0},data:", workerInfo.Id);
@@ -140,10 +144,10 @@ namespace MindTouch.Clacks.Tester {
                                         }
                                     }
                                     Interlocked.Increment(ref workerInfo.Requests);
-                                    workerInfo.Status = WorkerStatus.Sleeping;
-                                    Thread.Sleep(sleepInterval);
                                 }
                             }
+                            workerInfo.Status = WorkerStatus.Sleeping;
+                            Thread.Sleep(sleepInterval);
                         }
                     });
                     tasks.Add(workerInfo.Task);
@@ -179,7 +183,7 @@ namespace MindTouch.Clacks.Tester {
                         Console.WriteLine("  {0} workers stuck in '{1}': {2}",
                                       stuckGroup.Workers.Count(),
                                       stuckGroup.Status,
-                                      string.Join(",", from worker in stuckGroup.Workers orderby worker.Id select string.Format("{0} ({1})", worker.Id, worker.Requests))
+                                      string.Join(", ", from worker in stuckGroup.Workers orderby worker.Id select string.Format("{0} ({1})", worker.Id, worker.Requests))
                             );
                     }
                     foreach(var worker in workers) {
@@ -212,11 +216,12 @@ namespace MindTouch.Clacks.Tester {
                     Console.WriteLine("created server");
                     Thread.Sleep(TimeSpan.FromMinutes(1));
                     var rates = new Queue<double>();
-                    var requestCount = 0;
+                    var totalRequests = 0;
                     while(true) {
                         lock(instrumentation.Connections) {
-                            requestCount = instrumentation.Requests - requestCount;
-                            rates.Enqueue(requestCount/t.Elapsed.TotalSeconds);
+                            var requestCount = instrumentation.Requests - totalRequests;
+                            totalRequests += requestCount;
+                            rates.Enqueue(requestCount / t.Elapsed.TotalSeconds);
                             if(rates.Count > 10) {
                                 rates.Dequeue();
                             }
@@ -236,7 +241,7 @@ namespace MindTouch.Clacks.Tester {
                                 Console.WriteLine("  {0} in state '{1}': {2}",
                                     statusGroup.Connections.Count(),
                                     statusGroup.Status,
-                                    string.Join(",", from con in statusGroup.Connections orderby con.Value.Id select con.Value.Id)
+                                    string.Join(", ", from con in statusGroup.Connections orderby con.Value.Id select con.Value.Id)
                                 );
                             }
                         }

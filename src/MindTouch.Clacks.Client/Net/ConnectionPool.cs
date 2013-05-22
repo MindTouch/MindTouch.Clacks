@@ -40,6 +40,56 @@ namespace MindTouch.Clacks.Client.Net {
             }
         }
 
+        private class WaitHandle {
+            private readonly ManualResetEventSlim _handle = new ManualResetEventSlim();
+            private ISocket _socket;
+            private bool _waiting = true;
+
+            public bool Provide(ISocket socket) {
+                if(!_waiting) {
+                    return false;
+                }
+                _socket = socket;
+                return true;
+            }
+            public void Wait(TimeSpan timeout) {
+                _handle.Wait(timeout);
+            }
+            public ISocket Socket {
+                get {
+                    _waiting = false;
+                    return _socket;
+                }
+            }
+        }
+
+        private class WaitingQueue {
+            private readonly Queue<WaitHandle> _queue = new Queue<WaitHandle>();
+
+            public bool ProvideSocket(ISocket socket) {
+                lock(_queue) {
+                    while(_queue.Any()) {
+                        var next = _queue.Dequeue();
+                        if(next.Provide(socket)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
+
+            public ISocket AwaitSocket(TimeSpan timeout) {
+                var handle = new WaitHandle();
+                lock(_queue) {
+                    _queue.Enqueue(handle);
+                }
+                handle.Wait(timeout);
+                lock(_queue) {
+                    return handle.Socket;
+                }
+            }
+        }
+
         public static readonly TimeSpan DefaultConnectTimeout = TimeSpan.FromSeconds(10);
         public static readonly TimeSpan DefaultIdleTimeout = TimeSpan.FromSeconds(30);
         public static readonly int DefaultMaxConnections = 100;
@@ -79,6 +129,7 @@ namespace MindTouch.Clacks.Client.Net {
 
         private readonly Func<ISocket> _socketFactory;
         private readonly List<Available> _availableSockets = new List<Available>();
+        private readonly WaitingQueue _waitingQueue = new WaitingQueue();
         private readonly Dictionary<ISocket, WeakReference> _busySockets = new Dictionary<ISocket, WeakReference>();
         private readonly Timer _socketCleanupTimer;
         private TimeSpan _cleanupInterval = TimeSpan.FromSeconds(60);
@@ -139,7 +190,7 @@ namespace MindTouch.Clacks.Client.Net {
                     var available = _availableSockets[_availableSockets.Count - 1];
                     _availableSockets.RemoveAt(_availableSockets.Count - 1);
 
-                    // check Socket connection if it's been idle for more than 10 seconds
+                    // if socket has been idle for more than 10 seconds, check Connected
                     if(available.Queued.AddSeconds(10) > DateTime.UtcNow || available.Socket.Connected) {
                         socket = available.Socket;
                         continue;
@@ -150,11 +201,16 @@ namespace MindTouch.Clacks.Client.Net {
                     if(_availableSockets.Count + _busySockets.Count >= MaxConnections) {
                         ReapSockets(null);
                         if(_availableSockets.Count + _busySockets.Count >= MaxConnections) {
-                            throw new PoolExhaustedException(MaxConnections);
+                            socket = _waitingQueue.AwaitSocket(ConnectTimeout);
+                            if(socket == null) {
+                                throw new PoolExhaustedException(MaxConnections);
+                            }
+                        } else {
+                            return GetSocket();
                         }
-                        return GetSocket();
+                    } else {
+                        socket = _socketFactory();
                     }
-                    socket = _socketFactory();
                 }
                 return WrapSocket(socket);
             }
@@ -179,6 +235,11 @@ namespace MindTouch.Clacks.Client.Net {
 
                     // drop socket
                     socket.Dispose();
+                    return;
+                }
+
+                // Try to hand the socket to the next waiting client in line
+                if(_waitingQueue.ProvideSocket(socket)) {
                     return;
                 }
 
