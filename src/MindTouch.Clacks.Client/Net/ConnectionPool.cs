@@ -50,11 +50,14 @@ namespace MindTouch.Clacks.Client.Net {
                     return false;
                 }
                 _socket = socket;
+                _handle.Set();
                 return true;
             }
+
             public void Wait(TimeSpan timeout) {
                 _handle.Wait(timeout);
             }
+
             public ISocket Socket {
                 get {
                     _waiting = false;
@@ -64,10 +67,15 @@ namespace MindTouch.Clacks.Client.Net {
         }
 
         private class WaitingQueue {
+            private readonly object _syncroot;
             private readonly Queue<WaitHandle> _queue = new Queue<WaitHandle>();
 
+            public WaitingQueue(object syncroot) {
+                _syncroot = syncroot;
+            }
+
             public bool ProvideSocket(ISocket socket) {
-                lock(_queue) {
+                lock(_syncroot) {
                     while(_queue.Any()) {
                         var next = _queue.Dequeue();
                         if(next.Provide(socket)) {
@@ -80,11 +88,11 @@ namespace MindTouch.Clacks.Client.Net {
 
             public ISocket AwaitSocket(TimeSpan timeout) {
                 var handle = new WaitHandle();
-                lock(_queue) {
+                lock(_syncroot) {
                     _queue.Enqueue(handle);
                 }
                 handle.Wait(timeout);
-                lock(_queue) {
+                lock(_syncroot) {
                     return handle.Socket;
                 }
             }
@@ -127,9 +135,10 @@ namespace MindTouch.Clacks.Client.Net {
             return new ConnectionPool(host, port);
         }
 
+        private readonly object _syncroot = new object();
         private readonly Func<ISocket> _socketFactory;
         private readonly List<Available> _availableSockets = new List<Available>();
-        private readonly WaitingQueue _waitingQueue = new WaitingQueue();
+        private readonly WaitingQueue _waitingQueue;
         private readonly Dictionary<ISocket, WeakReference> _busySockets = new Dictionary<ISocket, WeakReference>();
         private readonly Timer _socketCleanupTimer;
         private TimeSpan _cleanupInterval = TimeSpan.FromSeconds(60);
@@ -144,6 +153,7 @@ namespace MindTouch.Clacks.Client.Net {
             MaxConnections = DefaultMaxConnections;
             IdleTimeout = DefaultIdleTimeout;
             _socketFactory = socketFactory;
+            _waitingQueue = new WaitingQueue(_syncroot);
             _socketCleanupTimer = new Timer(ReapSockets, null, _cleanupInterval, _cleanupInterval);
         }
 
@@ -164,7 +174,7 @@ namespace MindTouch.Clacks.Client.Net {
 
         public int ActiveConnections {
             get {
-                lock(_availableSockets) {
+                lock(_syncroot) {
                     return _busySockets.Count;
                 }
             }
@@ -172,54 +182,63 @@ namespace MindTouch.Clacks.Client.Net {
 
         public int IdleConnections {
             get {
-                lock(_availableSockets) {
+                lock(_syncroot) {
                     return _availableSockets.Count;
                 }
             }
         }
 
         public ISocket GetSocket() {
-            lock(_availableSockets) {
-                ISocket socket = null;
-                while(socket == null && _availableSockets.Count > 0) {
-                    if(_availableSockets.Count <= 0) {
+            ISocket socket = null;
+            lock(_syncroot) {
+                while(true) {
+                    while(true) {
+                        if(!_availableSockets.Any()) {
+                            break;
+                        }
+
+                        // take available from end of list
+                        var available = _availableSockets[_availableSockets.Count - 1];
+                        _availableSockets.RemoveAt(_availableSockets.Count - 1);
+
+                        // if socket has been idle for more than 10 seconds, check Connected
+                        if(available.Queued > DateTime.UtcNow.AddSeconds(-10) || available.Socket.Connected) {
+                            socket = available.Socket;
+                            break;
+                        }
+
+                        // dead socket, clean up and try pool again
+                        available.Socket.Dispose();
+                    }
+                    if(socket != null) {
                         break;
                     }
-
-                    // take available from end of list
-                    var available = _availableSockets[_availableSockets.Count - 1];
-                    _availableSockets.RemoveAt(_availableSockets.Count - 1);
-
-                    // if socket has been idle for more than 10 seconds, check Connected
-                    if(available.Queued.AddSeconds(10) > DateTime.UtcNow || available.Socket.Connected) {
-                        socket = available.Socket;
-                        continue;
-                    }
-                    available.Socket.Dispose();
-                }
-                if(socket == null) {
-                    if(_availableSockets.Count + _busySockets.Count >= MaxConnections) {
-                        ReapSockets(null);
-                        if(_availableSockets.Count + _busySockets.Count >= MaxConnections) {
-                            socket = _waitingQueue.AwaitSocket(ConnectTimeout);
-                            if(socket == null) {
-                                throw new PoolExhaustedException(MaxConnections);
-                            }
-                        } else {
-                            return GetSocket();
-                        }
-                    } else {
+                    if(_availableSockets.Count + _busySockets.Count < MaxConnections) {
                         socket = _socketFactory();
+                        break;
+                    }
+                    ReapSockets(null);
+                    if(_availableSockets.Count + _busySockets.Count >= MaxConnections) {
+                        break;
                     }
                 }
-                return WrapSocket(socket);
+                if(socket != null) {
+                    return WrapSocket(socket);
+                }
             }
+            socket = _waitingQueue.AwaitSocket(ConnectTimeout);
+            if(socket == null) {
+                throw new PoolExhaustedException(MaxConnections);
+            }
+            return WrapSocket(socket);
         }
 
         private ISocket WrapSocket(ISocket socket) {
-            var poolsocket = new PoolSocket(socket, Reclaim);
-            _busySockets.Add(socket, new WeakReference(poolsocket));
-            return poolsocket;
+            lock(_syncroot) {
+                var poolsocket = new PoolSocket(socket, Reclaim);
+                _busySockets.Add(socket, new WeakReference(poolsocket));
+                return poolsocket;
+            }
         }
 
         private void Reclaim(ISocket socket) {
@@ -227,19 +246,26 @@ namespace MindTouch.Clacks.Client.Net {
                 socket.Dispose();
                 return;
             }
-            lock(_availableSockets) {
+            lock(_syncroot) {
                 if(!_busySockets.Remove(socket)) {
                     return;
                 }
-                if(socket.IsDisposed || (_availableSockets.Count + _busySockets.Count >= MaxConnections)) {
+                if(socket.IsDisposed) {
 
-                    // drop socket
+                    // drop disposed sockets
                     socket.Dispose();
                     return;
                 }
 
-                // Try to hand the socket to the next waiting client in line
+                // Try to hand the socket to the next client waiting in line
                 if(_waitingQueue.ProvideSocket(socket)) {
+                    return;
+                }
+
+                if(_availableSockets.Count + _busySockets.Count >= MaxConnections) {
+
+                    // drop socket if we've already hit the max
+                    socket.Dispose();
                     return;
                 }
 
@@ -249,7 +275,7 @@ namespace MindTouch.Clacks.Client.Net {
         }
 
         private void ReapSockets(object state) {
-            lock(_availableSockets) {
+            lock(_syncroot) {
                 var disposed = (from busy in _busySockets where busy.Key.IsDisposed select busy.Key).ToArray();
                 foreach(var socket in disposed) {
                     _busySockets.Remove(socket);
@@ -273,7 +299,7 @@ namespace MindTouch.Clacks.Client.Net {
                 return;
             }
             _disposed = true;
-            lock(_availableSockets) {
+            lock(_syncroot) {
                 foreach(var available in _availableSockets) {
                     available.Socket.Dispose();
                 }

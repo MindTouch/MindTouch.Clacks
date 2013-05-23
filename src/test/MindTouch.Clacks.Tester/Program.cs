@@ -42,7 +42,8 @@ namespace MindTouch.Clacks.Tester {
         CheckingPool,
         GeneratingPayload,
         MakingRequest,
-        CheckingResponse
+        CheckingResponse,
+        Failed
     }
 
     public class WorkerInfo {
@@ -62,6 +63,7 @@ namespace MindTouch.Clacks.Tester {
             var host = "127.0.0.1";
             var runServer = true;
             var poolSize = ConnectionPool.DefaultMaxConnections;
+            var maxGlobalIterations = 100000;
             var options = new Options {
                 {"w=", "Workers (default: 50)", x => workerCount = int.Parse(x)},
                 {"P=", "Worker Prefix (default: w)", x => workerPrefix = x},
@@ -70,7 +72,8 @@ namespace MindTouch.Clacks.Tester {
                 {"s=", "Sleep Interval (default: 50ms)", x => sleepInterval = int.Parse(x)},
                 {"X", "Disable Server (enabled by default)", x => runServer = x == null},
                 {"p=", "Server port (default: random)", x=> port = int.Parse(x)},
-                {"h=", "Server host (default: 127.0.0.1)", x=> host = x}
+                {"h=", "Server host (default: 127.0.0.1)", x=> host = x},
+                {"m=", "Max iterations before a new pool is created (default: 100000)", x => maxGlobalIterations = int.Parse(x)},
             };
             options.Parse(args).ToArray();
             var tasks = new List<Task>();
@@ -91,63 +94,77 @@ namespace MindTouch.Clacks.Tester {
                 for(var i = 0; i < workerCount; i++) {
                     var ready = new ManualResetEvent(false);
                     readySignals.Add(ready);
-                    var myPool = pool;
                     var workerInfo = new WorkerInfo { Id = workerPrefix + i.ToString("000"), Status = WorkerStatus.PreClient };
                     workers.Add(workerInfo);
                     workerInfo.Task = Task.Factory.StartNew(() => {
+                        //Thread.CurrentThread.Name = workerInfo.Id;
+                        var myPool = pool;
                         var r = new Random();
                         ready.Set();
+                        Console.WriteLine("{0}: ready", workerInfo.Id);
                         startSignal.WaitOne();
-                        var localUseCount = 0;
-                        var maxPoolUse = r.Next(500, 750);
+                        var oldPoolUse = 0;
+                        var maxOldPoolIterations = r.Next(10, 100);
                         while(true) {
-                            workerInfo.Status = WorkerStatus.CheckingPool;
-                            localUseCount++;
-                            var globalUseCount = Interlocked.Increment(ref poolUseCount);
-                            if(globalUseCount > r.Next(2000, 3000)) {
-                                Console.WriteLine("{0}: creating new pool", workerInfo.Id);
-                                Interlocked.Exchange(ref poolUseCount, 0);
-                                pool = ConnectionPool.Create(host, port);
-                                pool.MaxConnections = poolSize;
-                                myPool = pool;
-                            } else if(myPool != pool && localUseCount > maxPoolUse) {
-                                Console.WriteLine("{0}: picking new pool", workerInfo.Id);
-                                myPool = pool;
-                                localUseCount = 0;
-                            }
-                            using(var client = new ClacksClient(myPool)) {
-                                for(var k = 0; k < 50; k++) {
-                                    workerInfo.Status = WorkerStatus.GeneratingPayload;
-                                    var payload = new StringBuilder();
-                                    payload.AppendFormat("id:{0},data:", workerInfo.Id);
-                                    var size = r.Next(2, 100);
-                                    for(var l = 0; l < size; l++) {
-                                        payload.Append(Guid.NewGuid().ToString());
-                                    }
-                                    var data = payload.ToString();
-                                    var bytes = Encoding.ASCII.GetBytes(data);
-                                    workerInfo.Status = WorkerStatus.MakingRequest;
-                                    var response = client.Exec(new Client.Request("BIN").WithArgument(workerInfo.Id).WithData(bytes).ExpectData("OK"));
-                                    workerInfo.Status = WorkerStatus.CheckingResponse;
-                                    if(response.Status != "OK") {
-                                        throw new Exception("wrong status: " + response.Status);
-                                    }
-                                    if(response.Arguments.Length != 1) {
-                                        throw new Exception("wrong arg length: " + response.Arguments.Length);
-                                    }
-                                    var responseData = Encoding.ASCII.GetString(response.Data);
-                                    if(data != responseData) {
-                                        lock(workers) {
-                                            Console.WriteLine("bad data response for worker {0}", workerInfo.Id);
-                                            Console.WriteLine("sent:     {0}", data);
-                                            Console.WriteLine("received: {0}", responseData);
+                            try {
+                                workerInfo.Status = WorkerStatus.CheckingPool;
+                                var globalUseCount = Interlocked.Increment(ref poolUseCount);
+                                if(globalUseCount > maxGlobalIterations) {
+                                    lock(pool) {
+                                        if(pool == myPool) {
+                                            Console.WriteLine("{0}: creating new pool", workerInfo.Id);
+                                            Interlocked.Exchange(ref poolUseCount, 0);
+                                            pool = ConnectionPool.Create(host, port);
+                                            pool.MaxConnections = poolSize;
+                                            myPool = pool;
+                                            oldPoolUse = 0;
                                         }
                                     }
-                                    Interlocked.Increment(ref workerInfo.Requests);
+                                } else if(myPool != pool) {
+                                    oldPoolUse++;
+                                    if(oldPoolUse > maxOldPoolIterations) {
+                                        myPool = pool;
+                                        oldPoolUse = 0;
+                                    }
                                 }
+                                using(var client = new ClacksClient(myPool)) {
+                                    for(var k = 0; k < 50; k++) {
+                                        workerInfo.Status = WorkerStatus.GeneratingPayload;
+                                        var payload = new StringBuilder();
+                                        payload.AppendFormat("id:{0},data:", workerInfo.Id);
+                                        var size = r.Next(2, 100);
+                                        for(var l = 0; l < size; l++) {
+                                            payload.Append(Guid.NewGuid().ToString());
+                                        }
+                                        var data = payload.ToString();
+                                        var bytes = Encoding.ASCII.GetBytes(data);
+                                        workerInfo.Status = WorkerStatus.MakingRequest;
+                                        var response = client.Exec(new Client.Request("BIN").WithArgument(workerInfo.Id).WithData(bytes).ExpectData("OK"));
+                                        workerInfo.Status = WorkerStatus.CheckingResponse;
+                                        if(response.Status != "OK") {
+                                            throw new Exception("wrong status: " + response.Status);
+                                        }
+                                        if(response.Arguments.Length != 1) {
+                                            throw new Exception("wrong arg length: " + response.Arguments.Length);
+                                        }
+                                        var responseData = Encoding.ASCII.GetString(response.Data);
+                                        if(data != responseData) {
+                                            lock(workers) {
+                                                Console.WriteLine("bad data response for worker {0}", workerInfo.Id);
+                                                Console.WriteLine("sent:     {0}", data);
+                                                Console.WriteLine("received: {0}", responseData);
+                                            }
+                                        }
+                                        Interlocked.Increment(ref workerInfo.Requests);
+                                    }
+                                }
+                                workerInfo.Status = WorkerStatus.Sleeping;
+                                Thread.Sleep(sleepInterval);
+                            } catch(Exception e) {
+                                workerInfo.Status = WorkerStatus.Failed;
+                                Console.WriteLine("{0} failed: [{1}] {2}", workerInfo.Id, e.GetType(), e.Message);
+                                Thread.Sleep(sleepInterval);
                             }
-                            workerInfo.Status = WorkerStatus.Sleeping;
-                            Thread.Sleep(sleepInterval);
                         }
                     });
                     tasks.Add(workerInfo.Task);
@@ -161,12 +178,11 @@ namespace MindTouch.Clacks.Tester {
             Thread.Sleep(TimeSpan.FromMinutes(1));
             var lastRequests = workers.ToDictionary(k => k.Id, v => v.Requests);
             var requests = new Queue<Tuple<int, TimeSpan>>();
-            var faultCount = 0;
             while(true) {
                 if(workerCount > 0) {
                     var total = workers.Sum(x => x.Requests) - lastRequests.Values.Sum();
                     requests.Enqueue(new Tuple<int, TimeSpan>(total, t.Elapsed));
-                    if(requests.Count > 10) {
+                    if(requests.Count > 5) {
                         requests.Dequeue();
                     }
                     var rate = requests.Aggregate((a, b) => new Tuple<int, TimeSpan>(a.Item1 + b.Item1, a.Item2 + b.Item2));
@@ -191,15 +207,6 @@ namespace MindTouch.Clacks.Tester {
                     }
                     t.Restart();
                 }
-                foreach(var task in tasks.Where(task => task.IsFaulted)) {
-                    faultCount++;
-                    foreach(var exception in task.Exception.Flatten().InnerExceptions) {
-                        Console.WriteLine(exception);
-                    }
-                }
-                if(faultCount > 10) {
-                    return;
-                }
                 Thread.Sleep(TimeSpan.FromMinutes(1));
             }
         }
@@ -222,7 +229,7 @@ namespace MindTouch.Clacks.Tester {
                             var requestCount = instrumentation.Requests - totalRequests;
                             totalRequests += requestCount;
                             rates.Enqueue(requestCount / t.Elapsed.TotalSeconds);
-                            if(rates.Count > 10) {
+                            if(rates.Count > 5) {
                                 rates.Dequeue();
                             }
                             t.Restart();
