@@ -18,9 +18,10 @@
  * limitations under the License.
  */
 using System;
+using System.Net;
 
 namespace MindTouch.Clacks.Server.Sync {
     public interface ISyncCommandRegistration {
-        ISyncCommandHandler GetHandler(string[] commandArgs, Func<IRequest, Exception, IResponse> errorHandler);
+        ISyncCommandHandler GetHandler(IPEndPoint client, string[] commandArgs, Func<IRequest, Exception, IResponse> errorHandler);
     }
 }

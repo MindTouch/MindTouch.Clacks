@@ -20,8 +20,8 @@
 using System;
 
 namespace MindTouch.Clacks.Server.Async {
-    public class AsyncCommandRegistration : CommandRegistration<IAsyncCommandHandler,Action<IRequest, Exception, Action<IResponse>>>,IAsyncCommandRegistration {
-        public AsyncCommandRegistration(DataExpectation dataExpectation, CommandHandlerBuilder<IAsyncCommandHandler, Action<IRequest, Exception, Action<IResponse>>> builder) : base(dataExpectation, builder) {}
+    public class AsyncCommandRegistration : CommandRegistration<IAsyncCommandHandler, Action<IRequest, Exception, Action<IResponse>>>, IAsyncCommandRegistration {
+        public AsyncCommandRegistration(DataExpectation dataExpectation, CommandHandlerBuilder<IAsyncCommandHandler, Action<IRequest, Exception, Action<IResponse>>> builder) : base(dataExpectation, builder) { }
     }
 
 

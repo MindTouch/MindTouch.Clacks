@@ -17,6 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+using System.Net;
+
 namespace MindTouch.Clacks.Server {
-    public delegate THandler CommandHandlerBuilder<THandler, TError>(string command, int dataLength, string[] arguments, TError errorHandler);
+    public delegate THandler CommandHandlerBuilder<THandler, TError>(IPEndPoint client, string command, int dataLength, string[] arguments, TError errorHandler);
 }

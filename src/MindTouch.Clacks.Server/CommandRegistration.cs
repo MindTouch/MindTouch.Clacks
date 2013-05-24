@@ -19,6 +19,7 @@
  */
 using System;
 using System.Linq;
+using System.Net;
 
 namespace MindTouch.Clacks.Server {
     public abstract class CommandRegistration<THandler,TError> {
@@ -32,7 +33,7 @@ namespace MindTouch.Clacks.Server {
 
         public DataExpectation DataExpectation { get { return _dataExpectation; } }
 
-        public THandler GetHandler(string[] commandArgs, TError errorHandler) {
+        public THandler GetHandler(IPEndPoint client, string[] commandArgs, TError errorHandler) {
             var command = commandArgs.FirstOrDefault() ?? string.Empty;
             var dataLength = 0;
             string[] arguments;
@@ -56,7 +57,7 @@ namespace MindTouch.Clacks.Server {
             } else {
                 arguments = new string[0];
             }
-            return _builder(command, dataLength, arguments, errorHandler);
+            return _builder(client, command, dataLength, arguments, errorHandler);
         }
     }
 }

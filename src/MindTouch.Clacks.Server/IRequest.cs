@@ -17,8 +17,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+using System.Net;
+
 namespace MindTouch.Clacks.Server {
     public interface IRequest {
+        IPEndPoint Client { get; }
         string Command { get; }
         string[] Arguments { get; }
         byte[] Data { get; }

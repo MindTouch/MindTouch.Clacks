@@ -16,8 +16,8 @@ namespace MindTouch.Clacks.Server {
             get {
                 return new SyncCommandRegistration(
                     DataExpectation.Auto,
-                    (cmd, dataLength, arguments, errorHandler) =>
-                        new SyncSingleCommandHandler(cmd, arguments, dataLength, DefaultResponse, errorHandler)
+                    (client, cmd, dataLength, arguments, errorHandler) =>
+                        new SyncSingleCommandHandler(client, cmd, arguments, dataLength, DefaultResponse, errorHandler)
                 );
             }
         }
@@ -35,8 +35,8 @@ namespace MindTouch.Clacks.Server {
             get {
                 return new AsyncCommandRegistration(
                     DataExpectation.Auto,
-                    (command, dataLength, arguments, errorHandler) =>
-                        new AsyncSingleCommandHandler(command, arguments, dataLength, (r, c) => c(DefaultResponse(r)), errorHandler)
+                    (client, command, dataLength, arguments, errorHandler) =>
+                        new AsyncSingleCommandHandler(client, command, arguments, dataLength, (r, c) => c(DefaultResponse(r)), errorHandler)
                 );
             }
         }

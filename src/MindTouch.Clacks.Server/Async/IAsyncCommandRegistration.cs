@@ -18,9 +18,10 @@
  * limitations under the License.
  */
 using System;
+using System.Net;
 
 namespace MindTouch.Clacks.Server.Async {
     public interface IAsyncCommandRegistration {
-        IAsyncCommandHandler GetHandler(string[] commandArgs, Action<IRequest, Exception, Action<IResponse>> errorHandler);
+        IAsyncCommandHandler GetHandler(IPEndPoint client, string[] commandArgs, Action<IRequest, Exception, Action<IResponse>> errorHandler);
     }
 }

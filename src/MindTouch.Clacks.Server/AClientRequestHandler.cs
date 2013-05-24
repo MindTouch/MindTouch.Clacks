@@ -29,12 +29,12 @@ namespace MindTouch.Clacks.Server {
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
         private readonly Action<IClientHandler> _removeCallback;
-
         private readonly Guid _clientId;
-        protected readonly Socket _socket;
-        private readonly IPEndPoint _endPoint;
         private readonly Stopwatch _requestTimer = new Stopwatch();
         private readonly IClacksInstrumentation _instrumentation;
+
+        protected readonly Socket _socket;
+        protected readonly IPEndPoint _endPoint;
         protected readonly StringBuilder _commandBuffer = new StringBuilder();
         protected readonly byte[] _buffer = new byte[16 * 1024];
 

@@ -1,5 +1,9 @@
 0.3
 ===
 * Replaced IStatsCollector with IClacksInstrumentation for better hooks into current state of the server
-* Refactored client and server side Request to track down issues under mono
-* Added auto-reconnect/retry on client request failure (assumes stateless server, can be override in Client subclass)
+* Fixed various issues causing errors under load
+  * New client and server request processing logic
+  * More resilient ConnectionPool
+  * Fixed bad Socket.Listen queue size 
+* Added auto-reconnect/retry on client request failure (assumes stateless server, can be overridden in Client subclass)
+* ClacksClient now requires an IConnectionPool, no longer supports just an ISocket
