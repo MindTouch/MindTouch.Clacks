@@ -18,6 +18,8 @@
  * limitations under the License.
  */
 
+using System;
+using System.Text;
 using MindTouch.Clacks.Client.Net;
 using NUnit.Framework;
 
@@ -34,8 +36,8 @@ namespace MindTouch.Clacks.Client.Tests {
         }
 
         [Test]
-        public void Creating_client_gets_socket_from_pool() {
-            
+        public void Creating_client_does_not_get_socket_from_pool() {
+
             // Arrange
             var pool = new ConnectionPool(_factory.Create);
 
@@ -43,12 +45,34 @@ namespace MindTouch.Clacks.Client.Tests {
             var client = new ClacksClient(pool);
 
             // Assert
-            Assert.AreEqual(1,_factory.Sockets.Count);
+            Assert.AreEqual(0, _factory.Sockets.Count);
+        }
+
+        [Test]
+        public void Making_client_request_gets_socket_from_pool() {
+
+            // Arrange
+            var pool = new ConnectionPool(_factory.Create);
+            var socket = new FakeSocket {
+                ReceiveCallback = (buffer, size, offset) => {
+                    var bytes = Encoding.ASCII.GetBytes("OK\r\n");
+                    Array.Copy(bytes, buffer, bytes.Length);
+                    return bytes.Length;
+                }
+            };
+            _factory.Builder = () => socket;
+
+            // Act
+            var client = new ClacksClient(pool);
+            client.Exec(Request.Create("HI"));
+
+            // Assert
+            Assert.AreEqual(1, _factory.Sockets.Count);
         }
 
         [Test]
         public void Disposing_client_returns_socket_to_pool() {
-            
+
             // Arrange
             var pool = new ConnectionPool(_factory.Create);
 

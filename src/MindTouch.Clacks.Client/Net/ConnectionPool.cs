@@ -100,6 +100,7 @@ namespace MindTouch.Clacks.Client.Net {
 
         public static readonly TimeSpan DefaultConnectTimeout = TimeSpan.FromSeconds(10);
         public static readonly TimeSpan DefaultIdleTimeout = TimeSpan.FromSeconds(30);
+        public static readonly TimeSpan DefaultCheckInterval = TimeSpan.FromSeconds(10);
         public static readonly int DefaultMaxConnections = 100;
         private static readonly Dictionary<string, ConnectionPool> _pools = new Dictionary<string, ConnectionPool>();
 
@@ -152,12 +153,14 @@ namespace MindTouch.Clacks.Client.Net {
             ConnectTimeout = DefaultConnectTimeout;
             MaxConnections = DefaultMaxConnections;
             IdleTimeout = DefaultIdleTimeout;
+            CheckInterval = DefaultCheckInterval;
             _socketFactory = socketFactory;
             _waitingQueue = new WaitingQueue(_syncroot);
             _socketCleanupTimer = new Timer(ReapSockets, null, _cleanupInterval, _cleanupInterval);
         }
 
         public TimeSpan IdleTimeout { get; set; }
+        public TimeSpan CheckInterval { get; set; }
         public TimeSpan ConnectTimeout { get; set; }
         public int MaxConnections { get; set; }
 
@@ -201,14 +204,16 @@ namespace MindTouch.Clacks.Client.Net {
                         var available = _availableSockets[_availableSockets.Count - 1];
                         _availableSockets.RemoveAt(_availableSockets.Count - 1);
 
-                        // if socket has been idle for more than 10 seconds, check Connected
-                        if(available.Queued > DateTime.UtcNow.AddSeconds(-10) || available.Socket.Connected) {
+                        // if socket is disposed, has been idle for more than 10 seconds or is not Connected
+                        if(!available.Socket.IsDisposed && (available.Queued > DateTime.UtcNow.Add(-CheckInterval) || available.Socket.Connected)) {
                             socket = available.Socket;
                             break;
                         }
 
                         // dead socket, clean up and try pool again
-                        available.Socket.Dispose();
+                        if(!available.Socket.IsDisposed) {
+                            available.Socket.Dispose();
+                        }
                     }
                     if(socket != null) {
                         break;

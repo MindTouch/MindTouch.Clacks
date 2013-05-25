@@ -61,18 +61,18 @@ namespace MindTouch.Clacks.Server.PerfTests {
         public void Sync_can_create_many_clients_with_pool() {
             var payloadstring = "";
             using(ServerBuilder.CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
-                               .WithCommand("BIN")
-                               .HandledBy(request => {
-                                   var payload = new StringBuilder();
-                                   for(var i = 0; i < 10; i++) {
-                                       payload.Append(Guid.NewGuid().ToString());
-                                   }
-                                   payloadstring = payload.ToString();
-                                   return Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring));
-                               })
-                               .Register()
-                               .Build()
-                ) {
+                .WithCommand("BIN")
+                .HandledBy(request => {
+                    var payload = new StringBuilder();
+                    for(var i = 0; i < 10; i++) {
+                        payload.Append(Guid.NewGuid().ToString());
+                    }
+                    payloadstring = payload.ToString();
+                    return Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring));
+                })
+                .Register()
+                .Build()
+            ) {
                 Console.WriteLine("created server");
                 var pool = ConnectionPool.Create("127.0.0.1", _port);
                 var n = 20000;
@@ -95,18 +95,18 @@ namespace MindTouch.Clacks.Server.PerfTests {
         public void Sync_can_create_many_clients_with_own_sockets() {
             var payloadstring = "";
             using(ServerBuilder.CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
-                               .WithCommand("BIN")
-                               .HandledBy(request => {
-                                   var payload = new StringBuilder();
-                                   for(var i = 0; i < 10; i++) {
-                                       payload.Append(Guid.NewGuid().ToString());
-                                   }
-                                   payloadstring = payload.ToString();
-                                   return Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring));
-                               })
-                               .Register()
-                               .Build()
-                ) {
+                .WithCommand("BIN")
+                .HandledBy(request => {
+                    var payload = new StringBuilder();
+                    for(var i = 0; i < 10; i++) {
+                        payload.Append(Guid.NewGuid().ToString());
+                    }
+                    payloadstring = payload.ToString();
+                    return Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring));
+                })
+                .Register()
+                .Build()
+           ) {
                 Console.WriteLine("created server");
                 var n = 1000;
                 var t = Stopwatch.StartNew();

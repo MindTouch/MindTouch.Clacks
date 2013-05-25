@@ -18,6 +18,8 @@
  * limitations under the License.
  */
 
+using System;
+using System.Threading;
 using MindTouch.Clacks.Client.Net;
 using NUnit.Framework;
 
@@ -77,7 +79,7 @@ namespace MindTouch.Clacks.Client.Tests {
         }
 
         [Test]
-        public void Getting_sockets_in_sequence_when_the_first_has_closed_will_create_a_new_socket() {
+        public void Getting_sockets_quickly_in_sequence_when_the_first_has_closed_will_return_closed_socket() {
 
             // Arrange
             var pool = new ConnectionPool(_factory.Create);
@@ -86,6 +88,42 @@ namespace MindTouch.Clacks.Client.Tests {
             var s1 = pool.GetSocket();
             s1.Dispose();
             _factory.Sockets[0].Connected = false;
+            var s2 = pool.GetSocket();
+
+            // Assert
+            Assert.AreEqual(1, _factory.Sockets.Count);
+            Assert.IsFalse(s2.Connected);
+        }
+
+        [Test]
+        public void Getting_sockets_in_sequence_when_the_first_is_disposed_will_return_closed_socket() {
+
+            // Arrange
+            var pool = new ConnectionPool(_factory.Create);
+
+            // Act
+            var s1 = pool.GetSocket();
+            s1.Dispose();
+            _factory.Sockets[0].Connected = false;
+            _factory.Sockets[0].Dispose();
+            var s2 = pool.GetSocket();
+
+            // Assert
+            Assert.AreEqual(2, _factory.Sockets.Count);
+        }
+
+        [Test]
+        public void Getting_sockets_slowly_in_sequence_when_the_first_has_closed_will_return_new_socket() {
+
+            // Arrange
+            var pool = new ConnectionPool(_factory.Create);
+            pool.CheckInterval = TimeSpan.FromSeconds(1);
+
+            // Act
+            var s1 = pool.GetSocket();
+            s1.Dispose();
+            _factory.Sockets[0].Connected = false;
+            Thread.Sleep(3000);
             var s2 = pool.GetSocket();
 
             // Assert

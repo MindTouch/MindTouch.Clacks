@@ -51,7 +51,7 @@ namespace MindTouch.Clacks.Client.Tests {
         public int Send(byte[] buffer, int offset, int size) {
             SendCalled++;
             SendCallback();
-            return 0;
+            return size;
         }
 
         public int Receive(byte[] buffer, int offset, int size) {

@@ -32,7 +32,7 @@ using NUnit.Framework;
 using log4net;
 
 namespace MindTouch.Clacks.Server.PerfTests {
-    [TestFixture]
+    [TestFixture,Ignore]
     public class ParallelRequestTests {
         private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private int _port;

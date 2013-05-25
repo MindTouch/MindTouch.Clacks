@@ -115,8 +115,9 @@ namespace MindTouch.Clacks.Server.Async {
                         } else {
 
                             // null callback: the source already knows there won't be any more responses
+                            var status = _response.Status;
                             _response = null;
-                            EndCommandRequest(_response.Status);
+                            EndCommandRequest(status);
                         }
                     } catch(ObjectDisposedException) {
                         _log.Debug("socket was already disposed (EndSend)");
