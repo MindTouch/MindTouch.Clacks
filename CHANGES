@@ -5,5 +5,5 @@
   * New client and server request processing logic
   * More resilient ConnectionPool
   * Fixed bad Socket.Listen queue size 
-* Added auto-reconnect/retry on client request failure (assumes stateless server, can be overridden in Client subclass)
+* Added auto-reconnect/retry on client request failure (assumes stateless server, can be turned off)
 * ClacksClient now requires an IConnectionPool, no longer supports just an ISocket

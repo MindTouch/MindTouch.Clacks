@@ -229,11 +229,28 @@ namespace MindTouch.Clacks.Server {
                 return;
             }
             _isDisposed = true;
-            _log.DebugFormat("Disposing client from {0}", EndPoint);
+            _log.DebugFormat("Disposing client '{0}'", EndPoint);
             _instrumentation.ClientDisconnected(Id);
             try {
                 _socket.Shutdown(SocketShutdown.Both);
                 _socket.Close();
+            } catch { }
+            _removeCallback(this);
+        }
+
+        protected void FailAndDispose(string reason, Exception e) {
+            if(_isDisposed) {
+                return;
+            }
+            _isDisposed = true;
+            _log.Warn(string.Format("Disposing client '{0}' due to failure: {1}", EndPoint, reason), e);
+            _instrumentation.ClientDisconnected(Id);
+            try {
+
+                // we want to make sure that the client sees the failure and doesn't hang out hoping for the request to finish
+                _socket.LingerState = new LingerOption(true, 0);
+                _socket.Close();
+                _socket.Dispose();
             } catch { }
             _removeCallback(this);
         }

@@ -298,7 +298,9 @@ namespace MindTouch.Clacks.Tester {
             protected override void Receive(Action<int, int> continuation) {
                 if(_checkForFault()) {
                     Console.WriteLine("faulting request");
-                    _socket.Close(0);
+                    _socket.LingerState = new LingerOption(true, 0);
+                    _socket.Close();
+                    _socket.Dispose();
                     Dispose();
                     return;
                 }

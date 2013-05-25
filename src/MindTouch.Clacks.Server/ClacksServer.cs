@@ -19,6 +19,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 
@@ -86,7 +87,7 @@ namespace MindTouch.Clacks.Server {
         public void Dispose() {
             _listenSocket.Close();
             lock(_openConnections) {
-                foreach(var connection in _openConnections.Values) {
+                foreach(var connection in _openConnections.Values.ToArray()) {
                     connection.Dispose();
                 }
                 _openConnections.Clear();

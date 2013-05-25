@@ -55,12 +55,11 @@ namespace MindTouch.Clacks.Server.Sync {
                     Dispose();
                     return;
                 }
-            } catch(SocketException e) {
-                _log.Warn("Receive failed", e);
-                Dispose();
-                return;
             } catch(ObjectDisposedException) {
                 _log.Debug("socket was already disposed");
+                return;
+            } catch(Exception e) {
+                FailAndDispose("Receive failed", e);
                 return;
             }
             continuation(0, received);
@@ -85,12 +84,11 @@ namespace MindTouch.Clacks.Server.Sync {
                 var data = response.GetBytes();
                 try {
                     _socket.Send(data);
-                } catch(SocketException e) {
-                    _log.Warn("Send failed", e);
-                    Dispose();
-                    return;
                 } catch(ObjectDisposedException) {
                     _log.Debug("socket was already disposed");
+                    return;
+                } catch(Exception e) {
+                    FailAndDispose("Send failed", e);
                     return;
                 }
             }

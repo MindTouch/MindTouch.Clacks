@@ -63,19 +63,16 @@ namespace MindTouch.Clacks.Server.Async {
                             return;
                         }
                         continuation(0, received);
-                    } catch(SocketException e) {
-                        _log.Warn("EndReceive failed", e);
-                        Dispose();
                     } catch(ObjectDisposedException) {
                         _log.Debug("socket was already disposed (EndReceive)");
-                        return;
+                    } catch(Exception e) {
+                        FailAndDispose("EndReceive failed", e);
                     }
                 }, null);
-            } catch(SocketException e) {
-                _log.Warn("BeginReceive failed", e);
-                Dispose();
             } catch(ObjectDisposedException) {
                 _log.Debug("socket was already disposed (BeginReceive)");
+            } catch(Exception e) {
+                FailAndDispose("BeginReceive failed", e);
             }
         }
 
@@ -121,14 +118,16 @@ namespace MindTouch.Clacks.Server.Async {
                             _response = null;
                             EndCommandRequest(_response.Status);
                         }
+                    } catch(ObjectDisposedException) {
+                        _log.Debug("socket was already disposed (EndSend)");
                     } catch(Exception e) {
-                        _log.Warn("Send failed (EndSend)", e);
-                        Dispose();
+                        FailAndDispose("Send failed (EndSend)", e);
                     }
                 }, null);
+            } catch(ObjectDisposedException) {
+                _log.Debug("socket was already disposed (BeginSend)");
             } catch(Exception e) {
-                _log.Warn("Send failed (BeginSend)", e);
-                Dispose();
+                FailAndDispose("Send failed (BeginSend)", e);
             }
         }
 

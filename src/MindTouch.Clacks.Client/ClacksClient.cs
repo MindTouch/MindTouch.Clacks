@@ -26,26 +26,27 @@ using MindTouch.Clacks.Client.Net;
 namespace MindTouch.Clacks.Client {
 
     // TODO: need way to control Receive and Send timeouts
-    // Note: ClacksClient is not threadsafe. It's assumed that whatever code incorporates manages access to it
+    // Note: ClacksClient is not threadsafe. It's assumed that whatever code incorporates it manages access to it
     // in a threadsafe manner
     public class ClacksClient : IDisposable {
 
         private readonly IConnectionPool _pool;
+        private readonly bool _attemptReconnect;
         private ResponseReceiver _receiver;
         private bool _disposed;
         private ISocket _socket;
-        protected bool _attemptReconnect = true;
 
-        public ClacksClient(IPEndPoint endPoint)
-            : this(ConnectionPool.GetPool(endPoint)) {
+        public ClacksClient(IPEndPoint endPoint, bool attemptReconnect = true)
+            : this(ConnectionPool.GetPool(endPoint), attemptReconnect) {
         }
 
-        public ClacksClient(string host, int port)
-            : this(ConnectionPool.GetPool(host, port)) {
+        public ClacksClient(string host, int port, bool attemptReconnect = true)
+            : this(ConnectionPool.GetPool(host, port), attemptReconnect) {
         }
 
-        public ClacksClient(IConnectionPool pool) {
+        public ClacksClient(IConnectionPool pool, bool attemptReconnect = true) {
             _pool = pool;
+            _attemptReconnect = attemptReconnect;
         }
 
         public ClacksClient(ISocket socket) {
