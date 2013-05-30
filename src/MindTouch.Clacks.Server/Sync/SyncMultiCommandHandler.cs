@@ -23,6 +23,7 @@ using System.Net;
 
 namespace MindTouch.Clacks.Server.Sync {
     public class SyncMultiCommandHandler : ISyncCommandHandler {
+
         private readonly IPEndPoint _client;
         private readonly string _command;
         private readonly string[] _arguments;
@@ -40,8 +41,6 @@ namespace MindTouch.Clacks.Server.Sync {
             _handler = handler;
             _errorHandler = errorHandler;
         }
-
-        public void Dispose() { }
 
         public bool ExpectsData { get { return _dataLength > 0; } }
         public bool DisconnectOnCompletion { get { return false; } }
@@ -72,5 +71,7 @@ namespace MindTouch.Clacks.Server.Sync {
             }
             return responses;
         }
+
+        public void Dispose() { }
     }
 }

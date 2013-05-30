@@ -31,6 +31,7 @@ namespace MindTouch.Clacks.Client.Tests {
 
     [TestFixture]
     public class SocketAdapterTests {
+
         private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private int _port;
         private Socket _connectedSocket;

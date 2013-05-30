@@ -1,7 +1,7 @@
 0.3
 ===
 * Replaced IStatsCollector with IClacksInstrumentation for better hooks into current state of the server
-* Fixed various issues that caused errors under load
+* Fixed various issues that could cause errors under load
   * New client and server request processing logic
   * Fixed bad Socket.Listen queue size
 * ConnectionPool

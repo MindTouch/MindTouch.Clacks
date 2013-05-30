@@ -53,8 +53,6 @@ namespace MindTouch.Clacks.Server.Sync {
             _disconnect = true;
         }
 
-        public void Dispose() { }
-
         public bool ExpectsData { get { return _dataLength > 0; } }
         public bool DisconnectOnCompletion { get { return _disconnect; } }
         public int OutstandingBytes { get { return _dataLength - _received; } }
@@ -84,5 +82,7 @@ namespace MindTouch.Clacks.Server.Sync {
             }
             return new[] { response };
         }
+
+        public void Dispose() { }
     }
 }

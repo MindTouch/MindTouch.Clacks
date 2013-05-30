@@ -33,6 +33,7 @@ namespace MindTouch.Clacks.Client.Net.Helper {
 
         public bool Connected { get { return !_disposed && _socket.Connected; } }
         public bool IsDisposed { get { return _disposed; } }
+
         public void Dispose() {
             if(_disposed) {
                 return;
