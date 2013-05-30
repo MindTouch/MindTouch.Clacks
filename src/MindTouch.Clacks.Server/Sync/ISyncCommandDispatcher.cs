@@ -1,7 +1,7 @@
 /*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -17,8 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+using System.Net;
+
 namespace MindTouch.Clacks.Server.Sync {
     public interface ISyncCommandDispatcher {
-        ISyncCommandHandler GetHandler(string[] command);
+        ISyncCommandHandler GetHandler(IPEndPoint client, string[] command);
     }
 }

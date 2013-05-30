@@ -1,7 +1,7 @@
 /*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -20,8 +20,8 @@
 using System;
 
 namespace MindTouch.Clacks.Server.Async {
-    public class AsyncCommandRegistration : CommandRegistration<IAsyncCommandHandler,Action<IRequest, Exception, Action<IResponse>>>,IAsyncCommandRegistration {
-        public AsyncCommandRegistration(DataExpectation dataExpectation, CommandHandlerBuilder<IAsyncCommandHandler, Action<IRequest, Exception, Action<IResponse>>> builder) : base(dataExpectation, builder) {}
+    public class AsyncCommandRegistration : CommandRegistration<IAsyncCommandHandler, Action<IRequest, Exception, Action<IResponse>>>, IAsyncCommandRegistration {
+        public AsyncCommandRegistration(DataExpectation dataExpectation, CommandHandlerBuilder<IAsyncCommandHandler, Action<IRequest, Exception, Action<IResponse>>> builder) : base(dataExpectation, builder) { }
     }
 
 

@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -27,9 +27,12 @@ namespace MindTouch.Clacks.Server.Async {
 
         private readonly IAsyncCommandDispatcher _dispatcher;
         private IAsyncCommandHandler _commandHandler;
+        private IResponse _response;
+        private Action _nextResponseCallback;
+        private string _lastStatus;
 
-        public AsyncClientHandler(Socket socket, IAsyncCommandDispatcher dispatcher, IStatsCollector statsCollector, Action<IClientHandler> removeCallback)
-            : base(socket, statsCollector, removeCallback) {
+        public AsyncClientHandler(Guid clientId, Socket socket, IAsyncCommandDispatcher dispatcher, IClacksInstrumentation instrumentation, Action<IClientHandler> removeCallback)
+            : base(clientId, socket, instrumentation, removeCallback) {
             _dispatcher = dispatcher;
         }
 
@@ -60,42 +63,77 @@ namespace MindTouch.Clacks.Server.Async {
                             return;
                         }
                         continuation(0, received);
-                    } catch(SocketException e) {
-                        _log.Warn("EndReceive failed", e);
-                        Dispose();
                     } catch(ObjectDisposedException) {
                         _log.Debug("socket was already disposed (EndReceive)");
-                        return;
+                    } catch(Exception e) {
+                        FailAndDispose("EndReceive failed", e);
                     }
                 }, null);
-            } catch(SocketException e) {
-                _log.Warn("BeginReceive failed", e);
-                Dispose();
             } catch(ObjectDisposedException) {
                 _log.Debug("socket was already disposed (BeginReceive)");
+            } catch(Exception e) {
+                FailAndDispose("BeginReceive failed", e);
             }
         }
 
         protected override string InitializeHandler(string[] command) {
-            _commandHandler = _dispatcher.GetHandler(command);
+            _commandHandler = _dispatcher.GetHandler(_endPoint, command);
             return _commandHandler.Command;
         }
 
         // 13/14.
-        protected override void ProcessResponse() {
-            var responseHandler = new AsyncResponseHandler(
-                _socket,
-                EndCommandRequest,
-                error => {
-                    _log.Warn("Send failed", error);
-                    Dispose();
+        protected override void ProcessCommand() {
+            _commandHandler.GetResponse(ProcessResponse);
+        }
 
-                }
-            );
-            _commandHandler.GetResponse(responseHandler.SendResponse);
+        private void ProcessResponse(IResponse response, Action nextResponseCallback) {
+            Action continuation = SendResponse;
+            if(_response == null) {
+                continuation = () => PrepareResponse(response.Status);
+            }
+
+            // null response: the last callback returned no more results, so we're done
+            if(response == null) {
+                _response = null;
+                EndCommandRequest(_lastStatus);
+                return;
+            }
+            _response = response;
+            _nextResponseCallback = nextResponseCallback;
+            _lastStatus = _response.Status;
+            continuation();
+        }
+
+        protected override void SendResponse() {
+            try {
+                var data = _response.GetBytes();
+                _socket.BeginSend(data, 0, data.Length, SocketFlags.None, r => {
+                    try {
+                        _socket.EndSend(r);
+                        if(_nextResponseCallback != null) {
+                            _nextResponseCallback();
+                        } else {
+
+                            // null callback: the source already knows there won't be any more responses
+                            var status = _response.Status;
+                            _response = null;
+                            EndCommandRequest(status);
+                        }
+                    } catch(ObjectDisposedException) {
+                        _log.Debug("socket was already disposed (EndSend)");
+                    } catch(Exception e) {
+                        FailAndDispose("Send failed (EndSend)", e);
+                    }
+                }, null);
+            } catch(ObjectDisposedException) {
+                _log.Debug("socket was already disposed (BeginSend)");
+            } catch(Exception e) {
+                FailAndDispose("Send failed (BeginSend)", e);
+            }
         }
 
         protected override void CompleteRequest() {
+            _response = null;
             if(Handler.DisconnectOnCompletion) {
                 Dispose();
             } else {

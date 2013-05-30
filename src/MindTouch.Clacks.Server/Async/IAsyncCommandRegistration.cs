@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -18,9 +18,10 @@
  * limitations under the License.
  */
 using System;
+using System.Net;
 
 namespace MindTouch.Clacks.Server.Async {
     public interface IAsyncCommandRegistration {
-        IAsyncCommandHandler GetHandler(string[] commandArgs, Action<IRequest, Exception, Action<IResponse>> errorHandler);
+        IAsyncCommandHandler GetHandler(IPEndPoint client, string[] commandArgs, Action<IRequest, Exception, Action<IResponse>> errorHandler);
     }
 }

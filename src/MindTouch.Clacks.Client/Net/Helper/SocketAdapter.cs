@@ -1,7 +1,7 @@
 /*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -66,17 +66,10 @@ namespace MindTouch.Clacks.Client.Net.Helper {
         }
 
         private readonly Socket _socket;
+        private bool _isDisposed;
 
         public SocketAdapter(Socket socket) {
             _socket = socket;
-        }
-
-        public void Dispose() {
-            try {
-                _socket.Shutdown(SocketShutdown.Both);
-                _socket.Close();
-                _socket.Dispose();
-            } catch { }
         }
 
         public bool Connected {
@@ -86,6 +79,20 @@ namespace MindTouch.Clacks.Client.Net.Helper {
                 }
                 return !(_socket.Poll(10, SelectMode.SelectRead) && _socket.Available == 0);
             }
+        }
+
+        public bool IsDisposed { get { return _isDisposed; } }
+
+        public void Dispose() {
+            if(_isDisposed) {
+                return;
+            }
+            try {
+                _socket.Shutdown(SocketShutdown.Both);
+                _socket.Close();
+                _socket.Dispose();
+            } catch { }
+            _isDisposed = true;
         }
 
         public int Send(byte[] buffer, int offset, int size) {

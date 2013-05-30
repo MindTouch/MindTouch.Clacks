@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -18,8 +18,9 @@
  * limitations under the License.
  */
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Sockets;
-using System.Threading;
 
 namespace MindTouch.Clacks.Server.Sync {
     public class SyncClientHandler : AClientRequestHandler {
@@ -28,8 +29,10 @@ namespace MindTouch.Clacks.Server.Sync {
 
         private readonly ISyncCommandDispatcher _dispatcher;
         private ISyncCommandHandler _commandHandler;
+        private IEnumerable<IResponse> _responses;
 
-        public SyncClientHandler(Socket socket, ISyncCommandDispatcher dispatcher, IStatsCollector statsCollector, Action<IClientHandler> removeCallback) : base(socket, statsCollector, removeCallback) {
+        public SyncClientHandler(Guid clientId, Socket socket, ISyncCommandDispatcher dispatcher, IClacksInstrumentation instrumentation, Action<IClientHandler> removeCallback)
+            : base(clientId, socket, instrumentation, removeCallback) {
             _dispatcher = dispatcher;
         }
 
@@ -52,36 +55,40 @@ namespace MindTouch.Clacks.Server.Sync {
                     Dispose();
                     return;
                 }
-            } catch(SocketException e) {
-                _log.Warn("Receive failed", e);
-                Dispose();
-                return;
             } catch(ObjectDisposedException) {
                 _log.Debug("socket was already disposed");
+                return;
+            } catch(Exception e) {
+                FailAndDispose("Receive failed", e);
                 return;
             }
             continuation(0, received);
         }
 
         protected override string InitializeHandler(string[] command) {
-            _commandHandler = _dispatcher.GetHandler(command);
+            _commandHandler = _dispatcher.GetHandler(_endPoint, command);
             return _commandHandler.Command;
         }
 
         // 13/14.
-        protected override void ProcessResponse() {
+        protected override void ProcessCommand() {
+            _responses = _commandHandler.GetResponse();
+            var status = _responses.First().Status;
+            PrepareResponse(status);
+        }
+
+        protected override void SendResponse() {
             string finalStatus = null;
             foreach(var response in _commandHandler.GetResponse()) {
                 finalStatus = response.Status;
                 var data = response.GetBytes();
                 try {
                     _socket.Send(data);
-                } catch(SocketException e) {
-                    _log.Warn("Send failed", e);
-                    Dispose();
-                    return;
                 } catch(ObjectDisposedException) {
                     _log.Debug("socket was already disposed");
+                    return;
+                } catch(Exception e) {
+                    FailAndDispose("Send failed", e);
                     return;
                 }
             }

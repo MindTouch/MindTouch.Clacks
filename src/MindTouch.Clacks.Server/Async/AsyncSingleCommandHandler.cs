@@ -1,7 +1,7 @@
 /*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -19,6 +19,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Net;
 
 namespace MindTouch.Clacks.Server.Async {
     public class AsyncSingleCommandHandler : IAsyncCommandHandler {
@@ -27,6 +28,7 @@ namespace MindTouch.Clacks.Server.Async {
             return new AsyncSingleCommandHandler(command, handler);
         }
 
+        private readonly IPEndPoint _client;
         private readonly string _command;
         private readonly string[] _arguments;
         private readonly Action<IRequest, Action<IResponse>> _handler;
@@ -36,7 +38,8 @@ namespace MindTouch.Clacks.Server.Async {
         private int _received;
         private List<byte[]> _dataChunks;
 
-        public AsyncSingleCommandHandler(string command, string[] arguments, int dataLength, Action<IRequest, Action<IResponse>> handler, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
+        public AsyncSingleCommandHandler(IPEndPoint client, string command, string[] arguments, int dataLength, Action<IRequest, Action<IResponse>> handler, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
+            _client = client;
             _command = command;
             _arguments = arguments;
             _dataLength = dataLength;
@@ -72,7 +75,7 @@ namespace MindTouch.Clacks.Server.Async {
             if(_received < _dataLength) {
                 throw new DataExpectationException(false);
             }
-            var request = new Request(_command, _arguments, _dataLength, _dataChunks);
+            var request = new Request(_client, _command, _arguments, _dataLength, _dataChunks);
             Action<IResponse> responseAction = response => responseCallback(response, null);
             try {
                 _handler(request, responseAction);

@@ -1,0 +1,15 @@
+0.3
+===
+* Replaced IStatsCollector with IClacksInstrumentation for better hooks into current state of the server
+* Fixed various issues that could cause errors under load
+  * New client and server request processing logic
+  * Fixed bad Socket.Listen queue size
+* ConnectionPool
+  * most recently used sockets are now added to the front of the available queue, since they have a higher likelyhood of still being connected
+  * do not check Connected on socket on each pool fetch, since it has significant overhead
+  * Better Connected logic (i.e. polls socket, rather than just use the socket's Connected field)
+  * When the pool is exhausted, incoming requests for sockets are now queue'd for ConnectTimeout rather than failing immediately
+* ClackClient
+  * Added auto-reconnect/retry on request failure (assumes stateless server, can be turned off)
+  * now requires an IConnectionPool, so while host/port & IPEndpoint Ctor's still exist, the ISocket Ctor is gone
+* Added the Client's endpoint to server's Request object	

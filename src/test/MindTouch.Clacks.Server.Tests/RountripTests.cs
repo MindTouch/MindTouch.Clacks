@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -54,14 +54,14 @@ namespace MindTouch.Clacks.Server.Tests {
         private void DisconnectTest(ClacksServer server) {
             _log.Debug("creating server");
             using(server) {
-                Console.WriteLine("created server");
+                _log.Debug("created server");
                 using(var client = new ClacksClient("127.0.0.1", _port)) {
                     Assert.IsFalse(client.Disposed);
                     Console.WriteLine("created client");
                     var response = client.Exec(new Client.Request("BYE"));
-                    Console.WriteLine("got response");
+                    _log.Debug("got response");
                     Assert.AreEqual("BYE", response.Status);
-                    Console.WriteLine("checking disposed");
+                    _log.Debug("checking disposed");
                     var c = 0;
                     while(!client.Disposed) {
                         c++;

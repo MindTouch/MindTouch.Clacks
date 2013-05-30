@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -20,29 +20,33 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Sockets;
 using MindTouch.Clacks.Client.Net;
 
 namespace MindTouch.Clacks.Client {
 
     // TODO: need way to control Receive and Send timeouts
-    // Note: ClacksClient is not threadsafe. It's assumed that whatever code incorporates manages access to it
+    // Note: ClacksClient is not threadsafe. It's assumed that whatever code incorporates it manages access to it
     // in a threadsafe manner
     public class ClacksClient : IDisposable {
-        public const string DEFAULT_TUBE = "default";
-        private readonly ISocket _socket;
-        private readonly ResponseReceiver _receiver;
+
+        private readonly IConnectionPool _pool;
+        private readonly bool _attemptReconnect;
+        private ResponseReceiver _receiver;
         private bool _disposed;
+        private ISocket _socket;
 
-        public ClacksClient(IPEndPoint endPoint)
-            : this(ConnectionPool.GetPool(endPoint)) {
+        public ClacksClient(IPEndPoint endPoint, bool attemptReconnect = true)
+            : this(ConnectionPool.GetPool(endPoint), attemptReconnect) {
         }
 
-        public ClacksClient(string host, int port)
-            : this(ConnectionPool.GetPool(host, port)) {
+        public ClacksClient(string host, int port, bool attemptReconnect = true)
+            : this(ConnectionPool.GetPool(host, port), attemptReconnect) {
         }
 
-        public ClacksClient(IConnectionPool pool)
-            : this(pool.GetSocket()) {
+        public ClacksClient(IConnectionPool pool, bool attemptReconnect = true) {
+            _pool = pool;
+            _attemptReconnect = attemptReconnect;
         }
 
         public ClacksClient(ISocket socket) {
@@ -51,15 +55,23 @@ namespace MindTouch.Clacks.Client {
             }
             _socket = socket;
             _receiver = new ResponseReceiver(_socket);
-            InitSocket();
         }
 
-        protected virtual void InitSocket() { }
+        protected virtual void InitSocket() {
+            if(_socket != null && !_socket.IsDisposed) {
+                return;
+            }
+            _socket = _pool.GetSocket();
+            _receiver = new ResponseReceiver(_socket);
+        }
 
         public bool Disposed {
             get {
                 if(_disposed) {
                     return true;
+                }
+                if(_socket == null) {
+                    return _disposed;
                 }
                 if(!_socket.Connected) {
                     _socket.Dispose();
@@ -71,10 +83,25 @@ namespace MindTouch.Clacks.Client {
 
         public Response Exec(Request request) {
             ThrowIfDisposed();
-            _socket.SendRequest(request);
-            _receiver.Reset(request);
-            var response = _receiver.GetResponse();
-            return response;
+            var isReconnect = !_attemptReconnect;
+            while(true) {
+                InitSocket();
+                try {
+                    _socket.SendRequest(request);
+                    _receiver.Reset(request);
+                    return _receiver.GetResponse();
+                } catch(SocketException) {
+                    if(isReconnect) {
+                        throw;
+                    }
+                } catch(ObjectDisposedException) {
+                    if(isReconnect) {
+                        throw;
+                    }
+                }
+                isReconnect = true;
+                _socket = null;
+            }
         }
 
         public IEnumerable<Response> Exec(MultiRequest request) {
@@ -83,18 +110,34 @@ namespace MindTouch.Clacks.Client {
                 throw new InvalidRequestException();
             }
             ThrowIfDisposed();
-            _socket.SendRequest(request);
-            _receiver.Reset(request);
-            var responses = new List<Response>();
+            var isReconnect = !_attemptReconnect;
             while(true) {
-                var response = _receiver.GetResponse();
-                if(!requestInfo.IsExpected(response.Status)) {
-                    return new[] { response };
+                InitSocket();
+                try {
+                    _socket.SendRequest(request);
+                    _receiver.Reset(request);
+                    var responses = new List<Response>();
+                    while(true) {
+                        var response = _receiver.GetResponse();
+                        if(!requestInfo.IsExpected(response.Status)) {
+                            return new[] { response };
+                        }
+                        responses.Add(response);
+                        if(response.Status == requestInfo.TerminationStatus) {
+                            return responses;
+                        }
+                    }
+                } catch(SocketException) {
+                    if(isReconnect) {
+                        throw;
+                    }
+                } catch(ObjectDisposedException) {
+                    if(isReconnect) {
+                        throw;
+                    }
                 }
-                responses.Add(response);
-                if(response.Status == requestInfo.TerminationStatus) {
-                    return responses;
-                }
+                isReconnect = true;
+                _socket = null;
             }
         }
 
@@ -105,22 +148,13 @@ namespace MindTouch.Clacks.Client {
         }
 
         public void Dispose() {
-            Dispose(true);
-        }
-
-        protected virtual void Dispose(bool suppressFinalizer) {
             if(_disposed) {
                 return;
             }
-            if(suppressFinalizer) {
-                GC.SuppressFinalize(this);
-            }
-            _socket.Dispose();
             _disposed = true;
-        }
-
-        ~ClacksClient() {
-            Dispose(false);
+            if(_socket != null) {
+                _socket.Dispose();
+            }
         }
     }
 }

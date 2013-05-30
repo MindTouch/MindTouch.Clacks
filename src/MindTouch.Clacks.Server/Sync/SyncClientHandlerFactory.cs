@@ -1,7 +1,7 @@
 /*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -28,8 +28,8 @@ namespace MindTouch.Clacks.Server.Sync {
             _dispatcher = dispatcher;
         }
 
-        public IClientHandler Create(Socket socket, IStatsCollector statsCollector, Action<IClientHandler> removeHandler) {
-            return new SyncClientHandler(socket, _dispatcher, statsCollector, removeHandler);
+        public IClientHandler Create(Guid clientId, Socket socket, IClacksInstrumentation instrumentation, Action<IClientHandler> removeHandler) {
+            return new SyncClientHandler(clientId, socket, _dispatcher, instrumentation, removeHandler);
         }
     }
 }

@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -22,6 +22,7 @@ using System;
 namespace MindTouch.Clacks.Client.Net {
     public interface ISocket : IDisposable {
         bool Connected { get; }
+        bool IsDisposed { get; }
         int Send(byte[] buffer, int offset, int size);
         int Receive(byte[] buffer, int offset, int size);
     }

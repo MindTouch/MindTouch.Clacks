@@ -17,28 +17,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 using System.IO;
-using MindTouch.Clacks.Client.Net;
+using System.Text;
 
-namespace MindTouch.Clacks.Client {
-    public static class Extensions {
-
-        public static void Write(this Stream stream, byte[] buffer) {
-            stream.Write(buffer, 0, buffer.Length);
+namespace MindTouch.Clacks.Server.PerfTests {
+    public static class TestExtensions {
+        public static MemoryStream AsStream(this string data) {
+            return new MemoryStream(Encoding.UTF8.GetBytes(data)) { Position = 0 };
         }
 
-        public static void SendRequest(this ISocket socket, IRequestInfo request) {
-            var bytes = request.AsBytes();
-            socket.SendBuffer(bytes, bytes.Length);
-        }
-
-        private static void SendBuffer(this ISocket socket, byte[] buffer, int count) {
-            var offset = 0;
-            while(count > 0) {
-                var sent = socket.Send(buffer, offset, count);
-                offset += sent;
-                count -= sent;
+        public static string AsText(this Stream stream) {
+            stream.Position = 0;
+            using(var reader = new StreamReader(stream)) {
+                return reader.ReadToEnd();
             }
         }
+
     }
 }
+

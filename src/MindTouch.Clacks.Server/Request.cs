@@ -1,7 +1,7 @@
 /*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -19,10 +19,11 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Net;
 
 namespace MindTouch.Clacks.Server {
     public class Request : IRequest {
-
+        private readonly IPEndPoint _client;
         private readonly string _command;
         private readonly string[] _arguments;
         private readonly byte[] _data;
@@ -31,10 +32,12 @@ namespace MindTouch.Clacks.Server {
             _command = command[0];
         }
 
-        public Request(string command, string[] arguments, int dataLength, IEnumerable<byte[]> data) {
+        public Request(IPEndPoint client, string command, string[] arguments, int dataLength, IEnumerable<byte[]> data) {
+            _client = client;
             _command = command;
             _arguments = arguments;
-            if(dataLength <= 0) return;
+            if(dataLength <= 0)
+                return;
             _data = new byte[dataLength];
             var idx = 0;
             foreach(var chunk in data) {
@@ -43,6 +46,7 @@ namespace MindTouch.Clacks.Server {
             }
         }
 
+        public IPEndPoint Client { get { return _client; } }
         public string Command { get { return _command; } }
         public string[] Arguments { get { return _arguments; } }
         public byte[] Data { get { return _data; } }

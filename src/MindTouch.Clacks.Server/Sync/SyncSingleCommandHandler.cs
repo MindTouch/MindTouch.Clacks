@@ -1,7 +1,7 @@
 /*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -19,6 +19,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Net;
 
 namespace MindTouch.Clacks.Server.Sync {
     public class SyncSingleCommandHandler : ISyncCommandHandler {
@@ -27,6 +28,7 @@ namespace MindTouch.Clacks.Server.Sync {
             return new SyncSingleCommandHandler(command, handler);
         }
 
+        private readonly IPEndPoint _client;
         private readonly string _command;
         private readonly string[] _arguments;
         private readonly Func<IRequest, IResponse> _handler;
@@ -36,7 +38,8 @@ namespace MindTouch.Clacks.Server.Sync {
         private int _received;
         private List<byte[]> _dataChunks;
 
-        public SyncSingleCommandHandler(string command, string[] arguments, int dataLength, Func<IRequest, IResponse> handler, Func<IRequest, Exception, IResponse> errorHandler) {
+        public SyncSingleCommandHandler(IPEndPoint client, string command, string[] arguments, int dataLength, Func<IRequest, IResponse> handler, Func<IRequest, Exception, IResponse> errorHandler) {
+            _client = client;
             _command = command;
             _arguments = arguments;
             _dataLength = dataLength;
@@ -49,8 +52,6 @@ namespace MindTouch.Clacks.Server.Sync {
             _handler = handler;
             _disconnect = true;
         }
-
-        public void Dispose() { }
 
         public bool ExpectsData { get { return _dataLength > 0; } }
         public bool DisconnectOnCompletion { get { return _disconnect; } }
@@ -72,7 +73,7 @@ namespace MindTouch.Clacks.Server.Sync {
             if(_received < _dataLength) {
                 throw new DataExpectationException(false);
             }
-            var request = new Request(_command, _arguments, _dataLength, _dataChunks);
+            var request = new Request(_client, _command, _arguments, _dataLength, _dataChunks);
             IResponse response;
             try {
                 response = _handler(request);
@@ -81,5 +82,7 @@ namespace MindTouch.Clacks.Server.Sync {
             }
             return new[] { response };
         }
+
+        public void Dispose() { }
     }
 }

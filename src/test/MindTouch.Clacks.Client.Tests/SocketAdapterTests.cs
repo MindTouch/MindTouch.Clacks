@@ -1,7 +1,7 @@
 ﻿/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -21,6 +21,7 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using MindTouch.Clacks.Client.Net;
 using MindTouch.Clacks.Client.Net.Helper;
 using NUnit.Framework;
@@ -30,15 +31,18 @@ namespace MindTouch.Clacks.Client.Tests {
 
     [TestFixture]
     public class SocketAdapterTests {
+
         private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private int _port;
         private Socket _connectedSocket;
         private Socket _listenSocket;
+        private ManualResetEvent _connectSignal;
 
         [SetUp]
         public void Setup() {
             _log.Debug("priming logger");
             _port = new Random().Next(1000, 30000);
+            _connectSignal = new ManualResetEvent(false);
         }
 
 
@@ -73,12 +77,13 @@ namespace MindTouch.Clacks.Client.Tests {
             ISocket socket = null;
             try {
                 var endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port);
-                _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) {NoDelay = true};
+                _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
                 _listenSocket.Bind(endpoint);
                 _listenSocket.Listen(10);
                 _listenSocket.BeginAccept(OnAccept, _listenSocket);
                 socket = SocketAdapter.Open(endpoint);
                 Assert.IsTrue(socket.Connected);
+                Assert.IsTrue(_connectSignal.WaitOne(5000));
                 _connectedSocket.Shutdown(SocketShutdown.Both);
                 _connectedSocket.Close();
                 Assert.IsFalse(socket.Connected);
@@ -94,6 +99,7 @@ namespace MindTouch.Clacks.Client.Tests {
 
         private void OnAccept(IAsyncResult ar) {
             _connectedSocket = _listenSocket.EndAccept(ar);
+            _connectSignal.Set();
         }
     }
 }

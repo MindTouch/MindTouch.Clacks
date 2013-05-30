@@ -1,7 +1,7 @@
 /*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -19,10 +19,12 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Net;
 
 namespace MindTouch.Clacks.Server.Sync {
     public class SyncMultiCommandHandler : ISyncCommandHandler {
 
+        private readonly IPEndPoint _client;
         private readonly string _command;
         private readonly string[] _arguments;
         private readonly Func<IRequest, IEnumerable<IResponse>> _handler;
@@ -31,15 +33,14 @@ namespace MindTouch.Clacks.Server.Sync {
         private int _received;
         private List<byte[]> _dataChunks;
 
-        public SyncMultiCommandHandler(string command, string[] arguments, int dataLength, Func<IRequest, IEnumerable<IResponse>> handler, Func<IRequest, Exception, IResponse> errorHandler) {
+        public SyncMultiCommandHandler(IPEndPoint client, string command, string[] arguments, int dataLength, Func<IRequest, IEnumerable<IResponse>> handler, Func<IRequest, Exception, IResponse> errorHandler) {
+            _client = client;
             _command = command;
             _arguments = arguments;
             _dataLength = dataLength;
             _handler = handler;
             _errorHandler = errorHandler;
         }
-
-        public void Dispose() { }
 
         public bool ExpectsData { get { return _dataLength > 0; } }
         public bool DisconnectOnCompletion { get { return false; } }
@@ -61,7 +62,7 @@ namespace MindTouch.Clacks.Server.Sync {
             if(_received < _dataLength) {
                 throw new DataExpectationException(false);
             }
-            var request = new Request(_command, _arguments, _dataLength, _dataChunks);
+            var request = new Request(_client, _command, _arguments, _dataLength, _dataChunks);
             IEnumerable<IResponse> responses;
             try {
                 responses = _handler(request);
@@ -70,5 +71,7 @@ namespace MindTouch.Clacks.Server.Sync {
             }
             return responses;
         }
+
+        public void Dispose() { }
     }
 }

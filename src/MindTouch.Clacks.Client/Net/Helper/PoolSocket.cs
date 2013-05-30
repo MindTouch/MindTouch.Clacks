@@ -1,7 +1,7 @@
 /*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 using System;
+using System.Net.Sockets;
 
 namespace MindTouch.Clacks.Client.Net.Helper {
     public class PoolSocket : ISocket {
@@ -30,6 +31,9 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             _reclaim = reclaim;
         }
 
+        public bool Connected { get { return !_disposed && _socket.Connected; } }
+        public bool IsDisposed { get { return _disposed; } }
+
         public void Dispose() {
             if(_disposed) {
                 return;
@@ -38,21 +42,33 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             _reclaim(_socket);
         }
 
-        public bool Connected { get { return !_disposed && _socket.Connected; } }
-
         public int Send(byte[] buffer, int offset, int size) {
-            ThrowIfDisposed();
-            return _socket.Send(buffer, offset, size);
+            return Try(() => _socket.Send(buffer, offset, size));
         }
 
         public int Receive(byte[] buffer, int offset, int size) {
-            ThrowIfDisposed();
-            return _socket.Receive(buffer, offset, size);
+            return Try(() => _socket.Receive(buffer, offset, size));
         }
 
-        private void ThrowIfDisposed() {
+        private T Try<T>(Func<T> func, bool retry = true) {
             if(_disposed) {
                 throw new ObjectDisposedException("PoolSocket");
+            }
+            try {
+                return func();
+            } catch(ObjectDisposedException e) {
+                try {
+                    Dispose();
+                } catch { }
+                throw;
+
+            } catch(SocketException e) {
+                try {
+                    _socket.Dispose();
+                    Dispose();
+                } catch { }
+                throw;
+
             }
         }
     }

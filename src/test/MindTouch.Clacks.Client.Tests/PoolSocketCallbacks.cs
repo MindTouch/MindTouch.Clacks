@@ -17,28 +17,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-using System.IO;
+
 using MindTouch.Clacks.Client.Net;
 
-namespace MindTouch.Clacks.Client {
-    public static class Extensions {
+namespace MindTouch.Clacks.Client.Tests {
+    public class PoolSocketCallbacks {
 
-        public static void Write(this Stream stream, byte[] buffer) {
-            stream.Write(buffer, 0, buffer.Length);
-        }
+        public ISocket ReclaimedSocket;
+        public int ReclaimCalled;
 
-        public static void SendRequest(this ISocket socket, IRequestInfo request) {
-            var bytes = request.AsBytes();
-            socket.SendBuffer(bytes, bytes.Length);
-        }
-
-        private static void SendBuffer(this ISocket socket, byte[] buffer, int count) {
-            var offset = 0;
-            while(count > 0) {
-                var sent = socket.Send(buffer, offset, count);
-                offset += sent;
-                count -= sent;
-            }
+        public void Reclaim(ISocket socket) {
+            ReclaimedSocket = socket;
+            ReclaimCalled++;
         }
     }
 }

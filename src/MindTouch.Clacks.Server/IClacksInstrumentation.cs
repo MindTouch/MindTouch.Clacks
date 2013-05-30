@@ -1,7 +1,7 @@
-﻿/*
+/*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -17,23 +17,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+using System;
+using System.Net;
 
-using System.IO;
-using System.Text;
-
-namespace MindTouch.Clacks.Server.PerfTests {
-    public static class TestExtensions {
-        public static MemoryStream AsStream(this string data) {
-            return new MemoryStream(Encoding.UTF8.GetBytes(data)) { Position = 0 };
-        }
-
-        public static string AsText(this Stream stream) {
-            stream.Position = 0;
-            using(var reader = new StreamReader(stream)) {
-                return reader.ReadToEnd();
-            }
-        }
-
+namespace MindTouch.Clacks.Server {
+    public interface IClacksInstrumentation {
+        void ClientConnected(Guid clientId, IPEndPoint remoteEndPoint);
+        void ClientDisconnected(Guid clientId);
+        void CommandCompleted(StatsCommandInfo info);
+        void AwaitingCommand(Guid clientId, ulong requestId);
+        void ProcessedCommand(StatsCommandInfo statsCommandInfo);
+        void ReceivedCommand(StatsCommandInfo statsCommandInfo);
+        void ReceivedCommandPayload(StatsCommandInfo statsCommandInfo);
     }
 }
-

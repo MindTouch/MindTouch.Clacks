@@ -1,4 +1,4 @@
-MindToch.Clacks 0.2
+MindToch.Clacks 0.3
 ====================
 A library for quickly building smtp/memcache protocol style clients and servers
 
@@ -22,8 +22,8 @@ is just ASCII and bytes over TCP, so your .NET based server is easily accessed b
 
 So what's this ASCII/Binary protocol?
 =====================================
-The protcol style pioneered by SMTP and used by such lightweight RPC servers as
-memecached and beanstalkd runs over TCP using ASCII encoding. Clients connect,
+The protcol style, pioneered by SMTP and used by such lightweight RPC servers as
+memcached and beanstalkd, runs over TCP using ASCII encoding. Clients connect,
 send commands and data, wait for responses, and close the connection. Commands are
 processed serially per connection, allowing a single connection to send/receive many
 commands.

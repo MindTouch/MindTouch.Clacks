@@ -1,7 +1,7 @@
 /*
  * MindTouch.Clacks
  * 
- * Copyright (C) 2011 Arne F. Claassen
+ * Copyright (C) 2011-2013 Arne F. Claassen
  * geekblog [at] claassen [dot] net
  * http://github.com/sdether/MindTouch.Clacks
  *
@@ -19,9 +19,9 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Linq;
 
 namespace MindTouch.Clacks.Server {
     public class ClacksServer : IDisposable {
@@ -29,18 +29,18 @@ namespace MindTouch.Clacks.Server {
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
         private readonly IPEndPoint _listenEndpoint;
-        private readonly IStatsCollector _statsCollector;
+        private readonly IClacksInstrumentation _instrumentation;
         private readonly IClientHandlerFactory _clientHandlerFactory;
         private readonly Socket _listenSocket;
-        private readonly HashSet<IClientHandler> _openConnections = new HashSet<IClientHandler>();
+        private readonly Dictionary<Guid, IClientHandler> _openConnections = new Dictionary<Guid, IClientHandler>();
 
-        public ClacksServer(IPEndPoint listenEndpoint, IStatsCollector statsCollector, IClientHandlerFactory clientHandlerFactory) {
+        public ClacksServer(IPEndPoint listenEndpoint, IClacksInstrumentation instrumentation, IClientHandlerFactory clientHandlerFactory) {
             _listenEndpoint = listenEndpoint;
-            _statsCollector = statsCollector;
+            _instrumentation = instrumentation;
             _clientHandlerFactory = clientHandlerFactory;
             _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
             _listenSocket.Bind(_listenEndpoint);
-            _listenSocket.Listen(10);
+            _listenSocket.Listen((int) SocketOptionName.MaxConnections);
             _log.InfoFormat("Created server on {0} with handler {1}", listenEndpoint, clientHandlerFactory);
             BeginWaitForConnection();
         }
@@ -70,26 +70,27 @@ namespace MindTouch.Clacks.Server {
                 _log.Debug("Server already disposed, abort listen");
                 return;
             }
-            var handler = _clientHandlerFactory.Create(socket, _statsCollector, RemoveHandler);
+            var id = Guid.NewGuid();
+            var handler = _clientHandlerFactory.Create(id, socket, _instrumentation, RemoveHandler);
             lock(_openConnections) {
-                _openConnections.Add(handler);
+                _openConnections.Add(id, handler);
             }
             handler.ProcessRequests();
         }
 
         private void RemoveHandler(IClientHandler handler) {
             lock(_openConnections) {
-                _openConnections.Remove(handler);
+                _openConnections.Remove(handler.Id);
             }
         }
 
         public void Dispose() {
             _listenSocket.Close();
             lock(_openConnections) {
-                var connections = _openConnections.ToArray();
-                foreach(var connection in connections) {
+                foreach(var connection in _openConnections.Values.ToArray()) {
                     connection.Dispose();
                 }
+                _openConnections.Clear();
             }
             _log.Debug("Disposed server socket");
         }
