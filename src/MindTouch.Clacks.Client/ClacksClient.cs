@@ -91,10 +91,12 @@ namespace MindTouch.Clacks.Client {
                     _receiver.Reset(request);
                     return _receiver.GetResponse();
                 } catch(SocketException) {
+                    DisposeSocket();
                     if(isReconnect) {
                         throw;
                     }
                 } catch(ObjectDisposedException) {
+                    DisposeSocket();
                     if(isReconnect) {
                         throw;
                     }
@@ -128,10 +130,12 @@ namespace MindTouch.Clacks.Client {
                         }
                     }
                 } catch(SocketException) {
+                    DisposeSocket();
                     if(isReconnect) {
                         throw;
                     }
                 } catch(ObjectDisposedException) {
+                    DisposeSocket();
                     if(isReconnect) {
                         throw;
                     }
@@ -148,10 +152,11 @@ namespace MindTouch.Clacks.Client {
         }
 
         public void Dispose() {
-            if(_disposed) {
-                return;
-            }
             _disposed = true;
+            DisposeSocket();
+        }
+
+        private void DisposeSocket() {
             if(_socket != null) {
                 _socket.Dispose();
             }

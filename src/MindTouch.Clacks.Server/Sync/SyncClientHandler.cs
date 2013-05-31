@@ -79,7 +79,7 @@ namespace MindTouch.Clacks.Server.Sync {
 
         protected override void SendResponse() {
             string finalStatus = null;
-            foreach(var response in _commandHandler.GetResponse()) {
+            foreach(var response in _responses) {
                 finalStatus = response.Status;
                 var data = response.GetBytes();
                 try {

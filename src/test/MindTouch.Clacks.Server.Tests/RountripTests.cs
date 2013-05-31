@@ -421,7 +421,7 @@ namespace MindTouch.Clacks.Server.Tests {
         public void Sync_Can_receive_large_binary_payload() {
             Receive_large_binary_payload(ServerBuilder
                 .CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
-                .WithDefaultHandler((request) => 
+                .WithDefaultHandler((request) =>
                     Response.Create("OK").WithData(LargeBin)
                 )
                 .Build());

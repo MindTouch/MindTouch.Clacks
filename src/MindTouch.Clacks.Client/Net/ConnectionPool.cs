@@ -30,6 +30,8 @@ namespace MindTouch.Clacks.Client.Net {
     // TODO: need way to configure "BYE" command for automatic socket disposal
     public class ConnectionPool : IConnectionPool, IDisposable {
 
+        private static readonly Logger.ILog _log = Logger.CreateLog();
+
         private class Available {
             public readonly DateTime Queued;
             public readonly ISocket Socket;
@@ -73,6 +75,8 @@ namespace MindTouch.Clacks.Client.Net {
             public WaitingQueue(object syncroot) {
                 _syncroot = syncroot;
             }
+
+            public int Count { get { lock(_syncroot) { return _queue.Count; } } }
 
             public bool ProvideSocket(ISocket socket) {
                 lock(_syncroot) {
@@ -167,6 +171,7 @@ namespace MindTouch.Clacks.Client.Net {
         public TimeSpan CleanupInterval {
             get { return _cleanupInterval; }
             set {
+                ThrowIfDisposed();
                 if(value == _cleanupInterval) {
                     return;
                 }
@@ -192,6 +197,7 @@ namespace MindTouch.Clacks.Client.Net {
         }
 
         public ISocket GetSocket() {
+            ThrowIfDisposed();
             ISocket socket = null;
             lock(_syncroot) {
                 while(true) {
@@ -220,6 +226,12 @@ namespace MindTouch.Clacks.Client.Net {
                     }
                     if(_availableSockets.Count + _busySockets.Count < MaxConnections) {
                         socket = _socketFactory();
+                        _log.DebugFormat("created new socket for pool (max: {0}, available: {1}, busy: {2}, queued: {3})",
+                            MaxConnections,
+                            _availableSockets.Count,
+                            _busySockets.Count,
+                            _waitingQueue.Count
+                        );
                         break;
                     }
                     ReapSockets(null);
@@ -286,6 +298,7 @@ namespace MindTouch.Clacks.Client.Net {
                     _busySockets.Remove(socket);
                 }
                 var staleTime = DateTime.UtcNow.Subtract(IdleTimeout);
+                var dead = 0;
                 while(true) {
 
                     // check oldest (first in available list) for staleness
@@ -295,7 +308,22 @@ namespace MindTouch.Clacks.Client.Net {
                     var idle = _availableSockets[0];
                     _availableSockets.RemoveAt(0);
                     idle.Socket.Dispose();
+                    dead++;
                 }
+                _log.DebugFormat("reaped {4} disposed and & {5} dead sockets (max: {0}, available: {1}, busy: {2}, queued: {3})",
+                    MaxConnections,
+                    _availableSockets.Count,
+                    _busySockets.Count,
+                    _waitingQueue.Count,
+                    disposed.Length,
+                    dead
+                );
+            }
+        }
+
+        private void ThrowIfDisposed() {
+            if(_disposed) {
+                throw new ObjectDisposedException(GetType().ToString());
             }
         }
 
