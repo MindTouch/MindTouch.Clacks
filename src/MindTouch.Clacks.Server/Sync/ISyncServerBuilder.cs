@@ -18,11 +18,10 @@
  * limitations under the License.
  */
 using System;
+using MindTouch.Clacks.Server.Async;
 
 namespace MindTouch.Clacks.Server.Sync {
-    public interface ISyncServerBuilder {
-        ClacksServer Build();
-        ClacksServer Build(IClacksInstrumentation instrumentation);
+    public interface ISyncServerBuilder: IServerBuilder<ISyncServerBuilder> {
         ISyncServerBuilder WithDefaultHandler(Func<IRequest, IResponse> handler);
         ISyncServerBuilder WithErrorHandler(Func<IRequest, Exception, IResponse> handler);
         ISyncFluentCommandRegistration WithCommand(string command);

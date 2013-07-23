@@ -20,9 +20,7 @@
 using System;
 
 namespace MindTouch.Clacks.Server.Async {
-    public interface IAsyncServerBuilder {
-        ClacksServer Build();
-        ClacksServer Build(IClacksInstrumentation instrumentation);
+    public interface IAsyncServerBuilder : IServerBuilder<IAsyncServerBuilder> {
         IAsyncServerBuilder WithDefaultHandler(Func<IRequest, IResponse> handler);
         IAsyncServerBuilder WithErrorHandler(Func<IRequest, Exception, IResponse> handler);
         IAsyncServerBuilder WithDefaultHandler(Action<IRequest, Action<IResponse>> handler);

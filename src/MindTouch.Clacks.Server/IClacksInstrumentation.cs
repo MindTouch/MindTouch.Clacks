@@ -23,8 +23,8 @@ using System.Net;
 namespace MindTouch.Clacks.Server {
     public interface IClacksInstrumentation {
         void ClientConnected(Guid clientId, IPEndPoint remoteEndPoint);
-        void ClientDisconnected(Guid clientId);
-        void CommandCompleted(StatsCommandInfo info);
+        void ClientDisconnected(Guid clientId, IPEndPoint clientEndPoint);
+        void CommandCompleted(StatsCommandInfo statsCommandInfo);
         void AwaitingCommand(Guid clientId, ulong requestId);
         void ProcessedCommand(StatsCommandInfo statsCommandInfo);
         void ReceivedCommand(StatsCommandInfo statsCommandInfo);

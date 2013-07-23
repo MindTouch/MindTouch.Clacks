@@ -19,6 +19,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 
 namespace MindTouch.Clacks.Server.Async {
@@ -72,6 +73,7 @@ namespace MindTouch.Clacks.Server.Async {
                         iterator = () => {
                             if(!enumerator.MoveNext()) {
                                 responseCallback(null, null);
+                                return;
                             }
                             var response = enumerator.Current;
                             responseCallback(response, iterator);

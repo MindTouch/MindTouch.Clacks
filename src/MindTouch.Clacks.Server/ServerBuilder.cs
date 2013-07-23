@@ -37,6 +37,7 @@ namespace MindTouch.Clacks.Server {
         private readonly IClientHandlerFactory _clientHandlerFactory;
         private readonly AsyncCommandRepository _asyncRepository = new AsyncCommandRepository();
         private readonly SyncCommandRepository _syncRepository = new SyncCommandRepository();
+        private InstrumentationBuilder _instrumenation;
 
         private ServerBuilder(IPEndPoint endPoint, bool isAsync) {
             _endPoint = endPoint;
@@ -46,11 +47,95 @@ namespace MindTouch.Clacks.Server {
         }
 
         public ClacksServer Build() {
-            return Build(null);
+            return Build(_instrumenation);
         }
 
         public ClacksServer Build(IClacksInstrumentation instrumentation) {
             return new ClacksServer(_endPoint, instrumentation ?? BaseClacksInstrumentation.Instance, _clientHandlerFactory);
+        }
+
+        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnClientConnected(Action<Guid, IPEndPoint> clientConnected) {
+            EnsureInstrumentation();
+            _instrumenation.OnClientConnected(clientConnected);
+            return this;
+        }
+
+        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnClientDisconnected(Action<Guid, IPEndPoint> clientDisconnected) {
+            EnsureInstrumentation();
+            _instrumenation.OnClientDisconnected(clientDisconnected);
+            return this;
+        }
+
+        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnCommandCompleted(Action<StatsCommandInfo> commandCompleted) {
+            EnsureInstrumentation();
+            _instrumenation.OnCommandCompleted(commandCompleted);
+            return this;
+        }
+
+        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnAwaitingCommand(Action<Guid, ulong> awaitingCommand) {
+            EnsureInstrumentation();
+            _instrumenation.OnAwaitingCommand(awaitingCommand);
+            return this;
+        }
+
+        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnProcessedCommand(Action<StatsCommandInfo> processedCommand) {
+            EnsureInstrumentation();
+            _instrumenation.OnProcessedCommand(processedCommand);
+            return this;
+        }
+
+        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnReceivedCommand(Action<StatsCommandInfo> receivedCommand) {
+            EnsureInstrumentation();
+            _instrumenation.OnReceivedCommand(receivedCommand);
+            return this;
+        }
+
+        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnReceivedCommandPayload(Action<StatsCommandInfo> receivedCommandPayload) {
+            EnsureInstrumentation();
+            _instrumenation.OnReceivedCommandPayload(receivedCommandPayload);
+            return this;
+        }
+
+        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnClientConnected(Action<Guid, IPEndPoint> clientConnected) {
+            EnsureInstrumentation();
+            _instrumenation.OnClientConnected(clientConnected);
+            return this;
+        }
+
+        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnClientDisconnected(Action<Guid, IPEndPoint> clientDisconnected) {
+            EnsureInstrumentation();
+            _instrumenation.OnClientDisconnected(clientDisconnected);
+            return this;
+        }
+
+        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnCommandCompleted(Action<StatsCommandInfo> commandCompleted) {
+            EnsureInstrumentation();
+            _instrumenation.OnCommandCompleted(commandCompleted);
+            return this;
+        }
+
+        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnAwaitingCommand(Action<Guid, ulong> awaitingCommand) {
+            EnsureInstrumentation();
+            _instrumenation.OnAwaitingCommand(awaitingCommand);
+            return this;
+        }
+
+        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnProcessedCommand(Action<StatsCommandInfo> processedCommand) {
+            EnsureInstrumentation();
+            _instrumenation.OnProcessedCommand(processedCommand);
+            return this;
+        }
+
+        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnReceivedCommand(Action<StatsCommandInfo> receivedCommand) {
+            EnsureInstrumentation();
+            _instrumenation.OnReceivedCommand(receivedCommand);
+            return this;
+        }
+
+        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnReceivedCommandPayload(Action<StatsCommandInfo> receivedCommandPayload) {
+            EnsureInstrumentation();
+            _instrumenation.OnReceivedCommandPayload(receivedCommandPayload);
+            return this;
         }
 
         public IAsyncServerBuilder WithDefaultHandler(Func<IRequest, IResponse> handler) {
@@ -89,6 +174,12 @@ namespace MindTouch.Clacks.Server {
 
         ISyncFluentCommandRegistration ISyncServerBuilder.WithCommand(string command) {
             return new SyncFluentCommandRegistration(this, _syncRepository, command);
+        }
+
+        private void EnsureInstrumentation() {
+            if(_instrumenation == null) {
+                _instrumenation = new InstrumentationBuilder();
+            }
         }
     }
 }

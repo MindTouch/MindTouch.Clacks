@@ -230,7 +230,7 @@ namespace MindTouch.Clacks.Server {
             }
             _isDisposed = true;
             _log.DebugFormat("Disposing client '{0}'", EndPoint);
-            _instrumentation.ClientDisconnected(Id);
+            _instrumentation.ClientDisconnected(Id, EndPoint);
             try {
                 _socket.Shutdown(SocketShutdown.Both);
                 _socket.Close();
@@ -244,7 +244,7 @@ namespace MindTouch.Clacks.Server {
             }
             _isDisposed = true;
             _log.Warn(string.Format("Disposing client '{0}' due to failure: {1}", EndPoint, reason), e);
-            _instrumentation.ClientDisconnected(Id);
+            _instrumentation.ClientDisconnected(Id, EndPoint);
             try {
 
                 // we want to make sure that the client sees the failure and doesn't hang out hoping for the request to finish

@@ -68,6 +68,7 @@
     <Compile Include="AClientRequestHandler.cs" />
     <Compile Include="Async\AsyncMultiCommandHandler.cs" />
     <Compile Include="Async\AsyncCommandRegistration.cs" />
+    <Compile Include="Async\IServerBuilder.cs" />
     <Compile Include="Async\SyncMultiCommandHandler.cs" />
     <Compile Include="DefaultHandlers.cs" />
     <Compile Include="Extensions.cs" />
@@ -80,6 +81,7 @@
     <Compile Include="CommandRegistration.cs" />
     <Compile Include="IClacksInstrumentation.cs" />
     <Compile Include="BaseClacksInstrumentation.cs" />
+    <Compile Include="InstrumentationBuilder.cs" />
     <Compile Include="StatsCommandInfo.cs" />
     <Compile Include="Sync\SyncCommandRegistration.cs" />
     <Compile Include="Sync\SyncMultiCommandHandler.cs" />
