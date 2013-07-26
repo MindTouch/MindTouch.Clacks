@@ -84,13 +84,55 @@ namespace MindTouch.Clacks.Server.PerfTests {
 
         private void QueryServer(ref string payloadstring) {
             using(var client = new ClacksClient("127.0.0.1", _port)) {
-                var n = 30000;
+                var n = 50000;
                 var t = Stopwatch.StartNew();
                 for(var i = 0; i < n; i++) {
                     var response = client.Exec(new Client.Request("BIN").ExpectData("OK"));
                     Assert.AreEqual("OK", response.Status);
                     Assert.AreEqual(1, response.Arguments.Length);
                     Assert.AreEqual(payloadstring, Encoding.ASCII.GetString(response.Data));
+                }
+                t.Stop();
+                var rate = n / t.Elapsed.TotalSeconds;
+                Console.WriteLine("Executed {0} commands at {1:0}commands/second", n, rate);
+            }
+        }
+
+        [Test]
+        public void Async_Can_make_many_requests() {
+            using(ServerBuilder.CreateAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+               .WithCommand("PING")
+                   .HandledBy((request, response) => response(Response.Create("OK")))
+                   .Register()
+               .Build()
+           ) {
+                Console.WriteLine("created server");
+                PingServer();
+            }
+        }
+
+        [Test]
+        public void Sync_Can_make_many_requests() {
+            using(ServerBuilder.CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
+               .WithCommand("PING")
+                   .HandledBy(request => {
+                       return Response.Create("OK");
+                   })
+                   .Register()
+               .Build()
+           ) {
+                Console.WriteLine("created server");
+                PingServer();
+            }
+        }
+
+        private void PingServer() {
+            using(var client = new ClacksClient("127.0.0.1", _port)) {
+                var n = 50000;
+                var t = Stopwatch.StartNew();
+                for(var i = 0; i < n; i++) {
+                    var response = client.Exec(new Client.Request("PING"));
+                    Assert.AreEqual("OK", response.Status);
                 }
                 t.Stop();
                 var rate = n / t.Elapsed.TotalSeconds;
@@ -128,7 +170,7 @@ namespace MindTouch.Clacks.Server.PerfTests {
 
         private void EchoServer() {
             using(var client = new ClacksClient("127.0.0.1", _port)) {
-                var n = 30000;
+                var n = 50000;
                 var t = Stopwatch.StartNew();
                 for(var i = 0; i < n; i++) {
                     var payload = new StringBuilder();
