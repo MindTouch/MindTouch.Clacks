@@ -19,21 +19,16 @@
  */
 using System;
 using System.Collections.Generic;
-using System.Net;
 
 namespace MindTouch.Clacks.Server {
     public class Request : IRequest {
-        private readonly IPEndPoint _client;
+        private readonly Connection _connection;
         private readonly string _command;
         private readonly string[] _arguments;
         private readonly byte[] _data;
 
-        public Request(string[] command) {
-            _command = command[0];
-        }
-
-        public Request(IPEndPoint client, string command, string[] arguments, int dataLength, IEnumerable<byte[]> data) {
-            _client = client;
+        public Request(Connection connection, string command, string[] arguments, int dataLength, IEnumerable<byte[]> data) {
+            _connection = connection;
             _command = command;
             _arguments = arguments;
             if(dataLength <= 0)
@@ -46,7 +41,7 @@ namespace MindTouch.Clacks.Server {
             }
         }
 
-        public IPEndPoint Client { get { return _client; } }
+        public Connection Connection { get { return _connection; } }
         public string Command { get { return _command; } }
         public string[] Arguments { get { return _arguments; } }
         public byte[] Data { get { return _data; } }

@@ -80,7 +80,7 @@ namespace MindTouch.Clacks.Server {
 
         private void RemoveHandler(IClientHandler handler) {
             lock(_openConnections) {
-                _openConnections.Remove(handler.Id);
+                _openConnections.Remove(handler.Connection.Id);
             }
         }
 

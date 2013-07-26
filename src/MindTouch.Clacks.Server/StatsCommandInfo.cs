@@ -22,14 +22,14 @@ using System;
 namespace MindTouch.Clacks.Server {
     public class StatsCommandInfo {
 
-        public readonly Guid ClientId;
+        public readonly Connection Connection;
         public readonly ulong RequestId;
         public readonly TimeSpan Elapsed;
         public readonly string[] Args;
         public readonly string Status;
 
-        public StatsCommandInfo(Guid clientId, ulong requestId, TimeSpan elapsed, string[] args, string status) {
-            ClientId = clientId;
+        public StatsCommandInfo(Connection connection, ulong requestId, TimeSpan elapsed, string[] args, string status) {
+            Connection = connection;
             RequestId = requestId;
             Elapsed = elapsed;
             Args = args;

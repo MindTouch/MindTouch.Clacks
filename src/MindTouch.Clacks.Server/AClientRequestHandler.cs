@@ -29,12 +29,11 @@ namespace MindTouch.Clacks.Server {
         private static readonly Logger.ILog _log = Logger.CreateLog();
 
         private readonly Action<IClientHandler> _removeCallback;
-        private readonly Guid _clientId;
         private readonly Stopwatch _requestTimer = new Stopwatch();
         private readonly IClacksInstrumentation _instrumentation;
+        private readonly Connection _connection;
 
         protected readonly Socket _socket;
-        protected readonly IPEndPoint _endPoint;
         protected readonly StringBuilder _commandBuffer = new StringBuilder();
         protected readonly byte[] _buffer = new byte[16 * 1024];
 
@@ -48,18 +47,16 @@ namespace MindTouch.Clacks.Server {
         protected bool _carriageReturn;
 
         protected AClientRequestHandler(Guid clientId, Socket socket, IClacksInstrumentation instrumentation, Action<IClientHandler> removeCallback) {
-            _clientId = clientId;
+            _connection = new Connection(clientId, _socket.RemoteEndPoint as IPEndPoint);
             _socket = socket;
-            _endPoint = _socket.RemoteEndPoint as IPEndPoint;
             _instrumentation = instrumentation;
             _removeCallback = removeCallback;
             try {
-                _instrumentation.ClientConnected(_clientId, _endPoint);
+                _instrumentation.ClientConnected(_connection);
             } catch { }
         }
 
-        public Guid Id { get { return _clientId; } }
-        public IPEndPoint EndPoint { get { return _endPoint; } }
+        public Connection Connection { get { return _connection; } }
 
         protected abstract ICommandHandler Handler { get; }
         protected bool IsDisposed { get { return _isDisposed; } }
@@ -120,7 +117,7 @@ namespace MindTouch.Clacks.Server {
                 _inCommand = true;
                 _requestTimer.Start();
                 try {
-                    _instrumentation.AwaitingCommand(Id, _commandCounter);
+                    _instrumentation.AwaitingCommand(new StatsCommandInfo(Connection, _commandCounter, TimeSpan.Zero, null, null));
                 } catch { }
             }
 
@@ -146,7 +143,7 @@ namespace MindTouch.Clacks.Server {
                         Handler.ExpectsData
                     );
                     try {
-                        _instrumentation.ReceivedCommand(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
+                        _instrumentation.ReceivedCommand(new StatsCommandInfo(Connection, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
                     } catch { }
                     if(Handler.ExpectsData) {
 
@@ -160,7 +157,7 @@ namespace MindTouch.Clacks.Server {
 
                         // 7.
                         try {
-                            _instrumentation.ReceivedCommandPayload(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
+                            _instrumentation.ReceivedCommandPayload(new StatsCommandInfo(Connection, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
                         } catch { }
                         ProcessCommand();
                     }
@@ -203,7 +200,7 @@ namespace MindTouch.Clacks.Server {
             _bufferDataLength = length - 2;
             _bufferPosition = _bufferDataLength == 0 ? 0 : position + 2;
             try {
-                _instrumentation.ReceivedCommandPayload(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
+                _instrumentation.ReceivedCommandPayload(new StatsCommandInfo(Connection, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
             } catch { }
             ProcessCommand();
         }
@@ -215,7 +212,7 @@ namespace MindTouch.Clacks.Server {
 
         protected void PrepareResponse(string status) {
             try {
-                _instrumentation.ProcessedCommand(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, status));
+                _instrumentation.ProcessedCommand(new StatsCommandInfo(Connection, _commandCounter, _requestTimer.Elapsed, _commandArgs, status));
             } catch { }
             SendResponse();
         }
@@ -231,7 +228,7 @@ namespace MindTouch.Clacks.Server {
                 _requestTimer.Elapsed.TotalMilliseconds
             );
             try {
-                _instrumentation.CommandCompleted(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, status));
+                _instrumentation.CommandCompleted(new StatsCommandInfo(Connection, _commandCounter, _requestTimer.Elapsed, _commandArgs, status));
             } catch { }
             _requestTimer.Reset();
             _inCommand = false;
@@ -243,9 +240,9 @@ namespace MindTouch.Clacks.Server {
                 return;
             }
             _isDisposed = true;
-            _log.DebugFormat("Disposing client '{0}'", EndPoint);
+            _log.DebugFormat("Disposing client '{0}'", Connection.EndPoint);
             try {
-                _instrumentation.ClientDisconnected(Id, EndPoint);
+                _instrumentation.ClientDisconnected(Connection);
             } catch { }
             try {
                 _socket.Shutdown(SocketShutdown.Both);
@@ -259,9 +256,9 @@ namespace MindTouch.Clacks.Server {
                 return;
             }
             _isDisposed = true;
-            _log.Warn(string.Format("Disposing client '{0}' due to failure: {1}", EndPoint, reason), e);
+            _log.Warn(string.Format("Disposing client '{0}' due to failure: {1}", Connection.EndPoint, reason), e);
             try {
-                _instrumentation.ClientDisconnected(Id, EndPoint);
+                _instrumentation.ClientDisconnected(Connection);
             } catch { }
             try {
 

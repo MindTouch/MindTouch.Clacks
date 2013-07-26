@@ -33,7 +33,7 @@ namespace MindTouch.Clacks.Server.Sync {
         private Func<IRequest, IResponse> _disconnectHandler = DefaultHandlers.DisconnectHandler;
         private string _disconnectCommand = "BYE";
 
-        public ISyncCommandHandler GetHandler(IPEndPoint client, string[] commandArgs) {
+        public ISyncCommandHandler GetHandler(Connection connection, string[] commandArgs) {
             var command = commandArgs.FirstOrDefault() ?? string.Empty;
             if(command == _disconnectCommand) {
                 return BuildDisconnectHandler();
@@ -42,7 +42,7 @@ namespace MindTouch.Clacks.Server.Sync {
             if(!_commands.TryGetValue(command, out registration)) {
                 registration = _defaultCommandRegistration;
             }
-            return registration.GetHandler(client, commandArgs, _errorHandler);
+            return registration.GetHandler(connection, commandArgs, _errorHandler);
         }
 
         private ISyncCommandHandler BuildDisconnectHandler() {
@@ -83,8 +83,8 @@ namespace MindTouch.Clacks.Server.Sync {
         public void AddCommand(string command, Func<IRequest, IEnumerable<IResponse>> handler, DataExpectation dataExpectation) {
             _commands[command] = new SyncCommandRegistration(
                 dataExpectation,
-                (client, cmd, dataLength, arguments, errorHandler) =>
-                    new SyncMultiCommandHandler(client, cmd, arguments, dataLength, handler, errorHandler)
+                (connection, cmd, dataLength, arguments, errorHandler) =>
+                    new SyncMultiCommandHandler(connection, cmd, arguments, dataLength, handler, errorHandler)
             );
         }
     }

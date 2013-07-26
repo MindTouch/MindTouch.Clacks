@@ -1,3 +1,11 @@
+0.4
+===
+* Bug Fix: Multi-async with callback signature Action<IRequest, Action<IResponse,Action>> no longer loops infinitely on last result
+* IClacksInstrumentation keeps on giving, i.e. more breaking changes because of oversights in what and how it exposes connection and command info
+  * Added Connection class containing Client Guid and IPEndpoint and is now consistently everwhere where ClientId or EndPoint were used before
+  * Request lost ClientId property in favor of Connection property
+* Added fluent registration for instrumenation, i.e. don't have to provide IClacksInstrumenation, can use closures instead
+
 0.3
 ===
 * Replaced IStatsCollector with IClacksInstrumentation for better hooks into current state of the server

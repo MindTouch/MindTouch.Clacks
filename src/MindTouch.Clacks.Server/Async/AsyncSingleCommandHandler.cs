@@ -28,7 +28,9 @@ namespace MindTouch.Clacks.Server.Async {
             return new AsyncSingleCommandHandler(command, handler);
         }
 
+        private readonly Guid _clientId;
         private readonly IPEndPoint _client;
+        private readonly Connection _connection;
         private readonly string _command;
         private readonly string[] _arguments;
         private readonly Action<IRequest, Action<IResponse>> _handler;
@@ -38,8 +40,8 @@ namespace MindTouch.Clacks.Server.Async {
         private int _received;
         private List<byte[]> _dataChunks;
 
-        public AsyncSingleCommandHandler(IPEndPoint client, string command, string[] arguments, int dataLength, Action<IRequest, Action<IResponse>> handler, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
-            _client = client;
+        public AsyncSingleCommandHandler(Connection connection, string command, string[] arguments, int dataLength, Action<IRequest, Action<IResponse>> handler, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
+            _connection = connection;
             _command = command;
             _arguments = arguments;
             _dataLength = dataLength;
@@ -75,7 +77,7 @@ namespace MindTouch.Clacks.Server.Async {
             if(_received < _dataLength) {
                 throw new DataExpectationException(false);
             }
-            var request = new Request(_client, _command, _arguments, _dataLength, _dataChunks);
+            var request = new Request(_connection, _command, _arguments, _dataLength, _dataChunks);
             Action<IResponse> responseAction = response => responseCallback(response, null);
             try {
                 _handler(request, responseAction);

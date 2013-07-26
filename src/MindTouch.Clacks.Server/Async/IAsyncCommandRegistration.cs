@@ -22,6 +22,6 @@ using System.Net;
 
 namespace MindTouch.Clacks.Server.Async {
     public interface IAsyncCommandRegistration {
-        IAsyncCommandHandler GetHandler(IPEndPoint client, string[] commandArgs, Action<IRequest, Exception, Action<IResponse>> errorHandler);
+        IAsyncCommandHandler GetHandler(Connection connection, string[] commandArgs, Action<IRequest, Exception, Action<IResponse>> errorHandler);
     }
 }

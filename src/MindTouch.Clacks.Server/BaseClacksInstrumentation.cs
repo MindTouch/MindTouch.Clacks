@@ -27,10 +27,10 @@ namespace MindTouch.Clacks.Server {
         
         private BaseClacksInstrumentation() { }
         
-        public virtual void ClientConnected(Guid clientId, IPEndPoint remoteEndPoint) { }
-        public virtual void ClientDisconnected(Guid clientId, IPEndPoint clientEndPoint) { }
+        public virtual void ClientConnected(Connection connection) { }
+        public virtual void ClientDisconnected(Connection connection) { }
         public virtual void CommandCompleted(StatsCommandInfo statsCommandInfo) { }
-        public virtual void AwaitingCommand(Guid clientId, ulong requestId) { }
+        public virtual void AwaitingCommand(StatsCommandInfo statsCommandInfo) { }
         public virtual void ProcessedCommand(StatsCommandInfo statsCommandInfo) { }
         public virtual void ReceivedCommand(StatsCommandInfo statsCommandInfo) { }
         public virtual void ReceivedCommandPayload(StatsCommandInfo statsCommandInfo) { }

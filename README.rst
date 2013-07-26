@@ -1,4 +1,4 @@
-MindToch.Clacks 0.3
+MindToch.Clacks 0.4 
 ====================
 A library for quickly building smtp/memcache protocol style clients and servers
 

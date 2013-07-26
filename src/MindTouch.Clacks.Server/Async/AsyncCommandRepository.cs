@@ -33,7 +33,7 @@ namespace MindTouch.Clacks.Server.Async {
         private Action<IRequest, Action<IResponse>> _disconnectHandler = DefaultHandlers.DisconnectHandler;
         private string _disconnectCommand = "BYE";
 
-        public IAsyncCommandHandler GetHandler(IPEndPoint client, string[] commandArgs) {
+        public IAsyncCommandHandler GetHandler(Connection connection, string[] commandArgs) {
             var command = commandArgs.FirstOrDefault() ?? string.Empty;
             if(command.Equals(_disconnectCommand, StringComparison.InvariantCultureIgnoreCase)) {
                 return BuildDisconnectHandler();
@@ -42,7 +42,7 @@ namespace MindTouch.Clacks.Server.Async {
             if(!_commands.TryGetValue(command, out registration)) {
                 registration = _defaultCommandRegistration;
             }
-            return registration.GetHandler(client, commandArgs, _errorHandler);
+            return registration.GetHandler(connection, commandArgs, _errorHandler);
         }
 
         private IAsyncCommandHandler BuildDisconnectHandler() {
@@ -84,16 +84,16 @@ namespace MindTouch.Clacks.Server.Async {
         public void AddCommand(string command, Action<IRequest, Action<IResponse, Action>> handler, DataExpectation dataExpectation) {
             _commands[command] = new AsyncCommandRegistration(
                 dataExpectation,
-                (client, cmd, dataLength, arguments, errorHandler) =>
-                    new AsyncMultiCommandHandler(client, cmd, arguments, dataLength, handler, errorHandler)
+                (connection, cmd, dataLength, arguments, errorHandler) =>
+                    new AsyncMultiCommandHandler(connection, cmd, arguments, dataLength, handler, errorHandler)
             );
         }
 
         public void AddCommand(string command, Action<IRequest, Action<IEnumerable<IResponse>>> handler, DataExpectation dataExpectation) {
             _commands[command] = new AsyncCommandRegistration(
                 dataExpectation,
-                (client, cmd, dataLength, arguments, errorHandler) =>
-                    new SyncMultiCommandHandler(client, cmd, arguments, dataLength, handler, errorHandler)
+                (connection, cmd, dataLength, arguments, errorHandler) =>
+                    new SyncMultiCommandHandler(connection, cmd, arguments, dataLength, handler, errorHandler)
             );
         }
     }

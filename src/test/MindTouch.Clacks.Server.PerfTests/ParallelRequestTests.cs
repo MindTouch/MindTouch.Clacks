@@ -281,11 +281,11 @@ namespace MindTouch.Clacks.Server.PerfTests {
             public int Requests;
             public long RequestTicks;
 
-            public void ClientConnected(Guid clientId, IPEndPoint remoteEndPoint) {
+            public void ClientConnected(Connection connection) {
                 Interlocked.Increment(ref Connected);
             }
 
-            public void ClientDisconnected(Guid clientId) {
+            public void ClientDisconnected(Connection connection) {
                 Interlocked.Increment(ref Disconnected);
             }
 
@@ -294,7 +294,7 @@ namespace MindTouch.Clacks.Server.PerfTests {
                 Interlocked.Add(ref RequestTicks, info.Elapsed.Ticks);
             }
 
-            public void AwaitingCommand(Guid clientId, ulong requestId) { }
+            public void AwaitingCommand(StatsCommandInfo statsCommandInfo) { }
             public void ProcessedCommand(StatsCommandInfo statsCommandInfo) { }
             public void ReceivedCommand(StatsCommandInfo statsCommandInfo) { }
             public void ReceivedCommandPayload(StatsCommandInfo statsCommandInfo) { }

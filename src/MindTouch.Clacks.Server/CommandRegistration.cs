@@ -33,7 +33,7 @@ namespace MindTouch.Clacks.Server {
 
         public DataExpectation DataExpectation { get { return _dataExpectation; } }
 
-        public THandler GetHandler(IPEndPoint client, string[] commandArgs, TError errorHandler) {
+        public THandler GetHandler(Connection connection, string[] commandArgs, TError errorHandler) {
             var command = commandArgs.FirstOrDefault() ?? string.Empty;
             var dataLength = 0;
             string[] arguments;
@@ -57,7 +57,7 @@ namespace MindTouch.Clacks.Server {
             } else {
                 arguments = new string[0];
             }
-            return _builder(client, command, dataLength, arguments, errorHandler);
+            return _builder(connection, command, dataLength, arguments, errorHandler);
         }
     }
 }

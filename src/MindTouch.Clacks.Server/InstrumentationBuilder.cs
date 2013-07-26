@@ -23,48 +23,54 @@ using System.Net;
 namespace MindTouch.Clacks.Server {
     public class InstrumentationBuilder : IClacksInstrumentation {
 
-        private Action<Guid, IPEndPoint> _clientConnected;
-        private Action<Guid, IPEndPoint> _clientDisconnected;
+        private Action<Connection> _clientConnected;
+        private Action<Connection> _clientDisconnected;
         private Action<StatsCommandInfo> _commandCompleted;
-        private Action<Guid, ulong> _awaitingCommand;
+        private Action<StatsCommandInfo> _awaitingCommand;
         private Action<StatsCommandInfo> _processedCommand;
         private Action<StatsCommandInfo> _receivedCommand;
         private Action<StatsCommandInfo> _receivedCommandPayload;
- 
-        public void OnClientConnected(Action<Guid, IPEndPoint> clientConnected) {
+
+        public void OnClientConnected(Action<Connection> clientConnected) {
             _clientConnected = clientConnected;
         }
-        public void OnClientDisconnected(Action<Guid, IPEndPoint> clientDisconnected) {
+
+        public void OnClientDisconnected(Action<Connection> clientDisconnected) {
             _clientDisconnected = clientDisconnected;
         }
+        
         public void OnCommandCompleted(Action<StatsCommandInfo> commandCompleted) {
             _commandCompleted = commandCompleted;
         }
-        public void OnAwaitingCommand(Action<Guid, ulong> awaitingCommand) {
+        
+        public void OnAwaitingCommand(Action<StatsCommandInfo> awaitingCommand) {
             _awaitingCommand = awaitingCommand;
         }
+        
         public void OnProcessedCommand(Action<StatsCommandInfo> processedCommand) {
             _processedCommand = processedCommand;
         }
+
         public void OnReceivedCommand(Action<StatsCommandInfo> receivedCommand) {
             _receivedCommand = receivedCommand;
         }
+
         public void OnReceivedCommandPayload(Action<StatsCommandInfo> receivedCommandPayload) {
             _receivedCommandPayload = receivedCommandPayload;
         }
 
-        void IClacksInstrumentation.ClientConnected(Guid clientId, IPEndPoint remoteEndPoint) {
+        void IClacksInstrumentation.ClientConnected(Connection connection) {
             if(_clientConnected == null) {
                 return;
             }
-            _clientConnected(clientId, remoteEndPoint);
+            _clientConnected(connection);
         }
 
-        void IClacksInstrumentation.ClientDisconnected(Guid clientId, IPEndPoint remoteEndPoint) {
+        void IClacksInstrumentation.ClientDisconnected(Connection connection) {
             if(_clientDisconnected == null) {
                 return;
             }
-            _clientDisconnected(clientId, remoteEndPoint);
+            _clientDisconnected(connection);
         }
 
         void IClacksInstrumentation.CommandCompleted(StatsCommandInfo statsCommandInfo) {
@@ -74,11 +80,11 @@ namespace MindTouch.Clacks.Server {
             _commandCompleted(statsCommandInfo);
         }
 
-        void IClacksInstrumentation.AwaitingCommand(Guid clientId, ulong requestId) {
+        void IClacksInstrumentation.AwaitingCommand(StatsCommandInfo statsCommandInfo) {
             if(_awaitingCommand == null) {
                 return;
             }
-            _awaitingCommand(clientId, requestId);
+            _awaitingCommand(statsCommandInfo);
         }
 
          void IClacksInstrumentation.ProcessedCommand(StatsCommandInfo statsCommandInfo) {

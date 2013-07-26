@@ -17,11 +17,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+using System;
 using System.Net;
 
-namespace MindTouch.Clacks.Server.Async {
-    public interface IAsyncCommandDispatcher {
-        IAsyncCommandHandler GetHandler(Connection connection, string[] commandArgs);
+namespace MindTouch.Clacks.Server {
+    public class Connection {
+        public readonly Guid Id;
+        public readonly IPEndPoint EndPoint;
+
+        public Connection(Guid id, IPEndPoint endPoint) {
+            Id = id;
+            EndPoint = endPoint;
+        }
     }
 }

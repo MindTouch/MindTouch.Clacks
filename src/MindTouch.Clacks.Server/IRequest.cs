@@ -18,11 +18,9 @@
  * limitations under the License.
  */
 
-using System.Net;
-
 namespace MindTouch.Clacks.Server {
     public interface IRequest {
-        IPEndPoint Client { get; }
+        Connection Connection { get; }
         string Command { get; }
         string[] Arguments { get; }
         byte[] Data { get; }

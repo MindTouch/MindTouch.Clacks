@@ -54,13 +54,13 @@ namespace MindTouch.Clacks.Server {
             return new ClacksServer(_endPoint, instrumentation ?? BaseClacksInstrumentation.Instance, _clientHandlerFactory);
         }
 
-        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnClientConnected(Action<Guid, IPEndPoint> clientConnected) {
+        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnClientConnected(Action<Connection> clientConnected) {
             EnsureInstrumentation();
             _instrumenation.OnClientConnected(clientConnected);
             return this;
         }
 
-        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnClientDisconnected(Action<Guid, IPEndPoint> clientDisconnected) {
+        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnClientDisconnected(Action<Connection> clientDisconnected) {
             EnsureInstrumentation();
             _instrumenation.OnClientDisconnected(clientDisconnected);
             return this;
@@ -72,7 +72,7 @@ namespace MindTouch.Clacks.Server {
             return this;
         }
 
-        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnAwaitingCommand(Action<Guid, ulong> awaitingCommand) {
+        IAsyncServerBuilder IServerBuilder<IAsyncServerBuilder>.OnAwaitingCommand(Action<StatsCommandInfo> awaitingCommand) {
             EnsureInstrumentation();
             _instrumenation.OnAwaitingCommand(awaitingCommand);
             return this;
@@ -96,13 +96,13 @@ namespace MindTouch.Clacks.Server {
             return this;
         }
 
-        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnClientConnected(Action<Guid, IPEndPoint> clientConnected) {
+        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnClientConnected(Action<Connection> clientConnected) {
             EnsureInstrumentation();
             _instrumenation.OnClientConnected(clientConnected);
             return this;
         }
 
-        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnClientDisconnected(Action<Guid, IPEndPoint> clientDisconnected) {
+        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnClientDisconnected(Action<Connection> clientDisconnected) {
             EnsureInstrumentation();
             _instrumenation.OnClientDisconnected(clientDisconnected);
             return this;
@@ -114,7 +114,7 @@ namespace MindTouch.Clacks.Server {
             return this;
         }
 
-        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnAwaitingCommand(Action<Guid, ulong> awaitingCommand) {
+        ISyncServerBuilder IServerBuilder<ISyncServerBuilder>.OnAwaitingCommand(Action<StatsCommandInfo> awaitingCommand) {
             EnsureInstrumentation();
             _instrumenation.OnAwaitingCommand(awaitingCommand);
             return this;

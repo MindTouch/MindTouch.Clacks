@@ -90,38 +90,5 @@ namespace MindTouch.Clacks.Server.PerfTests {
                 Console.WriteLine("Executed {0} connect/commmands at {1:0}commands/second", n, rate);
             }
         }
-
-        [Test]
-        public void Sync_can_create_many_clients_with_own_sockets() {
-            var payloadstring = "";
-            using(ServerBuilder.CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
-                .WithCommand("BIN")
-                .HandledBy(request => {
-                    var payload = new StringBuilder();
-                    for(var i = 0; i < 10; i++) {
-                        payload.Append(Guid.NewGuid().ToString());
-                    }
-                    payloadstring = payload.ToString();
-                    return Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring));
-                })
-                .Register()
-                .Build()
-           ) {
-                Console.WriteLine("created server");
-                var n = 1000;
-                var t = Stopwatch.StartNew();
-                for(var i = 0; i < n; i++) {
-                    using(var client = new ClacksClient(SocketAdapter.Open("127.0.0.1", _port))) {
-                        var response = client.Exec(new Client.Request("BIN").ExpectData("OK"));
-                        Assert.AreEqual("OK", response.Status);
-                        Assert.AreEqual(1, response.Arguments.Length);
-                        Assert.AreEqual(payloadstring, Encoding.ASCII.GetString(response.Data));
-                    }
-                }
-                t.Stop();
-                var rate = n / t.Elapsed.TotalSeconds;
-                Console.WriteLine("Executed {0} connect/commmands at {1:0}commands/second", n, rate);
-            }
-        }
     }
 }

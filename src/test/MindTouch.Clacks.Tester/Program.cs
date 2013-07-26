@@ -330,14 +330,14 @@ namespace MindTouch.Clacks.Tester {
             public long RequestTicks;
 
 
-            public void ClientConnected(Guid clientId, IPEndPoint remoteEndPoint) {
+            public void ClientConnected(Connection connection) {
                 Interlocked.Increment(ref Connected);
-                CaptureState(clientId, ConnectionStatus.Connected);
+                CaptureState(connection.Id, ConnectionStatus.Connected);
             }
 
-            public void ClientDisconnected(Guid clientId) {
+            public void ClientDisconnected(Connection connection) {
                 lock(Connections) {
-                    Connections.Remove(clientId);
+                    Connections.Remove(connection.Id);
                 }
             }
 
@@ -347,8 +347,8 @@ namespace MindTouch.Clacks.Tester {
                 Interlocked.Add(ref RequestTicks, info.Elapsed.Ticks);
             }
 
-            public void AwaitingCommand(Guid clientId, ulong requestId) {
-                CaptureState(clientId, ConnectionStatus.Connected);
+            public void AwaitingCommand(StatsCommandInfo statsCommandInfo) {
+                CaptureState(statsCommandInfo, ConnectionStatus.Connected);
             }
             public void ProcessedCommand(StatsCommandInfo statsCommandInfo) {
                 CaptureState(statsCommandInfo, ConnectionStatus.ProcessedCommand);
@@ -375,7 +375,7 @@ namespace MindTouch.Clacks.Tester {
             private void CaptureState(StatsCommandInfo info, ConnectionStatus status) {
                 var id = info.Args[1];
                 lock(Connections) {
-                    var connection = Connections[info.ClientId];
+                    var connection = Connections[info.Connection.Id];
                     connection.Status = status;
                     connection.Id = id;
                 }
