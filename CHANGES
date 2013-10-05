@@ -1,3 +1,7 @@
+0.3.1
+=====
+* Replaced TimeoutException with SocketException(10060) which is the more appropriate socket timeout exception
+
 0.3
 ===
 * Replaced IStatsCollector with IClacksInstrumentation for better hooks into current state of the server

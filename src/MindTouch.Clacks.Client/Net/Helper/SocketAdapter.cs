@@ -40,7 +40,7 @@ namespace MindTouch.Clacks.Client.Net.Helper {
                     socket.Close();
                     socket.Dispose();
                 } catch { }
-                throw new TimeoutException();
+                throw new SocketException(10060);
             }
             return new SocketAdapter(socket);
         }
@@ -60,7 +60,7 @@ namespace MindTouch.Clacks.Client.Net.Helper {
                     socket.Close();
                     socket.Dispose();
                 } catch { }
-                throw new TimeoutException();
+                throw new SocketException(10060);
             }
             return new SocketAdapter(socket);
         }

@@ -32,7 +32,7 @@ namespace MindTouch.Clacks.Client.Tests {
     [TestFixture]
     public class SocketAdapterTests {
 
-        private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private int _port;
         private Socket _connectedSocket;
         private Socket _listenSocket;
@@ -53,7 +53,7 @@ namespace MindTouch.Clacks.Client.Tests {
                 _log.Debug("connecting");
                 var socket = SocketAdapter.Open("1.2.3.4", 1234, TimeSpan.FromSeconds(1));
                 Assert.Fail("didn't timeout");
-            } catch(TimeoutException) {
+            } catch(SocketException) {
                 t.Stop();
                 Assert.GreaterOrEqual(1200, t.ElapsedMilliseconds);
             }
@@ -66,7 +66,7 @@ namespace MindTouch.Clacks.Client.Tests {
                 _log.Debug("connecting");
                 var socket = SocketAdapter.Open(new IPEndPoint(IPAddress.Parse("1.2.3.4"), 1234), TimeSpan.FromSeconds(1));
                 Assert.Fail("didn't timeout");
-            } catch(TimeoutException) {
+            } catch(SocketException) {
                 t.Stop();
                 Assert.GreaterOrEqual(1200, t.ElapsedMilliseconds);
             }
@@ -87,6 +87,39 @@ namespace MindTouch.Clacks.Client.Tests {
                 _connectedSocket.Shutdown(SocketShutdown.Both);
                 _connectedSocket.Close();
                 Assert.IsFalse(socket.Connected);
+            } finally {
+                if(_listenSocket != null) {
+                    _listenSocket.Dispose();
+                }
+                if(socket != null) {
+                    socket.Dispose();
+                }
+            }
+        }
+
+        [Test]
+        public void Receive_timeout_is_respected() {
+
+            // Arrange
+            ISocket socket = null;
+            try {
+                var endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port);
+                _listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+                _listenSocket.Bind(endpoint);
+                _listenSocket.Listen(10);
+                _listenSocket.BeginAccept(OnAccept, _listenSocket);
+                socket = SocketAdapter.Open(endpoint, receiveTimeout: 200);
+                Assert.IsTrue(socket.Connected);
+                Assert.IsTrue(_connectSignal.WaitOne(5000));
+
+                // Act
+                try {
+                    var buffer = new byte[4096];
+                    socket.Receive(buffer, 0, 10);
+                } catch(SocketException e) {
+                    return;
+                }
+                Assert.Fail("did not throw a socket exception");
             } finally {
                 if(_listenSocket != null) {
                     _listenSocket.Dispose();

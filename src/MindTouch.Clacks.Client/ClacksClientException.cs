@@ -44,7 +44,6 @@ namespace MindTouch.Clacks.Client {
     }
 
     public class EmptyResponseException : ConnectionException { }
-    public class TimedoutException : ClacksClientException { }
     public class ShouldNeverHappenException : ClacksClientException { }
     public class InitException : ClacksClientException { }
 
