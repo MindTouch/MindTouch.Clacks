@@ -62,15 +62,14 @@ namespace MindTouch.Clacks.Server.PerfTests {
             var payloadstring = "";
             using(ServerBuilder.CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
                 .WithCommand("BIN")
-                .HandledBy(request => {
-                    var payload = new StringBuilder();
-                    for(var i = 0; i < 10; i++) {
-                        payload.Append(Guid.NewGuid().ToString());
-                    }
-                    payloadstring = payload.ToString();
-                    return Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring));
-                })
-                .Register()
+                    .HandledBy(request => {
+                        var payload = new StringBuilder();
+                        for(var i = 0; i < 10; i++) {
+                            payload.Append(Guid.NewGuid().ToString());
+                        }
+                        payloadstring = payload.ToString();
+                        return Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring));
+                    })
                 .Build()
             ) {
                 Console.WriteLine("created server");

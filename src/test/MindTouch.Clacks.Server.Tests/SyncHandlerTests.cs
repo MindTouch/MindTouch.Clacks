@@ -47,7 +47,6 @@ namespace MindTouch.Clacks.Server.Tests {
                             requestCount++;
                             return Response.Create("PONG");
                         })
-                    .Register()
                 .Build()
                 ) {
                 _log.Debug("created server");
@@ -70,7 +69,6 @@ namespace MindTouch.Clacks.Server.Tests {
                             requestCount++;
                             return new[] { Response.Create("PONG"), Response.Create("END") };
                         })
-                    .Register()
                 .Build()
                 ) {
                 _log.Debug("created server");

@@ -1,23 +1,40 @@
-0.4
+0.4 - there be breaking changes
 ===
-* Bug Fix: Multi-async with callback signature Action<IRequest, Action<IResponse,Action>> no longer loops infinitely on last result
-* IClacksInstrumentation keeps on giving, i.e. more breaking changes because of oversights in what and how it exposes connection and command info
-  * Added Connection class containing Client Guid and IPEndpoint and is now consistently everwhere where ClientId or EndPoint were used before
-  * Request lost ClientId property in favor of Connection property
-* Added fluent registration for instrumenation, i.e. don't have to provide IClacksInstrumenation, can use closures instead
+* Bug Fix: Multi-async with callback signature Action<IRequest, 
+  Action<IResponse,Action>> no longer loops infinitely on last result
+* IClacksInstrumentation keeps on giving, i.e. more breaking changes because
+  of oversights in what and how it exposes connection and command info
+  * Added Connection class containing Client Guid and IPEndpoint and is now
+    consistently everwhere where ClientId or EndPoint were used before
+* Request lost ClientId property in favor of Connection property (which has
+  the IP and Guid of the connection)
+* Fluent registration changes: 
+  * Added fluent registration for instrumenation, i.e. don't have to provide
+    IClacksInstrumenation, can use closures instead
+  * IsDisconnect() has been removed from command specification. Disconnect behavior
+    is now specified at response time via Response.DisconnectOnCompletion())    
+  * Register() has been removed. HandledBy must occur once and only once, so it is not
+    the command registration terminator
 
 0.3
 ===
-* Replaced IStatsCollector with IClacksInstrumentation for better hooks into current state of the server
+* Replaced IStatsCollector with IClacksInstrumentation for better hooks into
+  current state of the server
 * Fixed various issues that could cause errors under load
   * New client and server request processing logic
   * Fixed bad Socket.Listen queue size
 * ConnectionPool
-  * most recently used sockets are now added to the front of the available queue, since they have a higher likelyhood of still being connected
-  * do not check Connected on socket on each pool fetch, since it has significant overhead
-  * Better Connected logic (i.e. polls socket, rather than just use the socket's Connected field)
-  * When the pool is exhausted, incoming requests for sockets are now queue'd for ConnectTimeout rather than failing immediately
+  * most recently used sockets are now added to the front of the available
+    queue, since they have a higher likelyhood of still being connected
+  * do not check Connected on socket on each pool fetch, since it has
+    significant overhead
+  * Better Connected logic (i.e. polls socket, rather than just use the 
+    socket's Connected field)
+  * When the pool is exhausted, incoming requests for sockets are now 
+    queue'd for ConnectTimeout rather than failing immediately
 * ClackClient
-  * Added auto-reconnect/retry on request failure (assumes stateless server, can be turned off)
-  * now requires an IConnectionPool, so while host/port & IPEndpoint Ctor's still exist, the ISocket Ctor is gone
+  * Added auto-reconnect/retry on request failure (assumes stateless server,
+    can be turned off)
+  * now requires an IConnectionPool, so while host/port & IPEndpoint Ctor's
+    still exist, the ISocket Ctor is gone
 * Added the Client's endpoint to server's Request object	

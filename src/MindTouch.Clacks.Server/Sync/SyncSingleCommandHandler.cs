@@ -19,15 +19,9 @@
  */
 using System;
 using System.Collections.Generic;
-using System.Net;
 
 namespace MindTouch.Clacks.Server.Sync {
     public class SyncSingleCommandHandler : ISyncCommandHandler {
-
-        // TODO: should this receive client id and client ip as well?
-        public static ISyncCommandHandler DisconnectHandler(string command, Func<IRequest, IResponse> handler) {
-            return new SyncSingleCommandHandler(command, handler);
-        }
 
         private readonly Connection _connection;
         private readonly string _command;
@@ -35,7 +29,6 @@ namespace MindTouch.Clacks.Server.Sync {
         private readonly Func<IRequest, IResponse> _handler;
         private readonly Func<IRequest, Exception, IResponse> _errorHandler;
         private readonly int _dataLength;
-        private readonly bool _disconnect;
         private int _received;
         private List<byte[]> _dataChunks;
 
@@ -48,14 +41,7 @@ namespace MindTouch.Clacks.Server.Sync {
             _errorHandler = errorHandler;
         }
 
-        private SyncSingleCommandHandler(string command, Func<IRequest, IResponse> handler) {
-            _command = command;
-            _handler = handler;
-            _disconnect = true;
-        }
-
         public bool ExpectsData { get { return _dataLength > 0; } }
-        public bool DisconnectOnCompletion { get { return _disconnect; } }
         public int OutstandingBytes { get { return _dataLength - _received; } }
         public string Command { get { return _command; } }
 

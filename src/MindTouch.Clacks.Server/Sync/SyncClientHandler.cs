@@ -30,6 +30,7 @@ namespace MindTouch.Clacks.Server.Sync {
         private readonly ISyncCommandDispatcher _dispatcher;
         private ISyncCommandHandler _commandHandler;
         private IEnumerable<IResponse> _responses;
+        private IResponse _handledResponse;
 
         public SyncClientHandler(Guid clientId, Socket socket, ISyncCommandDispatcher dispatcher, IClacksInstrumentation instrumentation, Action<IClientHandler> removeCallback)
             : base(clientId, socket, instrumentation, removeCallback) {
@@ -80,6 +81,7 @@ namespace MindTouch.Clacks.Server.Sync {
         protected override void SendResponse() {
             string finalStatus = null;
             foreach(var response in _responses) {
+                _handledResponse = response;
                 finalStatus = response.Status;
                 var data = response.GetBytes();
                 try {
@@ -96,7 +98,7 @@ namespace MindTouch.Clacks.Server.Sync {
         }
 
         protected override void CompleteRequest() {
-            if(Handler.DisconnectOnCompletion) {
+            if(_handledResponse.IsDisconnect) {
                 Dispose();
             }
         }

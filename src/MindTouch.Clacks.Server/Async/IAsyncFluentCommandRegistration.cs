@@ -22,14 +22,12 @@ using System.Collections.Generic;
 
 namespace MindTouch.Clacks.Server.Async {
     public interface IAsyncFluentCommandRegistration {
-        IAsyncFluentCommandRegistration IsDisconnect();
-        IAsyncFluentCommandRegistration HandledBy(Func<IRequest, IResponse> handler);
-        IAsyncFluentCommandRegistration HandledBy(Func<IRequest, IEnumerable<IResponse>> handler);
-        IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse>> handler);
-        IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse, Action>> handler);
-        IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IEnumerable<IResponse>>> handler);
+        IAsyncServerBuilder HandledBy(Func<IRequest, IResponse> handler);
+        IAsyncServerBuilder HandledBy(Func<IRequest, IEnumerable<IResponse>> handler);
+        IAsyncServerBuilder HandledBy(Action<IRequest, Action<IResponse>> handler);
+        IAsyncServerBuilder HandledBy(Action<IRequest, Action<IResponse, Action>> handler);
+        IAsyncServerBuilder HandledBy(Action<IRequest, Action<IEnumerable<IResponse>>> handler);
         IAsyncFluentCommandRegistration ExpectsData();
         IAsyncFluentCommandRegistration ExpectsNoData();
-        IAsyncServerBuilder Register();
     }
 }

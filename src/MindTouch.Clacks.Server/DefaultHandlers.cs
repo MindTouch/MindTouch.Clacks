@@ -23,7 +23,7 @@ namespace MindTouch.Clacks.Server {
         }
 
         public static IResponse DisconnectHandler(IRequest request) {
-            return Response.Create("BYE");
+            return Response.Create("BYE").DisconnectOnCompletion();
         }
 
         public static void ErrorHandler(IRequest request, Exception e, Action<IResponse> responseCallback) {
@@ -36,7 +36,7 @@ namespace MindTouch.Clacks.Server {
                 return new AsyncCommandRegistration(
                     DataExpectation.Auto,
                     (client, command, dataLength, arguments, errorHandler) =>
-                        new AsyncSingleCommandHandler(client, command, arguments, dataLength, (r, c) => c(DefaultResponse(r)), errorHandler)
+                        new AsyncSingleCommandHandler(client, command, arguments, dataLength, false, (r, c) => c(DefaultResponse(r)), errorHandler)
                 );
             }
         }

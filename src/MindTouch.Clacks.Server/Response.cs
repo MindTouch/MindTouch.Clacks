@@ -30,6 +30,7 @@ namespace MindTouch.Clacks.Server {
         private readonly string _status;
         private readonly List<string> _args = new List<string>();
         private byte[] _data;
+        private bool _isDisconnect;
 
         private Response(string status) {
             _status = status;
@@ -50,8 +51,14 @@ namespace MindTouch.Clacks.Server {
             return this;
         }
 
+        public Response DisconnectOnCompletion() {
+            _isDisconnect = true;
+            return this;
+        }
+
         string IResponse.Status { get { return _status; } }
         IEnumerable<string> IResponse.Arguments { get { return _args; } }
         byte[] IResponse.Data { get { return _data; } }
+        public bool IsDisconnect { get { return _isDisconnect; } }
     }
 }

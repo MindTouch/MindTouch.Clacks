@@ -44,7 +44,6 @@ namespace MindTouch.Clacks.Server.Async {
         public void Dispose() { }
 
         public bool ExpectsData { get { return _dataLength > 0; } }
-        public bool DisconnectOnCompletion { get { return false; } }
         public int OutstandingBytes { get { return _dataLength - _received; } }
         public string Command { get { return _command; } }
 

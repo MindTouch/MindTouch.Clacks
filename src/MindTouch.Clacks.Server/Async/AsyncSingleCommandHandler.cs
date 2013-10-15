@@ -40,7 +40,7 @@ namespace MindTouch.Clacks.Server.Async {
         private int _received;
         private List<byte[]> _dataChunks;
 
-        public AsyncSingleCommandHandler(Connection connection, string command, string[] arguments, int dataLength, Action<IRequest, Action<IResponse>> handler, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
+        public AsyncSingleCommandHandler(Connection connection, string command, string[] arguments, int dataLength, bool disconnectOnCompletion, Action<IRequest, Action<IResponse>> handler, Action<IRequest, Exception, Action<IResponse>> errorHandler) {
             _connection = connection;
             _command = command;
             _arguments = arguments;
@@ -58,7 +58,6 @@ namespace MindTouch.Clacks.Server.Async {
         public void Dispose() { }
 
         public bool ExpectsData { get { return _dataLength > 0; } }
-        public bool DisconnectOnCompletion { get { return _disconnect; } }
         public int OutstandingBytes { get { return _dataLength - _received; } }
         public string Command { get { return _command; } }
 

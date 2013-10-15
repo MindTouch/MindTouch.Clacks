@@ -20,24 +20,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
 
 namespace MindTouch.Clacks.Server.Async {
     public class AsyncCommandRepository : IAsyncCommandDispatcher {
 
-        private static readonly Logger.ILog _log = Logger.CreateLog();
-
         private readonly Dictionary<string, IAsyncCommandRegistration> _commands = new Dictionary<string, IAsyncCommandRegistration>(StringComparer.InvariantCultureIgnoreCase);
         private Action<IRequest, Exception, Action<IResponse>> _errorHandler = DefaultHandlers.ErrorHandler;
         private IAsyncCommandRegistration _defaultCommandRegistration = DefaultHandlers.AsyncCommandRegistration;
-        private Action<IRequest, Action<IResponse>> _disconnectHandler = DefaultHandlers.DisconnectHandler;
-        private string _disconnectCommand = "BYE";
+
+        public AsyncCommandRepository() {
+            AddCommand("BYE", (r,c) => c(DefaultHandlers.DisconnectHandler(r)), DataExpectation.Never);
+        }
 
         public IAsyncCommandHandler GetHandler(Connection connection, string[] commandArgs) {
             var command = commandArgs.FirstOrDefault() ?? string.Empty;
-            if(command.Equals(_disconnectCommand, StringComparison.InvariantCultureIgnoreCase)) {
-                return BuildDisconnectHandler();
-            }
             IAsyncCommandRegistration registration;
             if(!_commands.TryGetValue(command, out registration)) {
                 registration = _defaultCommandRegistration;
@@ -45,22 +41,12 @@ namespace MindTouch.Clacks.Server.Async {
             return registration.GetHandler(connection, commandArgs, _errorHandler);
         }
 
-        private IAsyncCommandHandler BuildDisconnectHandler() {
-            return AsyncSingleCommandHandler.DisconnectHandler(_disconnectCommand, (request, response) => {
-                try {
-                    _disconnectHandler(request, response);
-                } catch(Exception handlerException) {
-                    _log.Warn("disconnect handler threw an exception, continuing with disconnect", handlerException);
-                    response(Response.Create("BYE"));
-                }
-            });
-        }
 
         public void Default(Action<IRequest, Action<IResponse>> handler) {
             _defaultCommandRegistration = new AsyncCommandRegistration(
                 DataExpectation.Auto,
                 (client, command, dataLength, arguments, errorHandler) =>
-                    new AsyncSingleCommandHandler(client, command, arguments, dataLength, handler, errorHandler)
+                    new AsyncSingleCommandHandler(client, command, arguments, dataLength, false, handler, errorHandler)
             );
         }
 
@@ -68,16 +54,11 @@ namespace MindTouch.Clacks.Server.Async {
             _errorHandler = handler;
         }
 
-        public void Disconnect(string command, Action<IRequest, Action<IResponse>> handler) {
-            _disconnectCommand = command;
-            _disconnectHandler = handler;
-        }
-
         public void AddCommand(string command, Action<IRequest, Action<IResponse>> handler, DataExpectation dataExpectation) {
             _commands[command] = new AsyncCommandRegistration(
-                dataExpectation,
+                dataExpectation, 
                 (client, cmd, dataLength, arguments, errorHandler) =>
-                    new AsyncSingleCommandHandler(client, cmd, arguments, dataLength, handler, errorHandler)
+                    new AsyncSingleCommandHandler(client, cmd, arguments, dataLength, false, handler, errorHandler)
             );
         }
 

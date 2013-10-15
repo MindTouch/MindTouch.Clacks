@@ -25,11 +25,7 @@ namespace MindTouch.Clacks.Server.Async {
         private readonly ServerBuilder _serverBuilder;
         private readonly AsyncCommandRepository _repository;
         private readonly string _command;
-        private bool _isDisconnect;
         private DataExpectation _dataExpectation = DataExpectation.Auto;
-        private Action<IRequest, Action<IResponse>> _singleResponseHandler;
-        private Action<IRequest, Action<IResponse, Action>> _multiAsyncResponseHandler;
-        private Action<IRequest, Action<IEnumerable<IResponse>>> _multiSyncResponseHandler;
 
         public AsyncFluentCommandRegistration(ServerBuilder serverBuilder, AsyncCommandRepository repository, string command) {
             _serverBuilder = serverBuilder;
@@ -37,34 +33,29 @@ namespace MindTouch.Clacks.Server.Async {
             _command = command;
         }
 
-        public IAsyncFluentCommandRegistration IsDisconnect() {
-            _isDisconnect = true;
-            return this;
+        public IAsyncServerBuilder HandledBy(Func<IRequest, IResponse> handler) {
+            _repository.AddCommand(_command, (request, responseCallback) => responseCallback(handler(request)), _dataExpectation);
+            return _serverBuilder;
         }
 
-        public IAsyncFluentCommandRegistration HandledBy(Func<IRequest, IResponse> handler) {
-            _singleResponseHandler = (request, responseCallback) => responseCallback(handler(request));
-            return this;
+        public IAsyncServerBuilder HandledBy(Func<IRequest, IEnumerable<IResponse>> handler) {
+            _repository.AddCommand(_command, (request, responseCallback) => responseCallback(handler(request)), _dataExpectation);
+            return _serverBuilder;
         }
 
-        public IAsyncFluentCommandRegistration HandledBy(Func<IRequest, IEnumerable<IResponse>> handler) {
-            _multiSyncResponseHandler = (request, responseCallback) => responseCallback(handler(request));
-            return this;
+        public IAsyncServerBuilder HandledBy(Action<IRequest, Action<IResponse>> handler) {
+            _repository.AddCommand(_command, handler, _dataExpectation);
+            return _serverBuilder;
         }
 
-        public IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse>> handler) {
-            _singleResponseHandler = handler;
-            return this;
+        public IAsyncServerBuilder HandledBy(Action<IRequest, Action<IResponse, Action>> handler) {
+            _repository.AddCommand(_command, handler, _dataExpectation);
+            return _serverBuilder;
         }
 
-        public IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IResponse, Action>> handler) {
-            _multiAsyncResponseHandler = handler;
-            return this;
-        }
-
-        public IAsyncFluentCommandRegistration HandledBy(Action<IRequest, Action<IEnumerable<IResponse>>> handler) {
-            _multiSyncResponseHandler = handler;
-            return this;
+        public IAsyncServerBuilder HandledBy(Action<IRequest, Action<IEnumerable<IResponse>>> handler) {
+            _repository.AddCommand(_command, handler, _dataExpectation);
+            return _serverBuilder;
         }
 
         public IAsyncFluentCommandRegistration ExpectsData() {
@@ -75,22 +66,6 @@ namespace MindTouch.Clacks.Server.Async {
         public IAsyncFluentCommandRegistration ExpectsNoData() {
             _dataExpectation = DataExpectation.Never;
             return this;
-        }
-
-        public IAsyncServerBuilder Register() {
-            if(_singleResponseHandler == null && _multiAsyncResponseHandler == null && _multiSyncResponseHandler == null) {
-                throw new CommandConfigurationException(string.Format("Must define a handler for command '{0}'", _command));
-            }
-            if(_isDisconnect) {
-                _repository.Disconnect(_command, _singleResponseHandler);
-            } else if(_singleResponseHandler != null) {
-                _repository.AddCommand(_command, _singleResponseHandler, _dataExpectation);
-            } else if(_multiSyncResponseHandler != null) {
-                _repository.AddCommand(_command, _multiSyncResponseHandler, _dataExpectation);
-            } else {
-                _repository.AddCommand(_command, _multiAsyncResponseHandler, _dataExpectation);
-            }
-            return _serverBuilder;
         }
     }
 }

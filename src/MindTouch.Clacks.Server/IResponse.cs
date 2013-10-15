@@ -24,5 +24,6 @@ namespace MindTouch.Clacks.Server {
         string Status { get;}
         IEnumerable<string> Arguments { get; }
         byte[] Data { get; }
+        bool IsDisconnect { get; }
     }
 }

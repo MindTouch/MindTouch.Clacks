@@ -19,7 +19,6 @@
  */
 using System;
 using System.Linq;
-using System.Net;
 
 namespace MindTouch.Clacks.Server {
     public abstract class CommandRegistration<THandler,TError> {

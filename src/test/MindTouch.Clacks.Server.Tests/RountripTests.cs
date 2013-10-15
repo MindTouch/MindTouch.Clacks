@@ -207,7 +207,6 @@ namespace MindTouch.Clacks.Server.Tests {
                         };
                         iterator();
                     })
-                    .Register()
                 .Build());
         }
 
@@ -224,7 +223,6 @@ namespace MindTouch.Clacks.Server.Tests {
                         responses.Add(Response.Create("END"));
                         return responses;
                     })
-                    .Register()
                 .Build());
         }
 
@@ -275,7 +273,6 @@ namespace MindTouch.Clacks.Server.Tests {
                         };
                         iterator();
                     })
-                    .Register()
                 .Build());
         }
 
@@ -292,7 +289,6 @@ namespace MindTouch.Clacks.Server.Tests {
                         responses.Add(Response.Create("END"));
                         responseCallback(responses);
                     })
-                    .Register()
                 .Build());
         }
 
@@ -309,7 +305,6 @@ namespace MindTouch.Clacks.Server.Tests {
                         responses.Add(Response.Create("END"));
                         return responses;
                     })
-                    .Register()
                 .Build());
         }
 

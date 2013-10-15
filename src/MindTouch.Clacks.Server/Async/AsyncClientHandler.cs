@@ -94,7 +94,6 @@ namespace MindTouch.Clacks.Server.Async {
 
             // null response: the last callback returned no more results, so we're done
             if(response == null) {
-                _response = null;
                 EndCommandRequest(_lastStatus);
                 return;
             }
@@ -116,7 +115,6 @@ namespace MindTouch.Clacks.Server.Async {
 
                             // null callback: the source already knows there won't be any more responses
                             var status = _response.Status;
-                            _response = null;
                             EndCommandRequest(status);
                         }
                     } catch(ObjectDisposedException) {
@@ -133,8 +131,9 @@ namespace MindTouch.Clacks.Server.Async {
         }
 
         protected override void CompleteRequest() {
+            var disconnect = _response.IsDisconnect;
             _response = null;
-            if(Handler.DisconnectOnCompletion) {
+            if(disconnect) {
                 Dispose();
             } else {
                 StartCommandRequest();

@@ -34,8 +34,8 @@ namespace MindTouch.Clacks.Memcache {
         public Memcached(IPEndPoint endPoint) {
             _server = ServerBuilder
                 .CreateAsync(endPoint)
-                .WithCommand("set").HandledBy(Set).ExpectsData().Register()
-                .WithCommand("get").HandledBy(Get).Register()
+                .WithCommand("set").ExpectsData().HandledBy(Set)
+                .WithCommand("get").HandledBy(Get)
                 .Build();
         }
 

@@ -53,7 +53,6 @@ namespace MindTouch.Clacks.Server.PerfTests {
                        payloadstring = payload.ToString();
                        response(Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring)));
                    })
-                   .Register()
                .Build()
            ) {
                 Console.WriteLine("created server");
@@ -74,7 +73,6 @@ namespace MindTouch.Clacks.Server.PerfTests {
                        payloadstring = payload.ToString();
                        return Response.Create("OK").WithData(Encoding.ASCII.GetBytes(payloadstring));
                    })
-                   .Register()
                .Build()
            ) {
                 Console.WriteLine("created server");
@@ -104,7 +102,6 @@ namespace MindTouch.Clacks.Server.PerfTests {
             using(ServerBuilder.CreateAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
                .WithCommand("BIN")
                    .HandledBy((request, response) => response(Response.Create("OK").WithData(request.Data)))
-                   .Register()
                .Build()
            ) {
                 Console.WriteLine("created server");
@@ -118,7 +115,6 @@ namespace MindTouch.Clacks.Server.PerfTests {
             using(ServerBuilder.CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
                .WithCommand("BIN")
                    .HandledBy(request => Response.Create("OK").WithData(request.Data))
-                   .Register()
                .Build()
            ) {
                 Console.WriteLine("created server");

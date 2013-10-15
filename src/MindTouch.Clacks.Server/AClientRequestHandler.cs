@@ -47,7 +47,7 @@ namespace MindTouch.Clacks.Server {
         protected bool _carriageReturn;
 
         protected AClientRequestHandler(Guid clientId, Socket socket, IClacksInstrumentation instrumentation, Action<IClientHandler> removeCallback) {
-            _connection = new Connection(clientId, _socket.RemoteEndPoint as IPEndPoint);
+            _connection = new Connection(clientId, socket.RemoteEndPoint as IPEndPoint);
             _socket = socket;
             _instrumentation = instrumentation;
             _removeCallback = removeCallback;

@@ -22,7 +22,6 @@ using System;
 namespace MindTouch.Clacks.Server {
     public interface ICommandHandler : IDisposable {
         bool ExpectsData { get; }
-        bool DisconnectOnCompletion { get; }
         int OutstandingBytes { get; }
         string Command { get; }
         void AcceptData(byte[] chunk);

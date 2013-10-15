@@ -25,35 +25,21 @@ using System.Net;
 namespace MindTouch.Clacks.Server.Sync {
     public class SyncCommandRepository : ISyncCommandDispatcher {
 
-        private static readonly Logger.ILog _log = Logger.CreateLog();
-
         private readonly Dictionary<string, ISyncCommandRegistration> _commands = new Dictionary<string, ISyncCommandRegistration>();
         private Func<IRequest, Exception, IResponse> _errorHandler = DefaultHandlers.ErrorHandler;
         private ISyncCommandRegistration _defaultCommandRegistration = DefaultHandlers.SyncCommandRegistration;
-        private Func<IRequest, IResponse> _disconnectHandler = DefaultHandlers.DisconnectHandler;
-        private string _disconnectCommand = "BYE";
+
+        public SyncCommandRepository() {
+            AddCommand("BYE", r => DefaultHandlers.DisconnectHandler(r), DataExpectation.Never);
+        }
 
         public ISyncCommandHandler GetHandler(Connection connection, string[] commandArgs) {
             var command = commandArgs.FirstOrDefault() ?? string.Empty;
-            if(command == _disconnectCommand) {
-                return BuildDisconnectHandler();
-            }
             ISyncCommandRegistration registration;
             if(!_commands.TryGetValue(command, out registration)) {
                 registration = _defaultCommandRegistration;
             }
             return registration.GetHandler(connection, commandArgs, _errorHandler);
-        }
-
-        private ISyncCommandHandler BuildDisconnectHandler() {
-            return SyncSingleCommandHandler.DisconnectHandler(_disconnectCommand, request => {
-                try {
-                    return _disconnectHandler(request);
-                } catch(Exception handlerException) {
-                    _log.Warn("disconnect handler threw an exception, continuating with disconnect", handlerException);
-                    return Response.Create("BYE");
-                }
-            });
         }
 
         public void Default(Func<IRequest, IResponse> handler) {
@@ -66,11 +52,6 @@ namespace MindTouch.Clacks.Server.Sync {
 
         public void Error(Func<IRequest, Exception, IResponse> handler) {
             _errorHandler = handler;
-        }
-
-        public void Disconnect(string command, Func<IRequest, IResponse> handler) {
-            _disconnectCommand = command;
-            _disconnectHandler = handler;
         }
 
         public void AddCommand(string command, Func<IRequest, IResponse> handler, DataExpectation dataExpectation) {
