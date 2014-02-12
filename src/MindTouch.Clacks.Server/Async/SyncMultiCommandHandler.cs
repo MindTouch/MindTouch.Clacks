@@ -72,6 +72,7 @@ namespace MindTouch.Clacks.Server.Async {
                         iterator = () => {
                             if(!enumerator.MoveNext()) {
                                 responseCallback(null, null);
+                                return;
                             }
                             var response = enumerator.Current;
                             responseCallback(response, iterator);
