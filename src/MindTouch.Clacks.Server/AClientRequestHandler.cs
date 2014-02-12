@@ -38,11 +38,11 @@ namespace MindTouch.Clacks.Server {
         protected readonly StringBuilder _commandBuffer = new StringBuilder();
         protected readonly byte[] _buffer = new byte[16 * 1024];
 
-        private ulong _commandCounter;
         private string[] _commandArgs;
         private bool _isDisposed;
         private bool _inCommand = false;
 
+        protected ulong _commandCounter;
         protected int _bufferPosition;
         protected int _bufferDataLength;
         protected bool _carriageReturn;
@@ -89,6 +89,12 @@ namespace MindTouch.Clacks.Server {
 
         public abstract void ProcessRequests();
         protected abstract void CompleteRequest();
+        protected abstract void SendResponse();
+
+        /// <summary>
+        /// 13/14. -> Calls StartCommandRequest
+        /// </summary>
+        protected abstract void ProcessCommand();
 
         // 1.
         protected void StartCommandRequest() {
@@ -121,45 +127,52 @@ namespace MindTouch.Clacks.Server {
             }
 
             // look for \r\n
-            for(var i = 0; i < length; i++) {
-                var idx = position + i;
-                if(_buffer[idx] == '\r') {
-                    _carriageReturn = true;
-                } else if(_carriageReturn && _buffer[idx] == '\n') {
-                    _carriageReturn = false;
-                    _bufferPosition = idx + 1;
-                    _bufferDataLength = length - i - 1;
-                    _commandBuffer.Append(Encoding.ASCII.GetString(_buffer, position, idx - 1));
+            try {
+                for(var i = 0; i < length; i++) {
+                    var idx = position + i;
+                    if(_buffer[idx] == '\r') {
+                        _carriageReturn = true;
+                    } else if(_carriageReturn && _buffer[idx] == '\n') {
+                        _carriageReturn = false;
+                        _bufferPosition = idx + 1;
+                        _bufferDataLength = length - i - 1;
+                        _commandBuffer.Append(Encoding.ASCII.GetString(_buffer, position, idx - 1));
 
-                    // 6.
-                    _commandArgs = _commandBuffer.ToString().Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries);
-                    _commandBuffer.Length = 0;
-                    var command = InitializeHandler(_commandArgs);
-                    _log.DebugFormat("[{0}] Received command [{1}] in {2:0.00}ms, expect data: {3} ",
-                        _commandCounter,
-                        command,
-                        _requestTimer.Elapsed.TotalMilliseconds,
-                        Handler.ExpectsData
-                    );
-                    _instrumentation.ReceivedCommand(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
-                    if(Handler.ExpectsData) {
+                        // 6.
+                        _commandArgs = _commandBuffer.ToString().Split(new[] {" "}, StringSplitOptions.RemoveEmptyEntries);
+                        _commandBuffer.Length = 0;
+                        var command = InitializeHandler(_commandArgs);
+                        _log.DebugFormat("[{0}] Received command [{1}] in {2:0.00}ms, expect data: {3} ",
+                            _commandCounter,
+                            command,
+                            _requestTimer.Elapsed.TotalMilliseconds,
+                            Handler.ExpectsData
+                            );
+                        _instrumentation.ReceivedCommand(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
+                        if(Handler.ExpectsData) {
 
-                        // 8.
-                        if(_bufferPosition != 0) {
-                            ProcessPayloadData(_bufferPosition, _bufferDataLength);
-                            return;
+                            // 8.
+                            if(_bufferPosition != 0) {
+                                ProcessPayloadData(_bufferPosition, _bufferDataLength);
+                                return;
+                            }
+                            Receive(ProcessPayloadData);
+                        } else {
+
+                            // 7.
+                            _instrumentation.ReceivedCommandPayload(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
+                            ProcessCommand();
                         }
-                        Receive(ProcessPayloadData);
-                    } else {
-
-                        // 7.
-                        _instrumentation.ReceivedCommandPayload(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, null));
-                        ProcessCommand();
+                        return;
                     }
-                    return;
                 }
+                _commandBuffer.Append(Encoding.ASCII.GetString(_buffer, position, length));
+            } catch(ObjectDisposedException) {
+                _log.DebugFormat("[0] socket was already disposed", _commandCounter);
+            } catch(Exception e) {
+                FailAndDispose("Unable to process command data",  e);
+                return;
             }
-            _commandBuffer.Append(Encoding.ASCII.GetString(_buffer, position, length));
 
             // 5.
             Receive(ProcessCommandData);
@@ -167,22 +180,28 @@ namespace MindTouch.Clacks.Server {
 
         // 11.
         protected void ProcessPayloadData(int position, int length) {
+            try {
+                var outstanding = Handler.OutstandingBytes;
+                var payloadLength = Math.Min(length, outstanding);
+                var payload = new byte[payloadLength];
+                Array.Copy(_buffer, position, payload, 0, payloadLength);
+                Handler.AcceptData(payload);
+                if(Handler.OutstandingBytes == 0) {
 
-            var outstanding = Handler.OutstandingBytes;
-            var payloadLength = Math.Min(length, outstanding);
-            var payload = new byte[payloadLength];
-            Array.Copy(_buffer, position, payload, 0, payloadLength);
-            Handler.AcceptData(payload);
-            if(Handler.OutstandingBytes == 0) {
+                    // check and consume trailing \r\n
+                    if(length < payloadLength + 2) {
 
-                // check and consume trailing \r\n
-                if(length < payloadLength + 2) {
-
-                    // missing trailing \r\n, let's try to receive those before moving on
-                    Receive(CheckBufferTail);
+                        // missing trailing \r\n, let's try to receive those before moving on
+                        Receive(CheckBufferTail);
+                        return;
+                    }
+                    CheckBufferTail(position + outstanding, length - outstanding);
                     return;
                 }
-                CheckBufferTail(position + outstanding, length - outstanding);
+            } catch(ObjectDisposedException) {
+                _log.DebugFormat("[0] socket was already disposed", _commandCounter);
+            } catch(Exception e) {
+                FailAndDispose("Unable to process payload data", e);
                 return;
             }
             Receive(ProcessPayloadData);
@@ -198,17 +217,12 @@ namespace MindTouch.Clacks.Server {
             ProcessCommand();
         }
 
-        /// <summary>
-        /// 13/14. -> Calls StartCommandRequest
-        /// </summary>
-        protected abstract void ProcessCommand();
 
         protected void PrepareResponse(string status) {
             _instrumentation.ProcessedCommand(new StatsCommandInfo(Id, _commandCounter, _requestTimer.Elapsed, _commandArgs, status));
             SendResponse();
         }
 
-        protected abstract void SendResponse();
 
         protected void EndCommandRequest(string status) {
             _requestTimer.Stop();
@@ -229,7 +243,7 @@ namespace MindTouch.Clacks.Server {
                 return;
             }
             _isDisposed = true;
-            _log.DebugFormat("Disposing client '{0}'", EndPoint);
+            _log.DebugFormat("[{0}] Disposing client '{1}'", _commandCounter, EndPoint);
             _instrumentation.ClientDisconnected(Id);
             try {
                 _socket.Shutdown(SocketShutdown.Both);
@@ -243,7 +257,7 @@ namespace MindTouch.Clacks.Server {
                 return;
             }
             _isDisposed = true;
-            _log.Warn(string.Format("Disposing client '{0}' due to failure: {1}", EndPoint, reason), e);
+            _log.Warn(string.Format("[{0}] Disposing client '{1}' due to failure: {2}", _commandCounter, EndPoint, reason), e);
             _instrumentation.ClientDisconnected(Id);
             try {
 

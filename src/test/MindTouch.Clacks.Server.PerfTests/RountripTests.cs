@@ -142,7 +142,6 @@ namespace MindTouch.Clacks.Server.PerfTests {
 
         [Test]
         public void Async_Roundtrip_many_binary_payloads() {
-            var payloadstring = "";
             using(ServerBuilder.CreateAsync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
                .WithCommand("BIN")
                    .HandledBy((request, response) => response(Response.Create("OK").WithData(request.Data)))
@@ -156,7 +155,6 @@ namespace MindTouch.Clacks.Server.PerfTests {
 
         [Test]
         public void Sync_Roundtrip_many_binary_payloads() {
-            var payloadstring = "";
             using(ServerBuilder.CreateSync(new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port))
                .WithCommand("BIN")
                    .HandledBy(request => Response.Create("OK").WithData(request.Data))

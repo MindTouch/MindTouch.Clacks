@@ -21,10 +21,13 @@ using System;
 
 namespace MindTouch.Clacks.Server {
     public class DataExpectationException : Exception {
-        public readonly bool TooMuchData;
+        public readonly int Expected;
+        public readonly int Received;
 
-        public DataExpectationException(bool tooMuchData) {
-            TooMuchData = tooMuchData;
+        public DataExpectationException(int expected, int received)
+            : base(string.Format("Expected {0} bytes, received {1} bytes", expected, received)){
+            Expected = expected;
+            Received = received;
         }
     }
 }

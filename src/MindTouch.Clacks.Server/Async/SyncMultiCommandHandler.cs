@@ -55,13 +55,15 @@ namespace MindTouch.Clacks.Server.Async {
             _dataChunks.Add(chunk);
             _received += chunk.Length;
             if(_received > _dataLength) {
-                throw new DataExpectationException(true);
+                throw new DataExpectationException(_dataLength, _received);
             }
         }
 
         public void GetResponse(Action<IResponse, Action> responseCallback) {
             if(_received < _dataLength) {
-                throw new DataExpectationException(false);
+                var badRequest = new Request(_client, _command, _arguments, 0, new List<byte[]>());
+                _errorHandler(badRequest, new DataExpectationException(_dataLength, _received), response => responseCallback(response, null));
+                return;
             }
             var request = new Request(_client, _command, _arguments, _dataLength, _dataChunks);
             try {

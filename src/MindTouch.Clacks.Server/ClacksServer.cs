@@ -51,7 +51,7 @@ namespace MindTouch.Clacks.Server {
             } catch(SocketException e) {
                 _log.Warn("Wait for connection failed", e);
                 return;
-            } catch(ObjectDisposedException e) {
+            } catch(ObjectDisposedException) {
                 _log.Debug("Aborted wait for socket due to object disposed");
                 return;
             }
@@ -66,7 +66,7 @@ namespace MindTouch.Clacks.Server {
             } catch(SocketException e) {
                 _log.Error("Socket error on receive, shutting down server", e);
                 return;
-            } catch(ObjectDisposedException e) {
+            } catch(ObjectDisposedException) {
                 _log.Debug("Server already disposed, abort listen");
                 return;
             }

@@ -54,20 +54,21 @@ namespace MindTouch.Clacks.Server.Sync {
             _dataChunks.Add(chunk);
             _received += chunk.Length;
             if(_received > _dataLength) {
-                throw new DataExpectationException(true);
+                throw new DataExpectationException(_dataLength, _received);
             }
         }
 
         public IEnumerable<IResponse> GetResponse() {
             if(_received < _dataLength) {
-                throw new DataExpectationException(false);
+                var badRequest = new Request(_client, _command, _arguments, 0, new List<byte[]>());
+                return new[] { _errorHandler(badRequest, new DataExpectationException(_dataLength, _received)) };
             }
             var request = new Request(_client, _command, _arguments, _dataLength, _dataChunks);
             IEnumerable<IResponse> responses;
             try {
                 responses = _handler(request);
             } catch(Exception e) {
-                responses = new[] {_errorHandler(request, e) };
+                responses = new[] { _errorHandler(request, e) };
             }
             return responses;
         }

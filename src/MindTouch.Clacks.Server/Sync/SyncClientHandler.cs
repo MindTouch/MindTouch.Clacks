@@ -55,14 +55,12 @@ namespace MindTouch.Clacks.Server.Sync {
                     Dispose();
                     return;
                 }
+                continuation(0, received);
             } catch(ObjectDisposedException) {
-                _log.Debug("socket was already disposed");
-                return;
+                _log.DebugFormat("[0] socket was already disposed", _commandCounter);
             } catch(Exception e) {
                 FailAndDispose("Receive failed", e);
-                return;
             }
-            continuation(0, received);
         }
 
         protected override string InitializeHandler(string[] command) {
@@ -79,20 +77,18 @@ namespace MindTouch.Clacks.Server.Sync {
 
         protected override void SendResponse() {
             string finalStatus = null;
-            foreach(var response in _responses) {
-                finalStatus = response.Status;
-                var data = response.GetBytes();
-                try {
+            try {
+                foreach(var response in _responses) {
+                    finalStatus = response.Status;
+                    var data = response.GetBytes();
                     _socket.Send(data);
-                } catch(ObjectDisposedException) {
-                    _log.Debug("socket was already disposed");
-                    return;
-                } catch(Exception e) {
-                    FailAndDispose("Send failed", e);
-                    return;
                 }
+                EndCommandRequest(finalStatus);
+            } catch(ObjectDisposedException) {
+                _log.DebugFormat("[0] socket was already disposed", _commandCounter);
+            } catch(Exception e) {
+                FailAndDispose("SendResponse failed", e);
             }
-            EndCommandRequest(finalStatus);
         }
 
         protected override void CompleteRequest() {

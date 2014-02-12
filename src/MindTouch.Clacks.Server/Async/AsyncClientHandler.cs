@@ -58,19 +58,19 @@ namespace MindTouch.Clacks.Server.Async {
                     try {
                         var received = _socket.EndReceive(r);
                         if(received == 0) {
-                            _log.Debug("received nothing, connection must have gone away");
+                            _log.DebugFormat("[0] received nothing, connection must have gone away", _commandCounter);
                             Dispose();
                             return;
                         }
                         continuation(0, received);
                     } catch(ObjectDisposedException) {
-                        _log.Debug("socket was already disposed (EndReceive)");
+                        _log.DebugFormat("[0] socket was already disposed (EndReceive)", _commandCounter);
                     } catch(Exception e) {
                         FailAndDispose("EndReceive failed", e);
                     }
                 }, null);
             } catch(ObjectDisposedException) {
-                _log.Debug("socket was already disposed (BeginReceive)");
+                _log.DebugFormat("[0] socket was already disposed (BeginReceive)", _commandCounter);
             } catch(Exception e) {
                 FailAndDispose("BeginReceive failed", e);
             }
@@ -120,13 +120,13 @@ namespace MindTouch.Clacks.Server.Async {
                             EndCommandRequest(status);
                         }
                     } catch(ObjectDisposedException) {
-                        _log.Debug("socket was already disposed (EndSend)");
+                        _log.DebugFormat("[0] socket was already disposed (EndSend)", _commandCounter);
                     } catch(Exception e) {
                         FailAndDispose("Send failed (EndSend)", e);
                     }
                 }, null);
             } catch(ObjectDisposedException) {
-                _log.Debug("socket was already disposed (BeginSend)");
+                _log.DebugFormat("[0] socket was already disposed (BeginSend)", _commandCounter);
             } catch(Exception e) {
                 FailAndDispose("Send failed (BeginSend)", e);
             }
