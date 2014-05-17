@@ -1,3 +1,8 @@
+0.3.2
+=====
+* eliminating some uncaught exceptions in command handling pipeline
+* sync multi command fix (avoid infinite response loop)
+
 0.3.1
 =====
 * Replaced TimeoutException with SocketException(10060) which is the more appropriate socket timeout exception
