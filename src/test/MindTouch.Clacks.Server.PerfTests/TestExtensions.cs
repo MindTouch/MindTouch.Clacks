@@ -18,10 +18,13 @@
  * limitations under the License.
  */
 
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text;
 
 namespace MindTouch.Clacks.Server.PerfTests {
+
+    [ExcludeFromCodeCoverage]
     public static class TestExtensions {
         public static MemoryStream AsStream(this string data) {
             return new MemoryStream(Encoding.UTF8.GetBytes(data)) { Position = 0 };

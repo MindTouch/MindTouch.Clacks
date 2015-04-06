@@ -19,11 +19,13 @@
  */
 using System;
 using System.Net.Sockets;
+using System.Reflection;
+using log4net;
 
 namespace MindTouch.Clacks.Server.Async {
     public class AsyncClientHandler : AClientRequestHandler {
 
-        private static readonly Logger.ILog _log = Logger.CreateLog();
+        private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private readonly IAsyncCommandDispatcher _dispatcher;
         private IAsyncCommandHandler _commandHandler;

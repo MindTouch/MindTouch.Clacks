@@ -19,6 +19,7 @@
  */
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
@@ -27,6 +28,7 @@ using NUnit.Framework;
 
 namespace MindTouch.Clacks.Client.Tests {
 
+    [ExcludeFromCodeCoverage]
     [TestFixture]
     public class ClacksClientTests {
 

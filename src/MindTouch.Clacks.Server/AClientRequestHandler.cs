@@ -21,12 +21,14 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text;
+using log4net;
 
 namespace MindTouch.Clacks.Server {
     public abstract class AClientRequestHandler : IDisposable, IClientHandler {
 
-        private static readonly Logger.ILog _log = Logger.CreateLog();
+        private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private readonly Action<IClientHandler> _removeCallback;
         private readonly Guid _clientId;

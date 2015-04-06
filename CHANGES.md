@@ -1,3 +1,8 @@
+0.3.3
+=====
+* using log4net logger directly
+* distributing as NuGet package
+
 0.3.2
 =====
 * eliminating some uncaught exceptions in command handling pipeline
@@ -21,4 +26,4 @@
 * ClackClient
   * Added auto-reconnect/retry on request failure (assumes stateless server, can be turned off)
   * now requires an IConnectionPool, so while host/port & IPEndpoint Ctor's still exist, the ISocket Ctor is gone
-* Added the Client's endpoint to server's Request object	
+* Added the Client's endpoint to server's Request object

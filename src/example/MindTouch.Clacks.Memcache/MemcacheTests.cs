@@ -18,6 +18,7 @@
  * limitations under the License.
  */
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 using log4net;
@@ -25,6 +26,7 @@ using NUnit.Framework;
 
 namespace MindTouch.Clacks.Memcache {
 
+    [ExcludeFromCodeCoverage]
     [TestFixture]
     public class MemcacheTests {
         private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);

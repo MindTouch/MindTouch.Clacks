@@ -1,11 +1,14 @@
 ﻿using System;
+using System.Reflection;
 using System.Text;
+using log4net;
 using MindTouch.Clacks.Server.Async;
 using MindTouch.Clacks.Server.Sync;
 
 namespace MindTouch.Clacks.Server {
     public static class DefaultHandlers {
-        private static readonly Logger.ILog _log = Logger.CreateLog();
+
+        private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         public static IResponse ErrorHandler(IRequest request, Exception e) {
             _log.Warn(string.Format("Request [{0}] threw an exception of type {1}: {2}", request.Command, e.GetType(), e.Message), e);

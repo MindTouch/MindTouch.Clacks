@@ -18,16 +18,14 @@
  * limitations under the License.
  */
 
-using System;
-using System.Net;
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Sockets;
-using System.Threading;
-using MindTouch.Clacks.Client.Net;
 using MindTouch.Clacks.Client.Net.Helper;
 using NUnit.Framework;
 
 namespace MindTouch.Clacks.Client.Tests {
 
+    [ExcludeFromCodeCoverage]
     [TestFixture]
     public class PoolSocketTests {
 

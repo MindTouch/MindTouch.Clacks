@@ -1,0 +1,52 @@
+version: 0.3.3.{build}
+configuration: Release
+platform: Any CPU
+
+branches:
+  only:
+    - master
+
+# Do not build on tags (GitHub only)
+skip_tags: true
+
+# enable patching of AssemblyInfo.* files
+assembly_info:
+  patch: true
+  file: AssemblyInfo.*
+  assembly_version: "{version}"
+  assembly_file_version: "{version}"
+  assembly_informational_version: "{version}"
+
+nuget:
+  disable_publish_on_pr: true     # disable publishing of .nupkg artifacts to
+                                  # account/project feeds for pull request builds
+
+build:
+  parallel: true                  # enable MSBuild parallel builds
+  project: src/MindTouch.Clacks.sln   # path to Visual Studio solution or project
+  publish_nuget: false            # package projects with .nuspec files and push to artifacts
+  publish_nuget_symbols: false    # generate and publish NuGet symbol packages
+  include_nuget_references: false # add -IncludeReferencedProjects option while packaging NuGet artifacts
+  verbosity: normal
+
+deploy:
+  provider: NuGet
+  api_key:
+    secure: aEjG00oKugFH3sIUiq1snWmbGHcQU5YLu79TbaSC2xC299Z1YHQZPkJjjgGZBghS
+  skip_symbols: true
+
+artifacts:
+  - path: '**/MindTouch*.nupkg'            # find all NuGet packages
+
+# Restore NuGet packages before running MSBuild
+# TODO (2015-04-01): Reference {build.project} value.
+before_build:
+  - nuget restore src/MindTouch.Clacks.sln
+
+# TODO (2015-04-01): Find all NuSpec files. For each NuSpec run nuget pack.
+# TODO (2015-04-01): Use Configuration environment variable.
+# TODO (2015-04-01): Use Platform environment variable.
+after_build:
+  - ps: $releaseNotes = [IO.File]::ReadAllText("$env:APPVEYOR_BUILD_FOLDER\CHANGES.md")
+  - ps: nuget pack src\MindTouch.Clacks.Client\MindTouch.Clacks.Client.csproj -BasePath src\MindTouch.Clacks.Client -IncludeReferencedProjects -ExcludeEmptyDirectories -Properties "Configuration=Release;Platform=AnyCPU;releaseNotes=<![CDATA[$releaseNotes]]>"
+  - ps: nuget pack src\MindTouch.Clacks.Server\MindTouch.Clacks.Server.csproj -BasePath src\MindTouch.Clacks.Server -IncludeReferencedProjects -ExcludeEmptyDirectories -Properties "Configuration=Release;Platform=AnyCPU;releaseNotes=<![CDATA[$releaseNotes]]>"

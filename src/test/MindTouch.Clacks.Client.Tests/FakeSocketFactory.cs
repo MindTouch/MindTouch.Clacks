@@ -20,9 +20,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using MindTouch.Clacks.Client.Net;
 
 namespace MindTouch.Clacks.Client.Tests {
+
+    [ExcludeFromCodeCoverage]
     public class FakeSocketFactory {
 
         public readonly List<FakeSocket> Sockets = new List<FakeSocket>();

@@ -18,10 +18,12 @@
  * limitations under the License.
  */
 using System;
+using System.Diagnostics.CodeAnalysis;
 using NUnit.Framework;
 
 namespace MindTouch.Clacks.Server.Tests {
 
+    [ExcludeFromCodeCoverage]
     [TestFixture]
     public class MiscTest {
 

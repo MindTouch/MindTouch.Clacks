@@ -22,6 +22,8 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Linq;
+using System.Reflection;
+using log4net;
 using MindTouch.Clacks.Client.Net.Helper;
 
 namespace MindTouch.Clacks.Client.Net {
@@ -30,7 +32,7 @@ namespace MindTouch.Clacks.Client.Net {
     // TODO: need way to configure "BYE" command for automatic socket disposal
     public class ConnectionPool : IConnectionPool, IDisposable {
 
-        private static readonly Logger.ILog _log = Logger.CreateLog();
+        private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private class Available {
             public readonly DateTime Queued;

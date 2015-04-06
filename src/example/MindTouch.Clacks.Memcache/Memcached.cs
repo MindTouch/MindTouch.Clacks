@@ -19,12 +19,15 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using log4net;
 using MindTouch.Clacks.Server;
 
 namespace MindTouch.Clacks.Memcache {
+
+    [ExcludeFromCodeCoverage]
     public class Memcached : IDisposable {
         private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         

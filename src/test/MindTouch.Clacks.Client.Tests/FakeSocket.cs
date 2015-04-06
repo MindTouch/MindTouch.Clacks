@@ -19,9 +19,12 @@
  */
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using MindTouch.Clacks.Client.Net;
 
 namespace MindTouch.Clacks.Client.Tests {
+
+    [ExcludeFromCodeCoverage]
     public class FakeSocket : ISocket {
         public int DisposeCalled;
         public int ConnectedCalled;
