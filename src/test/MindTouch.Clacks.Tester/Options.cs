@@ -107,6 +107,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.RegularExpressions;
 
@@ -117,6 +118,7 @@ namespace MindTouch.Clacks.Tester {
         Required
     }
 
+    [ExcludeFromCodeCoverage]
     public class Option {
         readonly string prototype;
         readonly string description;
@@ -154,6 +156,7 @@ namespace MindTouch.Clacks.Tester {
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public class Options : Collection<Option> {
         Dictionary<string, Option> options = new Dictionary<string, Option>();
 

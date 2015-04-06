@@ -19,6 +19,7 @@
  */
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -29,6 +30,7 @@ using log4net;
 
 namespace MindTouch.Clacks.Client.Tests {
 
+    [ExcludeFromCodeCoverage]
     [TestFixture]
     public class SocketAdapterTests {
 
@@ -116,7 +118,7 @@ namespace MindTouch.Clacks.Client.Tests {
                 try {
                     var buffer = new byte[4096];
                     socket.Receive(buffer, 0, 10);
-                } catch(SocketException e) {
+                } catch(SocketException) {
                     return;
                 }
                 Assert.Fail("did not throw a socket exception");

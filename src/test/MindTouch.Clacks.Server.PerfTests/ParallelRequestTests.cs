@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -32,7 +33,9 @@ using NUnit.Framework;
 using log4net;
 
 namespace MindTouch.Clacks.Server.PerfTests {
-    [TestFixture,Ignore]
+
+    [ExcludeFromCodeCoverage]
+    [TestFixture, Ignore]
     public class ParallelRequestTests {
         private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private int _port;

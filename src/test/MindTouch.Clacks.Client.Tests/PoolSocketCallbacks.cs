@@ -18,9 +18,12 @@
  * limitations under the License.
  */
 
+using System.Diagnostics.CodeAnalysis;
 using MindTouch.Clacks.Client.Net;
 
 namespace MindTouch.Clacks.Client.Tests {
+
+    [ExcludeFromCodeCoverage]
     public class PoolSocketCallbacks {
 
         public ISocket ReclaimedSocket;

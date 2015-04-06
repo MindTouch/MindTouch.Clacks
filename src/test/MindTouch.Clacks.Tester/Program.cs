@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -46,6 +47,7 @@ namespace MindTouch.Clacks.Tester {
         Failed
     }
 
+    [ExcludeFromCodeCoverage]
     public class WorkerInfo {
         public string Id;
         public WorkerStatus Status;
@@ -53,6 +55,7 @@ namespace MindTouch.Clacks.Tester {
         public Task Task;
     }
 
+    [ExcludeFromCodeCoverage]
     class Program {
         static void Main(string[] args) {
             var workerCount = 50;

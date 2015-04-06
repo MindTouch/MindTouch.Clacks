@@ -22,11 +22,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
+using log4net;
 
 namespace MindTouch.Clacks.Server {
     public class ClacksServer : IDisposable {
 
-        private static readonly Logger.ILog _log = Logger.CreateLog();
+        private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private readonly IPEndPoint _listenEndpoint;
         private readonly IClacksInstrumentation _instrumentation;

@@ -56,13 +56,13 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             }
             try {
                 return func();
-            } catch(ObjectDisposedException e) {
+            } catch(ObjectDisposedException) {
                 try {
                     Dispose();
                 } catch { }
                 throw;
 
-            } catch(SocketException e) {
+            } catch(SocketException) {
                 try {
                     _socket.Dispose();
                     Dispose();

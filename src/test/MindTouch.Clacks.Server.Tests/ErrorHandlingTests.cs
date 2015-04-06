@@ -18,9 +18,9 @@
  * limitations under the License.
  */
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
-using MindTouch.Clacks.Client.Net;
 using MindTouch.Clacks.Client.Net.Helper;
 using log4net;
 using MindTouch.Clacks.Client;
@@ -28,6 +28,7 @@ using NUnit.Framework;
 
 namespace MindTouch.Clacks.Server.Tests {
 
+    [ExcludeFromCodeCoverage]
     [TestFixture]
     public class ErrorHandlingTests {
 

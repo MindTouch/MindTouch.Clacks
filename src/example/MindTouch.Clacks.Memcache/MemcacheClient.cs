@@ -19,6 +19,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -26,6 +27,8 @@ using System.Text;
 using MindTouch.Clacks.Client;
 
 namespace MindTouch.Clacks.Memcache {
+
+    [ExcludeFromCodeCoverage]
     public class MemcacheClient : IDisposable {
         private readonly ClacksClient _client;
 
@@ -77,6 +80,7 @@ namespace MindTouch.Clacks.Memcache {
         }
     }
 
+    [ExcludeFromCodeCoverage]
     public class KeyData {
         public byte[] Data;
         public uint Flags;

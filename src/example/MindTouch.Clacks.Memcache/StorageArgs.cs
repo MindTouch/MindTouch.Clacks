@@ -18,9 +18,12 @@
  * limitations under the License.
  */
 using System;
+using System.Diagnostics.CodeAnalysis;
 using MindTouch.Clacks.Server;
 
 namespace MindTouch.Clacks.Memcache {
+
+    [ExcludeFromCodeCoverage]
     public class StorageArgs {
         public string Key;
         public uint Flags;

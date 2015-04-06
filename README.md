@@ -1,6 +1,8 @@
-MindToch.Clacks 0.3
+MindTouch.Clacks 0.3
 ====================
 A library for quickly building smtp/memcache protocol style clients and servers
+
+[![Build status](https://ci.appveyor.com/api/projects/status/2lwdrdo13t2s96pb?svg=true)](https://ci.appveyor.com/project/mindtouch/mindtouch-clacks)
 
 License
 =======
@@ -92,5 +94,4 @@ Calling the server to echo some arguments
 Contributors
 ============
 - Arne F. Claassen (sdether)
-
-
+- Corey Coto (coreycoto)

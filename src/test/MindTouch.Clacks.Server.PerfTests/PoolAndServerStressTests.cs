@@ -19,6 +19,7 @@
  */
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 using MindTouch.Clacks.Client;
@@ -29,6 +30,7 @@ using log4net;
 
 namespace MindTouch.Clacks.Server.PerfTests {
 
+    [ExcludeFromCodeCoverage]
     [TestFixture]
     public class PoolAndServerStressTests {
 

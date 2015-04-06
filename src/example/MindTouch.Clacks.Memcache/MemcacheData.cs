@@ -18,8 +18,11 @@
  * limitations under the License.
  */
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace MindTouch.Clacks.Memcache {
+
+    [ExcludeFromCodeCoverage]
     public class MemcacheData {
         public string Key;
         public uint Flags;

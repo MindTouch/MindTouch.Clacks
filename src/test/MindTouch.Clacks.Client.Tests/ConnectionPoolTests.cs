@@ -19,11 +19,14 @@
  */
 
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Threading;
 using MindTouch.Clacks.Client.Net;
 using NUnit.Framework;
 
 namespace MindTouch.Clacks.Client.Tests {
+
+    [ExcludeFromCodeCoverage]
     [TestFixture]
     public class ConnectionPoolTests {
         private FakeSocketFactory _factory;

@@ -21,11 +21,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Reflection;
+using log4net;
 
 namespace MindTouch.Clacks.Server.Async {
     public class AsyncCommandRepository : IAsyncCommandDispatcher {
 
-        private static readonly Logger.ILog _log = Logger.CreateLog();
+        private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private readonly Dictionary<string, IAsyncCommandRegistration> _commands = new Dictionary<string, IAsyncCommandRegistration>(StringComparer.InvariantCultureIgnoreCase);
         private Action<IRequest, Exception, Action<IResponse>> _errorHandler = DefaultHandlers.ErrorHandler;

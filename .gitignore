@@ -8,3 +8,5 @@ _ReSharper.*/
 *.snk
 *.user
 *resharper.user
+src/packages/*
+*.nupkg

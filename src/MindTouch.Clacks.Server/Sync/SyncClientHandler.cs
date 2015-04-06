@@ -21,11 +21,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
+using System.Reflection;
+using log4net;
 
 namespace MindTouch.Clacks.Server.Sync {
     public class SyncClientHandler : AClientRequestHandler {
 
-        private static readonly Logger.ILog _log = Logger.CreateLog();
+        private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
         private readonly ISyncCommandDispatcher _dispatcher;
         private ISyncCommandHandler _commandHandler;
