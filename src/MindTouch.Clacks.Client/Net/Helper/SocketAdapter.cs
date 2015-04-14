@@ -95,11 +95,11 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             _isDisposed = true;
         }
 
-        public int Send(byte[] buffer, int offset, int size) {
+        public int Send(byte[] buffer, int offset, int size, bool retry) {
             return _socket.Send(buffer, offset, size, SocketFlags.None);
         }
 
-        public int Receive(byte[] buffer, int offset, int size) {
+        public int Receive(byte[] buffer, int offset, int size, bool retry) {
             return _socket.Receive(buffer, offset, size, SocketFlags.None);
         }
     }

@@ -84,12 +84,13 @@ namespace MindTouch.Clacks.Client {
         public Response Exec(Request request) {
             ThrowIfDisposed();
             var isReconnect = !_attemptReconnect;
+            var retry = !isReconnect;
             while(true) {
                 InitSocket();
                 try {
-                    _socket.SendRequest(request);
+                    _socket.SendRequest(request, retry);
                     _receiver.Reset(request);
-                    return _receiver.GetResponse();
+                    return _receiver.GetResponse(retry);
                 } catch(SocketException) {
                     DisposeSocket();
                     if(isReconnect) {
@@ -113,14 +114,15 @@ namespace MindTouch.Clacks.Client {
             }
             ThrowIfDisposed();
             var isReconnect = !_attemptReconnect;
+            var retry = !isReconnect;
             while(true) {
                 InitSocket();
                 try {
-                    _socket.SendRequest(request);
+                    _socket.SendRequest(request, retry);
                     _receiver.Reset(request);
                     var responses = new List<Response>();
                     while(true) {
-                        var response = _receiver.GetResponse();
+                        var response = _receiver.GetResponse(retry);
                         if(!requestInfo.IsExpected(response.Status)) {
                             return new[] { response };
                         }

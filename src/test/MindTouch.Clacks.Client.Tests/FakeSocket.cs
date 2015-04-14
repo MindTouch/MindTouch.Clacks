@@ -51,13 +51,13 @@ namespace MindTouch.Clacks.Client.Tests {
         public Func<byte[], int, int, int> ReceiveCallback = (buffer, offset, size) => 0;
         public int ReceiveCalled;
 
-        public int Send(byte[] buffer, int offset, int size) {
+        public int Send(byte[] buffer, int offset, int size, bool retry) {
             SendCalled++;
             SendCallback();
             return size;
         }
 
-        public int Receive(byte[] buffer, int offset, int size) {
+        public int Receive(byte[] buffer, int offset, int size, bool retry) {
             ReceiveCalled++;
             return ReceiveCallback(buffer, offset, size);
         }
