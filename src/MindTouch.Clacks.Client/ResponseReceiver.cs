@@ -49,24 +49,24 @@ namespace MindTouch.Clacks.Client {
             _currentResponse = new Response(new[] { "ERROR", "INCOMPLETE" });
         }
 
-        private void Receive() {
+        private void Receive(bool retry) {
             _bufferPosition = 0;
-            _bufferDataLength = _socket.Receive(_buffer, 0, _buffer.Length);
+            _bufferDataLength = _socket.Receive(_buffer, 0, _buffer.Length, retry);
         }
 
         protected void InitializeHandler(string[] command) {
 
         }
 
-        public Response GetResponse() {
+        public Response GetResponse(bool retry) {
             if(_bufferDataLength == 0) {
-                Receive();
+                Receive(retry);
             }
-            ProcessCommandData();
+            ProcessCommandData(retry);
             return _currentResponse;
         }
 
-        private void ProcessCommandData() {
+        private void ProcessCommandData(bool retry) {
             while(true) {
 
                 // look for \r\n
@@ -96,11 +96,11 @@ namespace MindTouch.Clacks.Client {
                         _bufferDataLength -= (i + 1);
                         if(_responseExpectedBytes >= 0) {
                             if(_bufferDataLength == 0) {
-                                Receive();
+                                Receive(retry);
                             }
                             _responseDataPosition = 0;
                             _responseData = new byte[_responseExpectedBytes];
-                            ProcessPayloadData();
+                            ProcessPayloadData(retry);
                         }
 
                         // at this point _currentResponse should be fully populated
@@ -118,11 +118,11 @@ namespace MindTouch.Clacks.Client {
                     }
                 }
                 _statusBuffer.Append(Encoding.ASCII.GetString(_buffer, _bufferPosition, length));
-                Receive();
+                Receive(retry);
             }
         }
 
-        private void ProcessPayloadData() {
+        private void ProcessPayloadData(bool retry) {
             while(true) {
                 var dataLength = Math.Min(_bufferDataLength, _responseExpectedBytes);
                 Array.Copy(_buffer, _bufferPosition, _responseData, _responseDataPosition, dataLength);
@@ -131,14 +131,14 @@ namespace MindTouch.Clacks.Client {
                 _bufferPosition += dataLength;
                 _bufferDataLength -= dataLength;
                 if(_responseExpectedBytes == 0) {
-                    ProcessPayloadTermination();
+                    ProcessPayloadTermination(retry);
                     return;
                 }
-                Receive();
+                Receive(retry);
             }
         }
 
-        private void ProcessPayloadTermination() {
+        private void ProcessPayloadTermination(bool retry) {
 
             // check for trailing \r\n
             while(true) {
@@ -159,7 +159,7 @@ namespace MindTouch.Clacks.Client {
                     // at this point there may only be \r\n 
                     throw new DataTerminatorMissingException();
                 }
-                Receive();
+                Receive(retry);
             }
         }
     }

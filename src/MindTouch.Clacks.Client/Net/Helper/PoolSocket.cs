@@ -42,34 +42,35 @@ namespace MindTouch.Clacks.Client.Net.Helper {
             _reclaim(_socket);
         }
 
-        public int Send(byte[] buffer, int offset, int size) {
-            return Try(() => _socket.Send(buffer, offset, size));
+        public int Send(byte[] buffer, int offset, int size, bool retry) {
+            return Try(() => _socket.Send(buffer, offset, size, retry), retry);
         }
 
-        public int Receive(byte[] buffer, int offset, int size) {
-            return Try(() => _socket.Receive(buffer, offset, size));
+        public int Receive(byte[] buffer, int offset, int size, bool retry) {
+            return Try(() => _socket.Receive(buffer, offset, size, retry), retry);
         }
 
-        private T Try<T>(Func<T> func, bool retry = true) {
+        private T Try<T>(Func<T> func, bool retry) {
             if(_disposed) {
                 throw new ObjectDisposedException("PoolSocket");
             }
-            try {
-                return func();
-            } catch(ObjectDisposedException) {
+            if(Connected || retry) {
                 try {
-                    Dispose();
-                } catch { }
-                throw;
-
-            } catch(SocketException) {
-                try {
-                    _socket.Dispose();
-                    Dispose();
-                } catch { }
-                throw;
-
+                    return func();
+                } catch (ObjectDisposedException) {
+                    try {
+                        Dispose();
+                    } catch { }
+                    throw;
+                } catch (SocketException) {
+                    try {
+                        _socket.Dispose();
+                        Dispose();
+                    } catch { }
+                    throw;
+                }
             }
+            throw new SocketException((int)SocketError.NotConnected);
         }
     }
 }

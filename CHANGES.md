@@ -1,3 +1,7 @@
+0.3.4
+=====
+* Fixed a connection issue in the Client when running on mono
+
 0.3.3
 =====
 * using log4net logger directly
