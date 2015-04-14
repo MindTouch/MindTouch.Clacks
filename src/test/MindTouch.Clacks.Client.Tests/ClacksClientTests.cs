@@ -147,7 +147,7 @@ namespace MindTouch.Clacks.Client.Tests {
 
             // Assert
             Assert.AreEqual(2, _factory.Sockets.Count);
-            Assert.AreEqual(2, failSocket.ReceiveCalled);
+            Assert.AreEqual(1, failSocket.ReceiveCalled);
             Assert.AreEqual(0, successSocket.ReceiveCalled);
         }
 

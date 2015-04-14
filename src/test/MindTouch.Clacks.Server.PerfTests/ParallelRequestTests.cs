@@ -36,6 +36,7 @@ namespace MindTouch.Clacks.Server.PerfTests {
 
     [ExcludeFromCodeCoverage]
     [TestFixture, Ignore]
+    [Category("Performance")]
     public class ParallelRequestTests {
         private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
         private int _port;

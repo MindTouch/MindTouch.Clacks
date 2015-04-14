@@ -32,6 +32,7 @@ namespace MindTouch.Clacks.Server.PerfTests {
 
     [ExcludeFromCodeCoverage]
     [TestFixture]
+    [Category("LongRunning")]
     public class PoolAndServerStressTests {
 
 
