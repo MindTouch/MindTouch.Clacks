@@ -45,7 +45,7 @@ namespace MindTouch.Clacks.Client.Tests {
             // Act
             var receiver = new ResponseReceiver(fakeSocket);
             receiver.Reset(new Request("OK").ExpectData("OK"));
-            var response = receiver.GetResponse(false);
+            var response = receiver.GetResponse();
             Assert.AreEqual("OK", response.Status);
 
             // Assert
@@ -68,7 +68,7 @@ namespace MindTouch.Clacks.Client.Tests {
             // Act
             var receiver = new ResponseReceiver(fakeSocket);
             receiver.Reset(new Request("OK").ExpectData("OK"));
-            var response = receiver.GetResponse(false);
+            var response = receiver.GetResponse();
             Assert.AreEqual("OK", response.Status);
 
             // Assert
@@ -92,7 +92,7 @@ namespace MindTouch.Clacks.Client.Tests {
             // Act
             var receiver = new ResponseReceiver(fakeSocket);
             receiver.Reset(new Request("OK").ExpectData("OK"));
-            var response = receiver.GetResponse(false);
+            var response = receiver.GetResponse();
             Assert.AreEqual("OK", response.Status);
 
             // Assert
@@ -118,7 +118,7 @@ namespace MindTouch.Clacks.Client.Tests {
             // Act
             var receiver = new ResponseReceiver(fakeSocket);
             receiver.Reset(new Request("OK").ExpectData("OK"));
-            var response = receiver.GetResponse(false);
+            var response = receiver.GetResponse();
             Assert.AreEqual("OK", response.Status);
 
             // Assert

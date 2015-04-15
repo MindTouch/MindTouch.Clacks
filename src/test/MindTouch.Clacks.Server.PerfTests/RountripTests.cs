@@ -31,6 +31,7 @@ namespace MindTouch.Clacks.Server.PerfTests {
 
     [ExcludeFromCodeCoverage]
     [TestFixture]
+    [Category("LongRunning")]
     public class RountripTests {
 
         private static ILog _log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);

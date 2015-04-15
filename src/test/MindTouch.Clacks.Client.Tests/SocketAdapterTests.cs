@@ -117,7 +117,7 @@ namespace MindTouch.Clacks.Client.Tests {
                 // Act
                 try {
                     var buffer = new byte[4096];
-                    socket.Receive(buffer, 0, 10, false);
+                    socket.Receive(buffer, 0, 10);
                 } catch(SocketException) {
                     return;
                 }

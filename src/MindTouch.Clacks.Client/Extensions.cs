@@ -27,15 +27,15 @@ namespace MindTouch.Clacks.Client {
             stream.Write(buffer, 0, buffer.Length);
         }
 
-        public static void SendRequest(this ISocket socket, IRequestInfo request, bool retry) {
+        public static void SendRequest(this ISocket socket, IRequestInfo request) {
             var bytes = request.AsBytes();
-            socket.SendBuffer(bytes, bytes.Length, retry);
+            socket.SendBuffer(bytes, bytes.Length);
         }
 
-        private static void SendBuffer(this ISocket socket, byte[] buffer, int count, bool retry) {
+        private static void SendBuffer(this ISocket socket, byte[] buffer, int count) {
             var offset = 0;
             while(count > 0) {
-                var sent = socket.Send(buffer, offset, count, retry);
+                var sent = socket.Send(buffer, offset, count);
                 offset += sent;
                 count -= sent;
             }

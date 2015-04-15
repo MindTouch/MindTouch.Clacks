@@ -100,10 +100,10 @@ namespace MindTouch.Clacks.Server.Tests {
 
                     var socket = SocketAdapter.Open(_endpoint);
                     var request = Encoding.ASCII.GetBytes("HELLO 4\r\n0123456789\r\n");
-                    socket.Send(request, 0, request.Length, false);
+                    socket.Send(request, 0, request.Length);
                     var response = new byte[1024];
                     try {
-                        var read = socket.Receive(response, 0, 1024, false);
+                        var read = socket.Receive(response, 0, 1024);
                     } catch { }
                 }
             }

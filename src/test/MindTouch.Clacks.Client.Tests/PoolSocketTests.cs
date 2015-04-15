@@ -39,7 +39,7 @@ namespace MindTouch.Clacks.Client.Tests {
 
             // Act
             try {
-                poolsocket.Receive(new byte[0], 0, 0, false);
+                poolsocket.Receive(new byte[0], 0, 0);
                 Assert.Fail("didn't throw");
             } catch(SocketException) { }
 
@@ -52,7 +52,7 @@ namespace MindTouch.Clacks.Client.Tests {
         }
 
         [Test]
-        public void Throw_SocketException_when_connection_is_closed_and_will_not_retry() {
+        public void Throw_SocketException_when_connection_is_closed() {
             
             // Arrange
             var fakesocket = new FakeSocket { Connected = false, ReceiveCallback = (buffer, offset, length) => { throw new SocketException(); } };
@@ -61,7 +61,7 @@ namespace MindTouch.Clacks.Client.Tests {
 
             // Act
             try {
-                poolsocket.Receive(new byte[0], 0, 0, false);
+                poolsocket.Receive(new byte[0], 0, 0);
                 Assert.Fail("didn't throw");
             }
             catch (SocketException ex) {
@@ -69,26 +69,6 @@ namespace MindTouch.Clacks.Client.Tests {
                 // Assert
                 Assert.AreEqual((int)SocketError.NotConnected, ex.ErrorCode);
             }            
-        }
-
-        [Test]
-        public void Do_not_throw_SocketException_when_connection_is_closed_and_will_retry() {
-
-            // Arrange
-            var fakesocket = new FakeSocket { Connected = false };
-            var callbacks = new PoolSocketCallbacks();
-            var poolsocket = new PoolSocket(fakesocket, callbacks.Reclaim);
-
-            // Act
-            var response = poolsocket.Receive(new byte[0], 0, 0, true);
-                
-            // Assert
-            Assert.AreEqual(0, response, "Did not receive response.");
-            Assert.AreEqual(1, fakesocket.ReceiveCalled, "send called wrong number of times");
-            Assert.IsFalse(fakesocket.IsDisposed, "underlying socket was disposed");
-            Assert.IsFalse(poolsocket.IsDisposed, "pool socket was disposed");
-            Assert.AreEqual(0, callbacks.ReclaimCalled, "reclaim was called wrong number of times");
-            Assert.IsNull(callbacks.ReclaimedSocket, "underlying socket wasn't the one reclaimed");
         }
     }
 }

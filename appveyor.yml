@@ -29,6 +29,11 @@ build:
   include_nuget_references: false # add -IncludeReferencedProjects option while packaging NuGet artifacts
   verbosity: normal
 
+test:
+  categories:
+    except:
+      - LongRunning
+
 deploy:
   provider: NuGet
   api_key:
