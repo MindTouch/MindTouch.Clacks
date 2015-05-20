@@ -21,8 +21,10 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using log4net;
 using MindTouch.Clacks.Client;
 using NUnit.Framework;
@@ -73,6 +75,48 @@ namespace MindTouch.Clacks.Server.Tests {
                         Thread.Sleep(100);
                     }
                 }
+            }
+        }
+
+        [Test]
+        public void ServerSocketDisconnectTest() {
+            _log.Debug("creating socket");
+            var ipEndpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), _port);
+            var listenSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+            listenSocket.Bind(ipEndpoint);
+            listenSocket.Listen((int)SocketOptionName.MaxConnections);
+            Socket requestSocket = null;
+
+            // accept requests
+            AsyncCallback onAccept = result => {
+                requestSocket = listenSocket.EndAccept(result);
+
+                // read from socket
+                var receiveBuffer = new byte[5];
+                if(requestSocket.Connected) {
+                    requestSocket.Receive(receiveBuffer, 0, receiveBuffer.Length, SocketFlags.None);
+                    requestSocket.Send(Response.Create("OK").GetBytes());
+                }
+            };
+            listenSocket.BeginAccept(onAccept, listenSocket);
+            _log.Debug("created socket");
+
+            // create client
+            using (var client = new ClacksClient("127.0.0.1", _port)) {
+                Assert.IsFalse(client.Disposed);
+                var response = client.Exec(new Client.Request("HELLO"));
+                _log.InfoFormat("Received response with status: {0}", response.Status);
+                Assert.AreEqual("OK", response.Status, "Excpected OK status");
+
+                // disconnect server socket
+                requestSocket.Shutdown(SocketShutdown.Both);
+                requestSocket.Disconnect(reuseSocket: true);
+
+                // create new socket and try another request
+                listenSocket.BeginAccept(onAccept, listenSocket);
+                response = client.Exec(new Client.Request("HELLO"));
+                _log.InfoFormat("Received response with status: {0}", response.Status);
+                Assert.AreEqual("OK", response.Status, "Excpected OK status");
             }
         }
 
