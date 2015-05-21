@@ -55,7 +55,10 @@ namespace MindTouch.Clacks.Client.Net.Helper {
                 throw new ObjectDisposedException("PoolSocket");
             }
             if(!Connected) {
-                //throw new ConnectException();
+                try {
+                    _socket.Dispose();
+                    Dispose();
+                } catch { }
                 throw new SocketException((int)SocketError.NotConnected);
             }
             try {
