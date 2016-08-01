@@ -72,13 +72,15 @@ namespace MindTouch.Clacks.Client {
                 // look for \r\n
                 for(var i = 0; i < _bufferDataLength; i++) {
                     var idx = _bufferPosition + i;
+
                     if(_buffer[idx] == '\r') {
                         _carriageReturn = true;
                     } else if(_carriageReturn) {
                         if(_buffer[idx] != '\n') {
 
                             // it wasn't a \r followed by an \n
-                            throw new IncompleteCommandTerminator();
+                            var receivedCommandData = Encoding.ASCII.GetString(_buffer, _bufferPosition, i - 1);
+                            throw new IncompleteCommandTerminator(receivedCommandData);
                         }
                         _carriageReturn = false;
                         var consumeLength = i - 1;

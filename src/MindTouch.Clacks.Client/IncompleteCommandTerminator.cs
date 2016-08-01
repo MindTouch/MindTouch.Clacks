@@ -20,5 +20,9 @@
 using System;
 
 namespace MindTouch.Clacks.Client {
-    public class IncompleteCommandTerminator : Exception { }
+    public class IncompleteCommandTerminator : Exception {
+        
+        //--- Constructors ---
+        public IncompleteCommandTerminator(string receivedCommandData) : base(string.Format("Received data: '{0}'", receivedCommandData)) { }
+    }
 }
