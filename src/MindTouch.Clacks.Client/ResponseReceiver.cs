@@ -55,8 +55,12 @@ namespace MindTouch.Clacks.Client {
             _bufferPosition = 0;
             _bufferDataLength = _socket.Receive(_buffer, 0, _buffer.Length);
             if(_bufferDataLength == 0) {
-                
-                // NOTE(2016-11-16, yurig): this happens when the remote end hangs up the connection in the middle of a response
+
+                // NOTE(2016-11-16, yurig): https://msdn.microsoft.com/en-us/library/ms145156(v=vs.110).aspx
+                //  If you are using a connection-oriented Socket, the Receive method will read as much data as is available, 
+                //  up to the number of bytes specified by the size parameter. If the remote host shuts down the Socket connection
+                //  with the Shutdown method, and all available data has been received, the Receive method will complete immediately 
+                //  and return zero bytes.
                 throw new SocketException((int)SocketError.ConnectionReset);
             }
         }
