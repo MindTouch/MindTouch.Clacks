@@ -18,11 +18,13 @@
  * limitations under the License.
  */
 using System;
+using System.Net.Sockets;
 using System.Text;
 using MindTouch.Clacks.Client.Net;
 
 namespace MindTouch.Clacks.Client {
     public class ResponseReceiver {
+
         private readonly ISocket _socket;
         private readonly StringBuilder _statusBuffer = new StringBuilder();
         private readonly byte[] _buffer = new byte[16 * 1024];
@@ -52,10 +54,15 @@ namespace MindTouch.Clacks.Client {
         private void Receive() {
             _bufferPosition = 0;
             _bufferDataLength = _socket.Receive(_buffer, 0, _buffer.Length);
-        }
+            if(_bufferDataLength == 0) {
 
-        protected void InitializeHandler(string[] command) {
-
+                // NOTE(2016-11-16, yurig): https://msdn.microsoft.com/en-us/library/ms145156(v=vs.110).aspx
+                //  If you are using a connection-oriented Socket, the Receive method will read as much data as is available, 
+                //  up to the number of bytes specified by the size parameter. If the remote host shuts down the Socket connection
+                //  with the Shutdown method, and all available data has been received, the Receive method will complete immediately 
+                //  and return zero bytes.
+                throw new SocketException((int)SocketError.ConnectionReset);
+            }
         }
 
         public Response GetResponse() {

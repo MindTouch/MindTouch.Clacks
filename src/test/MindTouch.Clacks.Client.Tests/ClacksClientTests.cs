@@ -231,5 +231,36 @@ namespace MindTouch.Clacks.Client.Tests {
             Assert.AreEqual("OK", response.Status);
         }
 
+        [Test, Timeout(5000)]
+        public void Client_recovers_if_connection_is_closed_by_remote_host() {
+
+            // Arrange
+            var pool = new ConnectionPool(_factory.Create);
+            var failSocket = new FakeSocket();
+            failSocket.ReceiveCallback = (buffer, size, offset) => {
+
+                // This happens when the other side hangs up the phone while we are still reading data
+                failSocket.Connected = true;
+                throw new SocketException((int)SocketError.ConnectionReset);
+            };
+            var successSocket = new FakeSocket {
+                ReceiveCallback = (buffer, size, offset) => {
+                    var bytes = Encoding.ASCII.GetBytes("OK\r\n");
+                    Array.Copy(bytes, buffer, bytes.Length);
+                    return bytes.Length;
+                }
+            };
+            _factory.Builder = () => _factory.Sockets.Any() ? successSocket : failSocket;
+
+            // Act
+            var client = new ClacksClient(pool);
+            var response = client.Exec(Request.Create("HI"));
+
+            // Assert
+            Assert.AreEqual(2, _factory.Sockets.Count);
+            Assert.AreEqual(1, failSocket.ReceiveCalled);
+            Assert.AreEqual(1, successSocket.ReceiveCalled);
+            Assert.AreEqual("OK", response.Status);
+        }
     }
 }
